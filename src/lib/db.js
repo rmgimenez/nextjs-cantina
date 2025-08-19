@@ -7,7 +7,7 @@ const database = process.env.DATABASE_NAME || 'sant31br';
 
 let pool = null;
 
-function getPool() {
+export function getPool() {
   if (!pool) {
     pool = mysql.createPool({
       host,
@@ -22,7 +22,18 @@ function getPool() {
   return pool;
 }
 
-async function testConnection() {
+export async function getConnection() {
+  const p = getPool();
+  return p.getConnection();
+}
+
+export async function query(sql, params) {
+  const p = getPool();
+  const [rows] = await p.query(sql, params);
+  return rows;
+}
+
+export async function testConnection() {
   const p = getPool();
   const conn = await p.getConnection();
   try {
@@ -33,4 +44,4 @@ async function testConnection() {
   }
 }
 
-export default { getPool, testConnection };
+export default { getPool, getConnection, query, testConnection };
