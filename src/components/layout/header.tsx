@@ -75,12 +75,14 @@ export default function Header({
     { id: 2, message: 'Nova venda registrada: R$ 25,50', type: 'success', time: '10 min' },
     { id: 3, message: 'Caixa aberto por João Silva', type: 'info', time: '15 min' },
   ];
-
   return (
-    <header className='navbar bg-white shadow-sm border-bottom'>
-      <div className='container-fluid d-flex align-items-center justify-content-between'>
+    <header
+      className='navbar bg-white shadow-sm border-bottom position-sticky top-0'
+      style={{ zIndex: 1050 }}
+    >
+      <div className='container-fluid d-flex align-items-center justify-content-between py-2'>
         {/* Busca Global */}
-        <div className='flex-grow-1 me-3' style={{ maxWidth: 520 }}>
+        <div className='flex-grow-1 me-3' style={{ maxWidth: 540 }}>
           <div className='input-group'>
             <span className='input-group-text bg-white border-end-0'>
               <FiSearch className='text-muted' />
@@ -119,7 +121,7 @@ export default function Header({
           </div>
 
           {/* Status do Caixa */}
-          <div className='d-none d-md-flex align-items-center badge bg-success bg-opacity-10 text-success border border-success rounded-pill py-2 px-3'>
+          <div className='d-none d-md-flex align-items-center badge bg-success bg-opacity-10 text-success border border-success rounded-pill py-1 px-3'>
             <span className='me-2 rounded-circle bg-success' style={{ width: 8, height: 8 }} />
             <small className='mb-0'>Caixa Aberto</small>
           </div>

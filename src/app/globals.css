@@ -57,3 +57,20 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--gray-500);
 }
+
+/* Dashboard specific tweaks */
+.navbar {
+  backdrop-filter: blur(4px);
+}
+
+.sidebar-open {
+  transition: width 160ms ease;
+}
+
+.transition {
+  transition: all 160ms ease;
+}
+
+.h-64 {
+  height: 16rem;
+}

@@ -34,24 +34,25 @@ export default function DashboardLayout({ children, title, subtitle }: Dashboard
   };
 
   return (
-    <div className='d-flex vh-100 bg-light'>
+    <div className='d-flex min-vh-100 bg-light'>
       {/* Sidebar */}
       <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} userRole='admin' />
-
       {/* Overlay para mobile */}
       {isMobile && isSidebarOpen && (
         <div
           className='position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50'
+          style={{ zIndex: 1040 }}
           onClick={toggleSidebar}
         />
       )}
-
       {/* Main Content */}
-      <div className={clsx('flex-grow-1 d-flex flex-column transition')}>
-        {/* Header */}
-        <Header userName='João Silva' userRole='Administrador' />
-
-        {/* Page Content */}
+      <div
+        className={clsx('flex-grow-1 d-flex flex-column')}
+        style={{ transition: 'all 180ms ease' }}
+      >
+        {/* Header (sticky) */}
+        <Header userName='Jo\u00e3o Silva' userRole='Administrador' />
+        {/* Page Content - container para centralizar e controlar larguras */}
         <main className='flex-grow-1 overflow-auto'>
           {(title || subtitle) && (
             <div className='bg-white border-bottom px-3 py-3'>
@@ -59,7 +60,10 @@ export default function DashboardLayout({ children, title, subtitle }: Dashboard
               {subtitle && <p className='text-muted mb-0'>{subtitle}</p>}
             </div>
           )}
-          <div className='p-3'>{children}</div>
+
+          <div className='container-fluid py-4'>
+            <div className='px-0'>{children}</div>
+          </div>
         </main>
       </div>
     </div>
