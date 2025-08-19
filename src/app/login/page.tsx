@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
@@ -94,20 +95,20 @@ export default function LoginPage() {
 
   return (
     <div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4 relative overflow-hidden'>
-      {/* Background decorativo */}
-      <div className='absolute inset-0 opacity-5'>
+      {/* Background decorativo (reduzido para menos distração) */}
+      <div className='absolute inset-0 opacity-6 pointer-events-none'>
         <div
           className='absolute top-0 left-0 w-full h-full'
           style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23253287' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23253287' fill-opacity='0.06'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
           }}
         />
       </div>
 
-      {/* Elementos decorativos com cores do sistema */}
-      <div className='absolute -top-32 -left-32 w-96 h-96 rounded-full bg-gradient-to-r from-blue-100 to-blue-200 blur-3xl opacity-30 animate-pulse'></div>
+      {/* Elementos decorativos com cores do sistema (subtis) */}
+      <div className='absolute -top-24 -left-24 w-80 h-80 rounded-full bg-gradient-to-r from-blue-100 to-blue-200 blur-3xl opacity-20'></div>
       <div
-        className='absolute top-1/2 -right-40 w-128 h-128 rounded-full bg-gradient-to-r from-yellow-100 to-yellow-200 blur-3xl opacity-25 animate-pulse'
+        className='absolute top-1/2 -right-36 w-96 h-96 rounded-full bg-gradient-to-r from-yellow-100 to-yellow-200 blur-3xl opacity-12'
         style={{ animationDelay: '0.7s' }}
       ></div>
 
@@ -115,7 +116,10 @@ export default function LoginPage() {
         {/* Logo e Header */}
         <div className='text-center mb-8'>
           <div className='inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 rounded-3xl shadow-lg mb-6 transform transition-transform hover:scale-105'>
-            <span className='text-white font-bold text-3xl'>C</span>
+            <span className='text-white font-bold text-3xl' aria-hidden='true'>
+              C
+            </span>
+            <span className='sr-only'>Sistema Cantina</span>
           </div>
           <h1 className='text-4xl font-bold text-gray-900 mb-2'>Sistema Cantina</h1>
           <p className='text-gray-600 text-lg'>ERP Cantina Escolar</p>
@@ -124,7 +128,7 @@ export default function LoginPage() {
         {/* Card de Login */}
         <Card shadow='large' className='backdrop-blur-sm bg-white/95 border-0 shadow-2xl'>
           <CardContent className='p-8'>
-            <form onSubmit={handleSubmit} className='space-y-6'>
+            <form onSubmit={handleSubmit} className='space-y-6' noValidate>
               <div className='text-center mb-6'>
                 <h2 className='text-2xl font-semibold text-gray-900'>Faça seu login</h2>
                 <p className='text-gray-600 text-sm mt-2'>
@@ -143,6 +147,8 @@ export default function LoginPage() {
                 iconPosition='left'
                 required
                 autoComplete='username'
+                autoFocus
+                aria-describedby={error ? 'login-error' : undefined}
               />
 
               {/* Campo Senha */}
@@ -168,18 +174,39 @@ export default function LoginPage() {
                 </button>
               </div>
 
+              {/* Lembrar-me e ajuda */}
+              <div className='flex items-center justify-between mt-1'>
+                <label className='inline-flex items-center text-sm text-gray-700'>
+                  <input
+                    type='checkbox'
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className='h-4 w-4 rounded border-gray-300 text-[#253287] focus:ring-[#253287]'
+                  />
+                  <span className='ml-2'>Lembrar-me</span>
+                </label>
+                <button
+                  type='button'
+                  className='text-sm text-blue-600 hover:text-blue-700 transition-colors duration-200 hover:underline'
+                >
+                  Esqueceu sua senha?
+                </button>
+              </div>
+
               {/* Erro */}
               {error && (
-                <div className='bg-red-50 border border-red-200 rounded-xl p-4 animate-pulse'>
-                  <p className='text-red-700 text-sm text-center font-medium'>
-                    {error === 'credenciais_invalidas'
-                      ? 'Usuário ou senha incorretos'
-                      : error === 'usuario_e_senha_obrigatorios'
-                      ? 'Usuário e senha são obrigatórios'
-                      : error === 'server_error'
-                      ? 'Erro no servidor. Tente novamente.'
-                      : error}
-                  </p>
+                <div id='login-error' role='alert' aria-live='assertive'>
+                  <div className='bg-red-50 border border-red-200 rounded-xl p-4'>
+                    <p className='text-red-700 text-sm text-center font-medium'>
+                      {error === 'credenciais_invalidas'
+                        ? 'Usuário ou senha incorretos'
+                        : error === 'usuario_e_senha_obrigatorios'
+                        ? 'Usuário e senha são obrigatórios'
+                        : error === 'server_error'
+                        ? 'Erro no servidor. Tente novamente.'
+                        : error}
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -191,7 +218,7 @@ export default function LoginPage() {
                 loading={loading}
                 icon={<FiLogIn className='w-5 h-5' />}
                 iconPosition='left'
-                className='w-full py-4 text-lg font-semibold shadow-lg hover:shadow-xl transform transition-all duration-200 hover:-translate-y-0.5'
+                className='w-full py-4 text-lg font-semibold shadow-lg hover:shadow-xl transform transition-all duration-200 hover:-translate-y-0.5 bg-[#253287] hover:bg-[#1f276e]'
                 disabled={!usuario || !senha || loading}
               >
                 {loading ? 'Entrando...' : 'Entrar no Sistema'}
