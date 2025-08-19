@@ -1,71 +1,66 @@
-import jwt from 'jsonwebtoken';
+import { jwtVerify } from 'jose';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
+// Para compatibilidade com Edge runtime, usar WebCrypto + jose em vez de jsonwebtoken
 const JWT_SECRET = process.env.JWT_SECRET || 'cantina-secret-key';
+// Chave precisa ser passada como Uint8Array para jose
+const JWT_SECRET_KEY = new TextEncoder().encode(JWT_SECRET);
 const COOKIE_NAME = 'cantina_session';
 
-export function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
+async function validateToken(token: string) {
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET_KEY);
+    return payload as any;
+  } catch (e) {
+    return null;
+  }
+}
 
-  // Rotas que não precisam de autenticação
+export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
   const publicPaths = ['/login', '/api/login', '/api/session', '/api/auth-check'];
   const isPublicPath = publicPaths.includes(pathname);
-
-  // Pega o token do cookie
   const token = request.cookies.get(COOKIE_NAME)?.value;
 
-  // Se está tentando acessar a página de login
+  // Log enxuto para depuração
+  console.log('[MW]', pathname, token ? 'token:yes' : 'token:no');
+
+  // Página de login: se já autenticado redireciona
   if (pathname === '/login') {
     if (token) {
-      try {
-        // Verifica se o token é válido
-        jwt.verify(token, JWT_SECRET);
-        // Se válido, redireciona para dashboard
+      const payload = await validateToken(token);
+      if (payload) {
         return NextResponse.redirect(new URL('/dashboard', request.url));
-      } catch (error) {
-        // Token inválido, remove cookie e continua para login
-        const response = NextResponse.next();
-        response.cookies.delete(COOKIE_NAME);
-        return response;
+      } else {
+        const resp = NextResponse.next();
+        resp.cookies.delete(COOKIE_NAME);
+        return resp;
       }
     }
-    // Não tem token ou token inválido, pode acessar login
     return NextResponse.next();
   }
 
-  // Se é rota pública (exceto login), permite acesso
+  // Rotas públicas (APIs auxiliares) liberadas
   if (isPublicPath) {
     return NextResponse.next();
   }
 
-  // Para todas as outras rotas (incluindo dashboard e APIs protegidas)
   if (!token) {
-    // Em desenvolvimento, permite acesso ao dashboard sem token por enquanto
-    // para facilitar teste e desenvolvimento
-    if (process.env.NODE_ENV !== 'production' && pathname.startsWith('/dashboard')) {
-      return NextResponse.next();
-    }
-    // Não tem token, redireciona para login
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  try {
-    // Verifica se o token é válido
-    const decoded = jwt.verify(token, JWT_SECRET);
-
-    // Adiciona informações do usuário ao headers para uso nas rotas
-    const response = NextResponse.next();
-    response.headers.set('x-user-id', (decoded as any).id?.toString() || '');
-    response.headers.set('x-user-tipo', (decoded as any).tipo || '');
-
-    return response;
-  } catch (error) {
-    // Token inválido, remove cookie e redireciona para login
-    const response = NextResponse.redirect(new URL('/login', request.url));
-    response.cookies.delete(COOKIE_NAME);
-    return response;
+  const payload = await validateToken(token);
+  if (!payload) {
+    const resp = NextResponse.redirect(new URL('/login', request.url));
+    resp.cookies.delete(COOKIE_NAME);
+    return resp;
   }
+
+  const resp = NextResponse.next();
+  resp.headers.set('x-user-id', (payload as any).id?.toString() || '');
+  resp.headers.set('x-user-tipo', (payload as any).tipo || '');
+  return resp;
 }
 
 export const config = {

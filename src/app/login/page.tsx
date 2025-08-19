@@ -19,7 +19,7 @@ export default function LoginPage() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/session', { cache: 'no-store' });
+        const res = await fetch('/api/session', { cache: 'no-store', credentials: 'include' });
         if (!cancelled && res.ok) {
           window.location.href = '/dashboard';
         }
@@ -42,6 +42,7 @@ export default function LoginPage() {
     try {
       const response = await fetch('/api/login', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario, senha }),
       });
@@ -58,10 +59,48 @@ export default function LoginPage() {
       }
       if (data.token) {
         localStorage.setItem('cantina_token', data.token);
+
+        // Fallback: definir cookie via JavaScript também
+        try {
+          const maxAge = 60 * 60 * 8; // 8 horas
+          document.cookie = `cantina_session=${data.token}; Max-Age=${maxAge}; Path=/; SameSite=Lax`;
+          console.log('Cookie set via JavaScript fallback');
+        } catch (e) {
+          console.log('Could not set cookie via JavaScript:', e);
+        }
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      window.location.href = '/dashboard';
+      // Aguarda um pouco para garantir que o cookie foi definido
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Verifica se a sessão está válida antes de redirecionar
+      const sessionCheck = await fetch('/api/session', {
+        cache: 'no-store',
+        credentials: 'include',
+      });
+
+      if (sessionCheck.ok) {
+        window.location.href = '/dashboard';
+      } else {
+        console.log('Session check failed, trying to set cookie again');
+        // Tenta definir o cookie novamente
+        if (data.token) {
+          document.cookie = `cantina_session=${data.token}; Max-Age=28800; Path=/; SameSite=Lax`;
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          // Tenta novamente
+          const retryCheck = await fetch('/api/session', {
+            cache: 'no-store',
+            credentials: 'include',
+          });
+          if (retryCheck.ok) {
+            window.location.href = '/dashboard';
+          } else {
+            setError('Erro ao estabelecer sessão. Tente novamente.');
+          }
+        } else {
+          setError('Erro ao estabelecer sessão. Tente novamente.');
+        }
+      }
     } catch (err) {
       setError('Erro de conexão com o servidor');
     } finally {

@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     console.log('User authenticated successfully:', user);
 
-    const token = createSessionToken({
+    const token = await createSessionToken({
       id: user.id,
       usuario: user.usuario,
       nome: user.nome,
@@ -34,28 +34,17 @@ export async function POST(req: NextRequest) {
       usuario: { id: user.id, nome: user.nome, tipo: user.tipo },
     });
 
-    // Configurações diferentes para desenvolvimento e produção
+    // Configuração do cookie - usar httpOnly: false em desenvolvimento
     const isProd = process.env.NODE_ENV === 'production';
+    res.cookies.set(COOKIE_NAME, token, {
+      httpOnly: false, // false para permitir acesso via JavaScript em dev
+      secure: false, // false para desenvolvimento local
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 8, // 8 horas
+    });
 
-    if (isProd) {
-      // Configurações seguras para produção
-      res.cookies.set(COOKIE_NAME, token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 8, // 8 horas
-      });
-    } else {
-      // Configurações mais permissivas para desenvolvimento
-      res.cookies.set(COOKIE_NAME, token, {
-        httpOnly: false, // Permite acesso via JS para debug
-        secure: false,
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 8, // 8 horas
-      });
-    }
+    console.log('Cookie set via res.cookies.set with httpOnly: false');
 
     console.log('Cookie set with token');
 

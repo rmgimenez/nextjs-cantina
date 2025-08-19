@@ -1,9 +1,11 @@
 import bcrypt from 'bcryptjs';
+import { jwtVerify, SignJWT } from 'jose';
 import jwt from 'jsonwebtoken';
 import { query } from './db';
 
 // Use the same default secret as middleware to avoid verification mismatch in dev
 const JWT_SECRET = process.env.JWT_SECRET || 'cantina-secret-key';
+const JWT_SECRET_KEY = new TextEncoder().encode(JWT_SECRET);
 const COOKIE_NAME = 'cantina_session';
 
 export async function verifyUserCredentials(usuario: string, senha: string) {
@@ -41,16 +43,32 @@ export async function verifyUserCredentials(usuario: string, senha: string) {
   }
 }
 
-export function createSessionToken(payload: object) {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
+// Prefer jose (compatível com Edge). Mantém fallback para jsonwebtoken se necessário.
+export async function createSessionToken(payload: any): Promise<string> {
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    const exp = now + 60 * 60 * 8; // 8h
+    const token = await new SignJWT({ ...payload })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt(now)
+      .setExpirationTime(exp)
+      .sign(JWT_SECRET_KEY);
+    return token;
+  } catch (e) {
+    return jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
+  }
 }
 
-export function verifySessionToken(token: string) {
-  try {
-    return jwt.verify(token, JWT_SECRET) as any;
-  } catch (err) {
-    return null;
-  }
+export function verifySessionToken(token: string): Promise<any | null> | any | null {
+  return jwtVerify(token, JWT_SECRET_KEY)
+    .then((result: any) => result?.payload as any)
+    .catch(() => {
+      try {
+        return jwt.verify(token, JWT_SECRET) as any;
+      } catch (e) {
+        return null;
+      }
+    });
 }
 
 export function cookieOptions() {
