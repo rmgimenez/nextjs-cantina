@@ -665,7 +665,8 @@ CREATE TABLE IF NOT EXISTS `cant_contas_receber` (
 -- início - views
 
 /* View saldo de estoque */
-CREATE OR REPLACE VIEW `cant_view_estoque_saldo` AS
+DROP VIEW IF EXISTS `cant_view_estoque_saldo`;
+CREATE VIEW `cant_view_estoque_saldo` AS
 SELECT p.id AS produto_id,
        p.nome,
        COALESCE(SUM(CASE WHEN em.tipo_mov IN ('ENTRADA','AJUSTE_POSITIVO') THEN em.quantidade
@@ -676,20 +677,23 @@ LEFT JOIN cant_estoque_mov em ON em.produto_id = p.id
 GROUP BY p.id, p.nome;
 
 /* View saldo de alunos */
-CREATE OR REPLACE VIEW `cant_view_aluno_saldo` AS
+DROP VIEW IF EXISTS `cant_view_aluno_saldo`;
+CREATE VIEW `cant_view_aluno_saldo` AS
 SELECT m.aluno_ra,
        COALESCE(SUM(CASE WHEN m.tipo='CREDITO' THEN m.valor ELSE -m.valor END),0) AS saldo_atual
 FROM cant_aluno_saldo_mov m
 GROUP BY m.aluno_ra;
 
 /* Consumo mensal funcionário escola */
-CREATE OR REPLACE VIEW `cant_view_funcionario_consumo_mes` AS
+DROP VIEW IF EXISTS `cant_view_funcionario_consumo_mes`;
+CREATE VIEW `cant_view_funcionario_consumo_mes` AS
 SELECT l.funcionario_id,l.ano,l.mes,SUM(l.valor) AS total_mes
 FROM cant_funcionario_conta_lanc l
 GROUP BY l.funcionario_id,l.ano,l.mes;
 
 /* Produtos mais vendidos */
-CREATE OR REPLACE VIEW `cant_view_produtos_mais_vendidos` AS
+DROP VIEW IF EXISTS `cant_view_produtos_mais_vendidos`;
+CREATE VIEW `cant_view_produtos_mais_vendidos` AS
 SELECT vi.produto_id,p.nome,
        SUM(vi.quantidade) AS quantidade_total,
        SUM(vi.valor_total) AS valor_total
@@ -699,7 +703,8 @@ GROUP BY vi.produto_id,p.nome
 ORDER BY quantidade_total DESC;
 
 /* Performance de usuários (vendedores) */
-CREATE OR REPLACE VIEW `cant_view_performance_funcionario` AS
+DROP VIEW IF EXISTS `cant_view_performance_funcionario`;
+CREATE VIEW `cant_view_performance_funcionario` AS
 SELECT v.usuario_id,u.nome AS usuario_nome,
        COUNT(DISTINCT v.id) AS qtde_vendas,
        SUM(v.valor_liquido) AS total_vendido
@@ -711,9 +716,10 @@ GROUP BY v.usuario_id,u.nome;
 
 -- início - triggers
 
+DROP TRIGGER IF EXISTS `trg_cant_venda_bi`;
 DELIMITER $$
 /* Calcula valor_liquido antes de inserir venda */
-CREATE OR REPLACE TRIGGER `trg_cant_venda_bi`
+CREATE TRIGGER `trg_cant_venda_bi`
 BEFORE INSERT ON `cant_venda`
 FOR EACH ROW
 BEGIN
@@ -721,9 +727,10 @@ BEGIN
 END $$
 DELIMITER ;
 
+DROP TRIGGER IF EXISTS `trg_cant_venda_item_ai`;
 DELIMITER $$
 /* Gera saída de estoque após inserir item de venda */
-CREATE OR REPLACE TRIGGER `trg_cant_venda_item_ai`
+CREATE TRIGGER `trg_cant_venda_item_ai`
 AFTER INSERT ON `cant_venda_item`
 FOR EACH ROW
 BEGIN
@@ -732,9 +739,10 @@ BEGIN
 END $$
 DELIMITER ;
 
+DROP TRIGGER IF EXISTS `trg_cant_venda_ai_saldo_aluno`;
 DELIMITER $$
 /* Debita saldo aluno pós venda com SALDO_ALUNO */
-CREATE OR REPLACE TRIGGER `trg_cant_venda_ai_saldo_aluno`
+CREATE TRIGGER `trg_cant_venda_ai_saldo_aluno`
 AFTER INSERT ON `cant_venda`
 FOR EACH ROW
 BEGIN
@@ -745,9 +753,10 @@ BEGIN
 END $$
 DELIMITER ;
 
+DROP TRIGGER IF EXISTS `trg_cant_venda_ai_func_conta`;
 DELIMITER $$
 /* Lança valor em conta funcionário */
-CREATE OR REPLACE TRIGGER `trg_cant_venda_ai_func_conta`
+CREATE TRIGGER `trg_cant_venda_ai_func_conta`
 AFTER INSERT ON `cant_venda`
 FOR EACH ROW
 BEGIN
@@ -758,9 +767,10 @@ BEGIN
 END $$
 DELIMITER ;
 
+DROP TRIGGER IF EXISTS `trg_cant_pacote_utilizacao_ai`;
 DELIMITER $$
 /* Decrementa usos de pacote após utilização */
-CREATE OR REPLACE TRIGGER `trg_cant_pacote_utilizacao_ai`
+CREATE TRIGGER `trg_cant_pacote_utilizacao_ai`
 AFTER INSERT ON `cant_pacote_utilizacao`
 FOR EACH ROW
 BEGIN
@@ -774,9 +784,10 @@ DELIMITER ;
 
 -- início - funções
 
+DROP FUNCTION IF EXISTS `cant_fn_valor_refeicao_cargo`;
 DELIMITER $$
 /* Valor refeição por cargo */
-CREATE OR REPLACE FUNCTION `cant_fn_valor_refeicao_cargo`(p_cargo VARCHAR(255))
+CREATE FUNCTION `cant_fn_valor_refeicao_cargo`(p_cargo VARCHAR(255))
 RETURNS DECIMAL(12,2)
 DETERMINISTIC
 BEGIN
@@ -786,9 +797,10 @@ BEGIN
 END $$
 DELIMITER ;
 
+DROP FUNCTION IF EXISTS `cant_fn_saldo_aluno`;
 DELIMITER $$
 /* Saldo atual aluno */
-CREATE OR REPLACE FUNCTION `cant_fn_saldo_aluno`(p_aluno_ra INT)
+CREATE FUNCTION `cant_fn_saldo_aluno`(p_aluno_ra INT)
 RETURNS DECIMAL(12,2)
 DETERMINISTIC
 BEGIN
@@ -798,9 +810,10 @@ BEGIN
 END $$
 DELIMITER ;
 
+DROP FUNCTION IF EXISTS `cant_fn_aluno_restrito_produto`;
 DELIMITER $$
 /* Aluno restrito a produto? */
-CREATE OR REPLACE FUNCTION `cant_fn_aluno_restrito_produto`(p_aluno_ra INT, p_produto_id BIGINT)
+CREATE FUNCTION `cant_fn_aluno_restrito_produto`(p_aluno_ra INT, p_produto_id BIGINT)
 RETURNS TINYINT
 DETERMINISTIC
 BEGIN
@@ -808,9 +821,10 @@ BEGIN
 END $$
 DELIMITER ;
 
+DROP FUNCTION IF EXISTS `cant_fn_aluno_restrito_tipo`;
 DELIMITER $$
 /* Aluno restrito a tipo? */
-CREATE OR REPLACE FUNCTION `cant_fn_aluno_restrito_tipo`(p_aluno_ra INT, p_tipo_id BIGINT)
+CREATE FUNCTION `cant_fn_aluno_restrito_tipo`(p_aluno_ra INT, p_tipo_id BIGINT)
 RETURNS TINYINT
 DETERMINISTIC
 BEGIN
@@ -822,18 +836,20 @@ DELIMITER ;
 
 -- início - stored procedures
 
+DROP PROCEDURE IF EXISTS `cant_sp_credita_saldo_aluno`;
 DELIMITER $$
 /* Credita saldo aluno */
-CREATE OR REPLACE PROCEDURE `cant_sp_credita_saldo_aluno`(IN p_aluno_ra INT, IN p_valor DECIMAL(12,2), IN p_observacao VARCHAR(255))
+CREATE PROCEDURE `cant_sp_credita_saldo_aluno`(IN p_aluno_ra INT, IN p_valor DECIMAL(12,2), IN p_observacao VARCHAR(255))
 BEGIN
   INSERT INTO cant_aluno_saldo_mov (aluno_ra, tipo, valor, origem, referencia, observacao)
   VALUES (p_aluno_ra, 'CREDITO', p_valor, 'RECARGA', CONCAT('REC-', UUID()), p_observacao);
 END $$
 DELIMITER ;
 
+DROP PROCEDURE IF EXISTS `cant_sp_compra_pacote`;
 DELIMITER $$
 /* Compra de pacote */
-CREATE OR REPLACE PROCEDURE `cant_sp_compra_pacote`(IN p_aluno_ra INT, IN p_pacote_tipo_id BIGINT, IN p_data_inicio DATE, IN p_usuario_id BIGINT)
+CREATE PROCEDURE `cant_sp_compra_pacote`(IN p_aluno_ra INT, IN p_pacote_tipo_id BIGINT, IN p_data_inicio DATE, IN p_usuario_id BIGINT)
 BEGIN
   DECLARE v_dias INT; DECLARE v_preco DECIMAL(12,2);
   SELECT dias_validade, preco INTO v_dias, v_preco FROM cant_pacote_tipo WHERE id = p_pacote_tipo_id AND ativo = 1;
@@ -843,9 +859,10 @@ BEGIN
 END $$
 DELIMITER ;
 
+DROP PROCEDURE IF EXISTS `cant_sp_fecha_caixa`;
 DELIMITER $$
 /* Fecha caixa */
-CREATE OR REPLACE PROCEDURE `cant_sp_fecha_caixa`(IN p_caixa_id BIGINT, IN p_usuario_fechamento BIGINT, IN p_valor_informado DECIMAL(12,2))
+CREATE PROCEDURE `cant_sp_fecha_caixa`(IN p_caixa_id BIGINT, IN p_usuario_fechamento BIGINT, IN p_valor_informado DECIMAL(12,2))
 BEGIN
   DECLARE v_total_vendas DECIMAL(12,2) DEFAULT 0.00;
   DECLARE v_total_reforco DECIMAL(12,2) DEFAULT 0.00;
@@ -863,9 +880,10 @@ BEGIN
 END $$
 DELIMITER ;
 
+DROP PROCEDURE IF EXISTS `cant_sp_gera_faturas_funcionarios`;
 DELIMITER $$
 /* Gera faturas mensais funcionários */
-CREATE OR REPLACE PROCEDURE `cant_sp_gera_faturas_funcionarios`(IN p_ano INT, IN p_mes INT)
+CREATE PROCEDURE `cant_sp_gera_faturas_funcionarios`(IN p_ano INT, IN p_mes INT)
 BEGIN
   INSERT INTO cant_funcionario_fatura (funcionario_id, mes, ano, valor_total)
   SELECT funcionario_id, p_mes, p_ano, SUM(valor)
@@ -878,9 +896,10 @@ BEGIN
 END $$
 DELIMITER ;
 
+DROP PROCEDURE IF EXISTS `cant_sp_registra_venda`;
 DELIMITER $$
 /* Registra venda simples (cabeçalho) - itens devem ser inseridos depois */
-CREATE OR REPLACE PROCEDURE `cant_sp_registra_venda`(
+CREATE PROCEDURE `cant_sp_registra_venda`(
   IN p_usuario_id BIGINT,
   IN p_caixa_id BIGINT,
   IN p_tipo_comprador ENUM('ALUNO','FUNCIONARIO_ESCOLA','AVULSA'),
