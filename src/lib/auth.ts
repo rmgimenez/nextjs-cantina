@@ -9,6 +9,26 @@ export const COOKIE_NAME = 'cantina_session';
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 8; // 8h
 const SESSION_REFRESH_THRESHOLD_SECONDS = 60 * 30; // 30 min antes de expirar renova
 
+// Perfis / Roles suportados (RF-002)
+export const ROLE_ADMIN = 'ADMIN';
+export const ROLE_ATENDENTE = 'ATENDENTE';
+export const ROLE_ESTOQUISTA = 'ESTOQUISTA';
+
+export function normalizeTipo(tipo: any): string {
+  if (!tipo) return ROLE_ATENDENTE;
+  const t = String(tipo).toUpperCase();
+  if (t.includes('ADMIN')) return ROLE_ADMIN;
+  if (t.includes('ESTOQUI') || t.includes('ESTO') || t.includes('STOQUI')) return ROLE_ESTOQUISTA;
+  // default fallback
+  return ROLE_ATENDENTE;
+}
+
+export function hasAnyRole(payloadOrTipo: any, allowedRoles: string[]): boolean {
+  const tipoRaw = typeof payloadOrTipo === 'string' ? payloadOrTipo : payloadOrTipo?.tipo;
+  const t = normalizeTipo(tipoRaw);
+  return allowedRoles.includes(t);
+}
+
 export async function verifyUserCredentials(usuario: string, senha: string) {
   try {
     // First try to find in cant_usuarios
@@ -21,7 +41,9 @@ export async function verifyUserCredentials(usuario: string, senha: string) {
       if (!u.ativo) return null;
       const match = await bcrypt.compare(senha, u.senha_hash);
       if (match) {
-        return { id: u.id, usuario: u.usuario, nome: u.nome, tipo: u.tipo };
+        // Normaliza o tipo/perfil para os valores esperados pelo sistema
+        const tipo = normalizeTipo(u.tipo);
+        return { id: u.id, usuario: u.usuario, nome: u.nome, tipo };
       }
     }
 
@@ -33,7 +55,7 @@ export async function verifyUserCredentials(usuario: string, senha: string) {
     if (f && f.length > 0) {
       const uf = f[0];
       if (uf.senha && uf.senha === senha) {
-        return { id: uf.id, usuario, nome: uf.nome, tipo: 'ATENDENTE' };
+        return { id: uf.id, usuario, nome: uf.nome, tipo: ROLE_ATENDENTE };
       }
     }
     return null;

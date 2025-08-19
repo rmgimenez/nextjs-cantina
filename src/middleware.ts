@@ -1,6 +1,14 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
-import { COOKIE_NAME, refreshSessionTokenIfNeeded } from './lib/auth';
+import {
+  COOKIE_NAME,
+  hasAnyRole,
+  normalizeTipo,
+  refreshSessionTokenIfNeeded,
+  ROLE_ADMIN,
+  ROLE_ATENDENTE,
+  ROLE_ESTOQUISTA,
+} from './lib/auth';
 
 // Middleware agora só delega a lógica de validar / refresh para lib/auth
 
@@ -44,8 +52,10 @@ export async function middleware(request: NextRequest) {
   }
   const { payload, token: newToken, refreshed } = result;
   const resp = NextResponse.next();
+  // Normaliza e expõe tipo do usuário para o restante do app
+  const normalizedTipo = normalizeTipo((payload as any).tipo);
   resp.headers.set('x-user-id', (payload as any).id?.toString() || '');
-  resp.headers.set('x-user-tipo', (payload as any).tipo || '');
+  resp.headers.set('x-user-tipo', normalizedTipo || '');
   if (refreshed) {
     // Regrava cookie atualizado
     resp.cookies.set(COOKIE_NAME, newToken, {
@@ -55,6 +65,27 @@ export async function middleware(request: NextRequest) {
       path: '/',
       maxAge: 60 * 60 * 8,
     });
+  }
+
+  // --- RF-002: Proteção por perfis (exemplo simples) ---
+  // Mapa de prefixos de rota para roles permitidos. Ajustar conforme necessidade.
+  const roleProtectedMap: Array<{ prefix: string; roles: string[] }> = [
+    { prefix: '/dashboard', roles: [ROLE_ADMIN, ROLE_ATENDENTE, ROLE_ESTOQUISTA] },
+    { prefix: '/dashboard/pdv', roles: [ROLE_ATENDENTE, ROLE_ADMIN] },
+    { prefix: '/dashboard/produtos', roles: [ROLE_ADMIN, ROLE_ESTOQUISTA] },
+    { prefix: '/api/dashboard/alerts', roles: [ROLE_ADMIN, ROLE_ESTOQUISTA] },
+  ];
+
+  for (const rule of roleProtectedMap) {
+    if (pathname.startsWith(rule.prefix)) {
+      const allowed = hasAnyRole(payload, rule.roles);
+      if (!allowed) {
+        // Negar acesso: redireciona para dashboard principal se autenticado, ou login caso contrário
+        console.log('[MW] Acesso negado para', pathname, 'role:', normalizedTipo);
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      }
+      break;
+    }
   }
   return resp;
 }

@@ -117,7 +117,7 @@ Observação: Implementado endpoint de login (`/api/login`) e logout (`/api/logo
 
 - Manter sessão ativa do usuário logado
 - Permitir logout seguro
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
 
 ### Módulo de Gestão de Usuários
 
