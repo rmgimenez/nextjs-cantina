@@ -51,7 +51,7 @@ export default function DashboardLayout({ children, title, subtitle }: Dashboard
         style={{ transition: 'all 180ms ease' }}
       >
         {/* Header (sticky) */}
-        <Header userName='Jo\u00e3o Silva' userRole='Administrador' />
+        <Header userName='Jo\u00e3o Silva' userRole='Administrador' onToggle={toggleSidebar} />
         {/* Page Content - container para centralizar e controlar larguras */}
         <main className='flex-grow-1 overflow-auto'>
           {(title || subtitle) && (

@@ -21,6 +21,9 @@
   /* Sistema */
   --background: #ffffff;
   --foreground: #333333;
+  /* Gradiente de marca */
+  --brand-gradient: linear-gradient(90deg, var(--primary-blue) 0%, #3141a8 50%, #2a2f86 100%);
+  --brand-soft: rgba(37, 50, 135, 0.06);
 }
 
 * {
@@ -37,6 +40,105 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Brand overrides for Bootstrap utilities to keep consistent colors across the app */
+.bg-primary,
+.btn-primary,
+.text-primary,
+.badge.bg-primary {
+  background-color: var(--primary-blue) !important;
+  border-color: var(--primary-blue) !important;
+  color: var(--primary-light) !important;
+}
+
+.text-primary {
+  color: var(--primary-blue) !important;
+}
+
+.btn-primary {
+  background-image: none;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06), 0 2px 8px rgba(37, 50, 135, 0.08);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: #1f2870 !important;
+  border-color: #1f2870 !important;
+}
+
+/* Danger / red branding */
+.btn-danger,
+.badge.bg-danger {
+  background-color: var(--primary-red) !important;
+  border-color: var(--primary-red) !important;
+  color: var(--primary-light) !important;
+}
+
+/* Warning (yellow) accents */
+.text-warning,
+.bg-warning {
+  color: #382400 !important;
+  background-color: var(--primary-yellow) !important;
+}
+
+/* Subtle brand surfaces */
+.brand-surface {
+  background: var(--brand-soft);
+}
+
+/* Avatar usado no header */
+.brand-avatar {
+  width: 36px;
+  height: 36px;
+  background-color: var(--primary-blue);
+  color: var(--primary-light);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+/* Navbar branding */
+.navbar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.9));
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+/* Header profile avatar uses brand color via utility class in components, keep it rounded */
+.navbar .rounded-circle.bg-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+/* Sidebar tweaks */
+.sidebar-open {
+  transition: width 160ms ease;
+}
+
+.sidebar-active-item {
+  background: var(--brand-soft);
+  border-left: 3px solid var(--primary-blue);
+}
+
+/* Card tweaks to match brand */
+.card {
+  border-radius: 12px;
+}
+
+/* Inputs focus states using brand */
+.form-control:focus {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 0.15rem rgba(37, 50, 135, 0.12);
+}
+
+/* Small helpers */
+.badge.brand-badge {
+  background-color: var(--primary-blue);
+  color: var(--primary-light);
 }
 
 /* Scrollbar personalizada */

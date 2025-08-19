@@ -246,10 +246,11 @@ export default function Sidebar({ isOpen, onToggle, userRole = 'admin' }: Sideba
       <div key={item.id}>
         <div
           onClick={hasChildren ? () => toggleSubmenu(item.id) : undefined}
-          className={clsx('d-flex align-items-center justify-content-between', {
-            'bg-primary bg-opacity-10': isActive,
+          className={clsx('d-flex align-items-center justify-content-between p-2 rounded', {
+            'sidebar-active-item': isActive,
+            'brand-surface': isActive,
           })}
-          style={{ padding: 8, borderRadius: 8, cursor: 'pointer', marginLeft: level > 0 ? 12 : 0 }}
+          style={{ cursor: 'pointer', marginLeft: level > 0 ? 12 : 0 }}
         >
           <Link
             href={item.href}
@@ -293,7 +294,9 @@ export default function Sidebar({ isOpen, onToggle, userRole = 'admin' }: Sideba
       className={clsx('h-100 bg-white shadow-sm transition flex-shrink-0', {
         'sidebar-open': isOpen,
       })}
-      style={{ width: isOpen ? 260 : 64, minHeight: '100vh' }}
+      // tornar o aside posicionado e com z-index alto para que o botão de toggle
+      // continue acessível mesmo quando o conteúdo principal (Header) estiver sobreposto
+      style={{ position: 'relative', zIndex: 1060, width: isOpen ? 260 : 64, minHeight: '100vh' }}
     >
       {/* Header */}
       <div className='d-flex align-items-center justify-content-between p-3 border-bottom'>

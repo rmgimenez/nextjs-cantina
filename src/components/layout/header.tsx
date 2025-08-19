@@ -17,12 +17,14 @@ interface HeaderProps {
   userName?: string;
   userRole?: string;
   onLogout?: () => void;
+  onToggle?: () => void;
 }
 
 export default function Header({
   userName = 'Usuário',
   userRole = 'Administrador',
   onLogout,
+  onToggle,
 }: HeaderProps) {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -82,8 +84,21 @@ export default function Header({
     >
       <div className='container-fluid d-flex align-items-center justify-content-between py-2'>
         {/* Busca Global */}
-        <div className='flex-grow-1 me-3' style={{ maxWidth: 540 }}>
-          <div className='input-group'>
+        <div className='flex-grow-1 me-3 d-flex align-items-center' style={{ maxWidth: 540 }}>
+          {/* Botão de toggle da sidebar - visível em telas pequenas e médias
+              Em telas md+ a sidebar está normalmente fixa, mas manter o botão
+              não faz mal e melhora acessibilidade */}
+          {onToggle && (
+            <button
+              onClick={onToggle}
+              className='btn btn-light btn-sm me-2 d-md-none'
+              title='Abrir/Fechar menu'
+              aria-label='Abrir menu'
+            >
+              ☰
+            </button>
+          )}
+          <div className='input-group flex-grow-1'>
             <span className='input-group-text bg-white border-end-0'>
               <FiSearch className='text-muted' />
             </span>
@@ -134,10 +149,7 @@ export default function Header({
               id='profileDropdown'
               aria-expanded={isProfileMenuOpen}
             >
-              <div
-                className='rounded-circle bg-primary text-white d-flex align-items-center justify-content-center'
-                style={{ width: 36, height: 36 }}
-              >
+              <div className='rounded-circle brand-avatar text-white d-flex align-items-center justify-content-center'>
                 <strong>{(name && name.length > 0 ? name.charAt(0) : '?').toUpperCase()}</strong>
               </div>
               <div className='d-none d-md-block text-start'>
