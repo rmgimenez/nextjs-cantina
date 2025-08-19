@@ -382,6 +382,7 @@ CREATE TABLE IF NOT EXISTS `cant_produtos` (
   `descricao` VARCHAR(255) NULL,
   `preco_unitario` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
   `codigo_barra` VARCHAR(60) NULL UNIQUE,
+  `estoque_minimo` DECIMAL(12,3) NULL DEFAULT 0.000 COMMENT 'Quantidade mínima para alerta de baixo estoque',
   `ativo` TINYINT NOT NULL DEFAULT 1,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -670,6 +671,7 @@ DROP VIEW IF EXISTS `cant_view_estoque_saldo`;
 CREATE VIEW `cant_view_estoque_saldo` AS
 SELECT p.id AS produto_id,
        p.nome,
+  p.estoque_minimo,
        COALESCE(SUM(CASE WHEN em.tipo_mov IN ('ENTRADA','AJUSTE_POSITIVO') THEN em.quantidade
                          WHEN em.tipo_mov IN ('SAIDA','AJUSTE_NEGATIVO','SAIDA_VENDA') THEN -em.quantidade
                          ELSE 0 END),0) AS saldo
@@ -921,3 +923,6 @@ DELIMITER ;
 -- fim - stored procedures
 
 -- fim - script sistema cantina
+
+-- ALTER TABLE incremental (caso já exista sem a coluna estoque_minimo)
+ALTER TABLE cant_produtos ADD COLUMN IF NOT EXISTS `estoque_minimo` DECIMAL(12,3) NULL DEFAULT 0.000 COMMENT 'Quantidade mínima para alerta de baixo estoque';
