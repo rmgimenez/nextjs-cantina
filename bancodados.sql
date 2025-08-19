@@ -355,6 +355,11 @@ CREATE TABLE IF NOT EXISTS `cant_usuarios` (
   KEY `idx_cant_usuarios_ativo` (`ativo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Exemplo: usuário administrador para teste (senha: admin123)
+INSERT INTO `cant_usuarios` (`nome`, `usuario`, `senha_hash`, `tipo`, `ativo`) VALUES
+('Administrador', 'admin', '$2a$10$3TXw/ztlf.eDNdiRDOWkWOt1QGCvh/8gAV1ZPNAdNW0YAMWjSnL9.', 'ADMIN', 1)
+ON DUPLICATE KEY UPDATE nome=VALUES(nome), senha_hash=VALUES(senha_hash), tipo=VALUES(tipo), ativo=VALUES(ativo);
+
 /* Tipos de produtos */
 CREATE TABLE IF NOT EXISTS `cant_produto_tipo` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,

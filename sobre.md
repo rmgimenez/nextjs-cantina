@@ -102,7 +102,9 @@ Os requisitos funcionais deverão ser separados por códigos, exemplo RF-001, RF
 
 - O sistema deve permitir login com nome de usuário e senha
 - Deve validar credenciais no banco de dados
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
+
+Observação: Implementado endpoint de login (`/api/login`) e logout (`/api/logout`), validação de credenciais em `cant_usuarios` (bcrypt) com fallback legada, e sessão via cookie JWT (`cantina_session`). Página de login em `/login` adicionada para testes.
 
 **RF-002** - Controle de perfis de usuário
 

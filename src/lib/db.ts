@@ -49,3 +49,9 @@ export async function testConnection(): Promise<void> {
     conn.release();
   }
 }
+
+// helper re-export used by auth
+export async function queryAny(sql: string, params?: any[]) {
+  const [rows] = await dbPool.query(sql, params as any);
+  return rows;
+}
