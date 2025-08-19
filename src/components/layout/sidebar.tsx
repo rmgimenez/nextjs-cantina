@@ -290,11 +290,10 @@ export default function Sidebar({ isOpen, onToggle, userRole = 'admin' }: Sideba
 
   return (
     <aside
-      className={clsx('position-fixed top-0 start-0 h-100 bg-white shadow-sm transition w-auto', {
-        'vw-100': false,
+      className={clsx('h-100 bg-white shadow-sm transition flex-shrink-0', {
         'sidebar-open': isOpen,
       })}
-      style={{ width: isOpen ? 260 : 64, zIndex: 1040 }}
+      style={{ width: isOpen ? 260 : 64, minHeight: '100vh' }}
     >
       {/* Header */}
       <div className='d-flex align-items-center justify-content-between p-3 border-bottom'>

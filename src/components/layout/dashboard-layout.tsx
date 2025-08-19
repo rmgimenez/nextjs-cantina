@@ -47,12 +47,7 @@ export default function DashboardLayout({ children, title, subtitle }: Dashboard
       )}
 
       {/* Main Content */}
-      <div
-        className={clsx('flex-grow-1 d-flex flex-column transition', {
-          'ms-4': !isMobile,
-        })}
-        style={{ marginLeft: isMobile ? 0 : isSidebarOpen ? 260 : 64 }}
-      >
+      <div className={clsx('flex-grow-1 d-flex flex-column transition')}>
         {/* Header */}
         <Header userName='João Silva' userRole='Administrador' />
 
