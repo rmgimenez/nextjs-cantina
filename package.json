@@ -23,6 +23,8 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "autoprefixer": "^10",
+    "postcss": "^8",
     "@types/bcryptjs": "^3.0.0",
     "@types/cookie": "^1.0.0",
     "@types/jsonwebtoken": "^9.0.10",

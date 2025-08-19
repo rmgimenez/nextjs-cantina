@@ -2,13 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { COOKIE_NAME, verifySessionToken } from '../../../lib/auth';
 
 export async function GET(req: NextRequest) {
-  console.log('Session check requested');
+  console.log('Auth check requested');
 
-  const token = req.cookies.get(COOKIE_NAME)?.value;
+  // Verifica cookie primeiro
+  let token = req.cookies.get(COOKIE_NAME)?.value;
   console.log('Token from cookie:', token ? 'exists' : 'not found');
 
+  // Em desenvolvimento, também verifica se foi passado via header
+  if (!token && process.env.NODE_ENV !== 'production') {
+    token = req.headers.get('authorization')?.replace('Bearer ', '');
+    console.log('Token from header:', token ? 'exists' : 'not found');
+  }
+
   if (!token) {
-    console.log('No token found, returning 401');
+    console.log('No token found anywhere');
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 
@@ -16,7 +23,7 @@ export async function GET(req: NextRequest) {
   console.log('Token verification result:', payload ? 'valid' : 'invalid');
 
   if (!payload) {
-    console.log('Invalid token, returning 401');
+    console.log('Invalid token');
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 

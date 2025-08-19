@@ -22,7 +22,7 @@ export default function LoginPage() {
       try {
         const res = await fetch('/api/session', { cache: 'no-store' });
         if (!cancelled && res.ok) {
-          router.replace('/dashboard');
+          window.location.href = '/dashboard';
         }
       } catch (e) {
         // silent
@@ -54,8 +54,25 @@ export default function LoginPage() {
         return;
       }
 
-      // Redireciona sem recarregar a página
-      router.replace('/dashboard');
+      console.log('Login successful, data:', data);
+
+      // Salva as informações do usuário e token para desenvolvimento
+      if (data.usuario) {
+        localStorage.setItem('cantina_user', JSON.stringify(data.usuario));
+      }
+      if (data.token) {
+        localStorage.setItem('cantina_token', data.token);
+      }
+
+      // Aguarda um pouco para garantir que os dados sejam salvos
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Verifica se o cookie foi definido (em desenvolvimento está acessível via JS)
+      const cookies = document.cookie;
+      console.log('Cookies after login:', cookies);
+
+      // Redireciona para dashboard
+      window.location.href = '/dashboard';
     } catch (err) {
       setError('Erro de conexão com o servidor');
     } finally {
@@ -77,31 +94,40 @@ export default function LoginPage() {
 
   return (
     <div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4 relative overflow-hidden'>
-      {/* Background Pattern */}
-      <div className='absolute inset-0 bg-grid-pattern opacity-10'></div>
-      <div className='absolute -top-32 -left-32 w-96 h-96 rounded-full bg-blue-100 blur-3xl opacity-70 animate-pulse'></div>
-      <div className='absolute top-1/2 -right-40 w-[32rem] h-[32rem] rounded-full bg-yellow-100 blur-3xl opacity-60 animate-pulse delay-700'></div>
+      {/* Background decorativo */}
+      <div className='absolute inset-0 opacity-5'>
+        <div
+          className='absolute top-0 left-0 w-full h-full'
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23253287' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        />
+      </div>
+
+      {/* Elementos decorativos com cores do sistema */}
+      <div className='absolute -top-32 -left-32 w-96 h-96 rounded-full bg-gradient-to-r from-blue-100 to-blue-200 blur-3xl opacity-30 animate-pulse'></div>
+      <div
+        className='absolute top-1/2 -right-40 w-128 h-128 rounded-full bg-gradient-to-r from-yellow-100 to-yellow-200 blur-3xl opacity-25 animate-pulse'
+        style={{ animationDelay: '0.7s' }}
+      ></div>
 
       <div className='w-full max-w-md relative z-10'>
         {/* Logo e Header */}
         <div className='text-center mb-8'>
-          <div className='inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl shadow-lg mb-4'>
-            <span className='text-white font-bold text-2xl'>C</span>
+          <div className='inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 rounded-3xl shadow-lg mb-6 transform transition-transform hover:scale-105'>
+            <span className='text-white font-bold text-3xl'>C</span>
           </div>
-          <h1 className='text-3xl font-bold text-gray-900 mb-2'>Sistema Cantina</h1>
-          <p className='text-gray-600'>ERP Cantina Escolar</p>
+          <h1 className='text-4xl font-bold text-gray-900 mb-2'>Sistema Cantina</h1>
+          <p className='text-gray-600 text-lg'>ERP Cantina Escolar</p>
         </div>
 
         {/* Card de Login */}
-        <Card
-          shadow='large'
-          className='backdrop-blur-md bg-white/90 border-0 ring-1 ring-white/40 shadow-xl animate-fade-in'
-        >
-          <CardContent>
+        <Card shadow='large' className='backdrop-blur-sm bg-white/95 border-0 shadow-2xl'>
+          <CardContent className='p-8'>
             <form onSubmit={handleSubmit} className='space-y-6'>
               <div className='text-center mb-6'>
-                <h2 className='text-xl font-semibold text-gray-900'>Faça seu login</h2>
-                <p className='text-gray-600 text-sm mt-1'>
+                <h2 className='text-2xl font-semibold text-gray-900'>Faça seu login</h2>
+                <p className='text-gray-600 text-sm mt-2'>
                   Entre com suas credenciais para acessar o sistema
                 </p>
               </div>
@@ -113,7 +139,7 @@ export default function LoginPage() {
                 value={usuario}
                 onChange={(e) => setUsuario(e.target.value)}
                 placeholder='Digite seu usuário'
-                icon={<FiUser className='w-4 h-4' />}
+                icon={<FiUser className='w-5 h-5' />}
                 iconPosition='left'
                 required
                 autoComplete='username'
@@ -127,7 +153,7 @@ export default function LoginPage() {
                   value={senha}
                   onChange={(e) => setSenha(e.target.value)}
                   placeholder='Digite sua senha'
-                  icon={<FiLock className='w-4 h-4' />}
+                  icon={<FiLock className='w-5 h-5' />}
                   iconPosition='left'
                   required
                   autoComplete='current-password'
@@ -135,16 +161,25 @@ export default function LoginPage() {
                 <button
                   type='button'
                   onClick={togglePasswordVisibility}
-                  className='absolute right-3 top-8 text-gray-400 hover:text-gray-600 transition-colors'
+                  className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1'
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                 >
-                  {showPassword ? <FiEyeOff className='w-4 h-4' /> : <FiEye className='w-4 h-4' />}
+                  {showPassword ? <FiEyeOff className='w-5 h-5' /> : <FiEye className='w-5 h-5' />}
                 </button>
               </div>
 
               {/* Erro */}
               {error && (
-                <div className='bg-red-50 border border-red-200 rounded-lg p-3'>
-                  <p className='text-red-600 text-sm text-center'>{error}</p>
+                <div className='bg-red-50 border border-red-200 rounded-xl p-4 animate-pulse'>
+                  <p className='text-red-700 text-sm text-center font-medium'>
+                    {error === 'credenciais_invalidas'
+                      ? 'Usuário ou senha incorretos'
+                      : error === 'usuario_e_senha_obrigatorios'
+                      ? 'Usuário e senha são obrigatórios'
+                      : error === 'server_error'
+                      ? 'Erro no servidor. Tente novamente.'
+                      : error}
+                  </p>
                 </div>
               )}
 
@@ -154,19 +189,19 @@ export default function LoginPage() {
                 variant='primary'
                 size='large'
                 loading={loading}
-                icon={<FiLogIn className='w-4 h-4' />}
+                icon={<FiLogIn className='w-5 h-5' />}
                 iconPosition='left'
-                className='w-full'
+                className='w-full py-4 text-lg font-semibold shadow-lg hover:shadow-xl transform transition-all duration-200 hover:-translate-y-0.5'
                 disabled={!usuario || !senha || loading}
               >
                 {loading ? 'Entrando...' : 'Entrar no Sistema'}
               </Button>
 
               {/* Links auxiliares */}
-              <div className='text-center'>
+              <div className='text-center pt-4'>
                 <button
                   type='button'
-                  className='text-sm text-blue-600 hover:text-blue-700 transition-colors'
+                  className='text-sm text-blue-600 hover:text-blue-700 transition-colors duration-200 hover:underline'
                 >
                   Esqueceu sua senha?
                 </button>
@@ -182,10 +217,16 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Elementos decorativos */}
-      <div className='absolute top-10 left-10 w-24 h-24 bg-blue-200 rounded-full opacity-30 animate-pulse'></div>
-      <div className='absolute bottom-10 right-10 w-40 h-40 bg-yellow-200 rounded-full opacity-30 animate-pulse delay-1000'></div>
-      <div className='absolute top-1/2 right-20 w-20 h-20 bg-red-200 rounded-full opacity-30 animate-pulse delay-500'></div>
+      {/* Elementos decorativos menores */}
+      <div className='absolute top-10 left-10 w-20 h-20 bg-blue-200 rounded-full opacity-20 animate-pulse'></div>
+      <div
+        className='absolute bottom-10 right-10 w-32 h-32 bg-yellow-200 rounded-full opacity-20 animate-pulse'
+        style={{ animationDelay: '1s' }}
+      ></div>
+      <div
+        className='absolute top-1/2 right-20 w-16 h-16 bg-red-200 rounded-full opacity-20 animate-pulse'
+        style={{ animationDelay: '0.5s' }}
+      ></div>
     </div>
   );
 }

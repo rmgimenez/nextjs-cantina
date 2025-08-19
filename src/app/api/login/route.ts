@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  COOKIE_NAME,
-  cookieOptions,
-  createSessionToken,
-  verifyUserCredentials,
-} from '../../../lib/auth';
+import { COOKIE_NAME, createSessionToken, verifyUserCredentials } from '../../../lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { usuario, senha } = body || {};
+    console.log('Login attempt for user:', usuario);
+
     if (!usuario || !senha) {
       return NextResponse.json({ error: 'usuario_e_senha_obrigatorios' }, { status: 400 });
     }
 
     const user = await verifyUserCredentials(usuario, senha);
     if (!user) {
+      console.log('Invalid credentials for user:', usuario);
       return NextResponse.json({ error: 'credenciais_invalidas' }, { status: 401 });
     }
+
+    console.log('User authenticated successfully:', user);
 
     const token = createSessionToken({
       id: user.id,
@@ -26,11 +26,39 @@ export async function POST(req: NextRequest) {
       tipo: user.tipo,
     });
 
+    console.log('Token created successfully');
+
     const res = NextResponse.json({
       ok: true,
+      token: token, // Enviamos o token na resposta também
       usuario: { id: user.id, nome: user.nome, tipo: user.tipo },
     });
-    res.cookies.set(COOKIE_NAME, token, cookieOptions());
+
+    // Configurações diferentes para desenvolvimento e produção
+    const isProd = process.env.NODE_ENV === 'production';
+
+    if (isProd) {
+      // Configurações seguras para produção
+      res.cookies.set(COOKIE_NAME, token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 8, // 8 horas
+      });
+    } else {
+      // Configurações mais permissivas para desenvolvimento
+      res.cookies.set(COOKIE_NAME, token, {
+        httpOnly: false, // Permite acesso via JS para debug
+        secure: false,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 8, // 8 horas
+      });
+    }
+
+    console.log('Cookie set with token');
+
     return res;
   } catch (err: any) {
     // Log the error server-side for debugging and return a JSON error to the client
