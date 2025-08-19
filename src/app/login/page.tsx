@@ -1,26 +1,9 @@
 'use client';
 
-import {
-  Alert,
-  AlertIcon,
-  Box,
-  Button,
-  Center,
-  Input as ChakraInput,
-  Checkbox,
-  FormControl,
-  FormLabel,
-  Heading,
-  InputGroup,
-  InputLeftElement,
-  InputRightElement,
-  Stack,
-  Text,
-  VStack,
-} from '@chakra-ui/react';
+import clsx from 'clsx';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
-import { FiEye, FiEyeOff, FiLock, FiLogIn, FiUser } from 'react-icons/fi';
+import { FiEye, FiEyeOff, FiLock, FiUser } from 'react-icons/fi';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -92,62 +75,55 @@ export default function LoginPage() {
 
   if (checkingSession) {
     return (
-      <Center minH='100vh' bg='gray.50'>
-        <Text color='gray.500' fontSize='sm'>
-          Verificando sessão...
-        </Text>
-      </Center>
+      <div
+        className='d-flex align-items-center justify-content-center'
+        style={{ minHeight: '100vh' }}
+      >
+        <div className='text-muted small'>Verificando sessão...</div>
+      </div>
     );
   }
 
   return (
-    <Box minH='100vh' bgGradient='linear(to-br, blue.50, white, blue.50)' p={6}>
-      <Center>
-        <VStack spacing={6} w='full' maxW='md' align='stretch'>
-          <Box textAlign='center'>
-            <Box
-              display='inline-flex'
-              alignItems='center'
-              justifyContent='center'
-              w='80px'
-              h='80px'
-              bgGradient='linear(to-br, blue.600, blue.700)'
-              borderRadius='16px'
-              boxShadow='lg'
-              mb={4}
+    <div className='bg-light' style={{ minHeight: '100vh' }}>
+      <div className='container d-flex align-items-center justify-content-center py-5'>
+        <div className='w-100' style={{ maxWidth: '420px' }}>
+          <div className='text-center mb-4'>
+            <div
+              className='d-inline-flex align-items-center justify-content-center rounded-3 mb-3'
+              style={{
+                width: 80,
+                height: 80,
+                background: 'linear-gradient(135deg,#1e3a8a,#253287)',
+                boxShadow: '0 8px 20px rgba(0,0,0,0.08)',
+              }}
             >
-              <Text color='white' fontWeight='bold' fontSize='3xl'>
-                C
-              </Text>
-            </Box>
-            <Heading as='h1' size='lg'>
-              Sistema Cantina
-            </Heading>
-            <Text color='gray.600' mt={1}>
-              ERP Cantina Escolar
-            </Text>
-          </Box>
+              <span className='text-white fw-bold fs-2'>C</span>
+            </div>
 
-          <Box bg='white' boxShadow='2xl' borderRadius='md' p={8}>
-            <form onSubmit={handleSubmit} noValidate>
-              <VStack spacing={5} align='stretch'>
-                <Box textAlign='center'>
-                  <Heading as='h2' size='md'>
-                    Faça seu login
-                  </Heading>
-                  <Text color='gray.600' fontSize='sm' mt={2}>
+            <h1 className='h4 mb-0'>Sistema Cantina</h1>
+            <div className='text-muted small'>ERP Cantina Escolar</div>
+          </div>
+
+          <div className='card shadow-sm mb-3'>
+            <div className='card-body'>
+              <form onSubmit={handleSubmit} noValidate>
+                <div className='mb-3 text-center'>
+                  <h2 className='h6 mb-1'>Faça seu login</h2>
+                  <div className='text-muted small'>
                     Entre com suas credenciais para acessar o sistema
-                  </Text>
-                </Box>
+                  </div>
+                </div>
 
-                <FormControl>
-                  <FormLabel>Usuário</FormLabel>
-                  <InputGroup>
-                    <InputLeftElement pointerEvents='none' color='gray.400'>
+                <div className='mb-3'>
+                  <label className='form-label'>Usuário</label>
+                  <div className='input-group'>
+                    <span className='input-group-text'>
                       <FiUser />
-                    </InputLeftElement>
-                    <ChakraInput
+                    </span>
+                    <input
                       type='text'
+                      className='form-control'
                       value={usuario}
                       onChange={(e) => setUsuario(e.target.value)}
                       placeholder='Digite seu usuário'
@@ -155,98 +131,104 @@ export default function LoginPage() {
                       autoFocus
                       aria-describedby={error ? 'login-error' : undefined}
                     />
-                  </InputGroup>
-                </FormControl>
+                  </div>
+                </div>
 
-                <FormControl>
-                  <FormLabel>Senha</FormLabel>
-                  <InputGroup>
-                    <InputLeftElement pointerEvents='none' color='gray.400'>
+                <div className='mb-3'>
+                  <label className='form-label'>Senha</label>
+                  <div className='input-group'>
+                    <span className='input-group-text'>
                       <FiLock />
-                    </InputLeftElement>
-                    <ChakraInput
+                    </span>
+                    <input
                       type={showPassword ? 'text' : 'password'}
+                      className='form-control'
                       value={senha}
                       onChange={(e) => setSenha(e.target.value)}
                       placeholder='Digite sua senha'
                       autoComplete='current-password'
                     />
-                    <InputRightElement>
-                      <Button
-                        aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                        size='sm'
-                        variant='ghost'
-                        onClick={togglePasswordVisibility}
-                      >
-                        {showPassword ? <FiEyeOff /> : <FiEye />}
-                      </Button>
-                    </InputRightElement>
-                  </InputGroup>
-                </FormControl>
+                    <button
+                      type='button'
+                      className='btn btn-outline-secondary'
+                      aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                      onClick={togglePasswordVisibility}
+                    >
+                      {showPassword ? <FiEyeOff /> : <FiEye />}
+                    </button>
+                  </div>
+                </div>
 
-                <Stack direction='row' align='center' justify='space-between'>
-                  <Checkbox
-                    isChecked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                  >
-                    Lembrar-me
-                  </Checkbox>
+                <div className='d-flex align-items-center justify-content-between mb-3'>
+                  <div className='form-check'>
+                    <input
+                      className='form-check-input'
+                      type='checkbox'
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      id='rememberMe'
+                    />
+                    <label className='form-check-label' htmlFor='rememberMe'>
+                      Lembrar-me
+                    </label>
+                  </div>
+
                   <ButtonLink />
-                </Stack>
+                </div>
 
                 {error && (
-                  <Alert status='error' id='login-error' aria-live='assertive'>
-                    <AlertIcon />
-                    <Text fontSize='sm'>
-                      {error === 'credenciais_invalidas'
-                        ? 'Usuário ou senha incorretos'
-                        : error === 'usuario_e_senha_obrigatorios'
-                        ? 'Usuário e senha são obrigatórios'
-                        : error === 'server_error'
-                        ? 'Erro no servidor. Tente novamente.'
-                        : error}
-                    </Text>
-                  </Alert>
+                  <div
+                    className='alert alert-danger'
+                    id='login-error'
+                    role='alert'
+                    aria-live='assertive'
+                  >
+                    {error === 'credenciais_invalidas'
+                      ? 'Usuário ou senha incorretos'
+                      : error === 'usuario_e_senha_obrigatorios'
+                      ? 'Usuário e senha são obrigatórios'
+                      : error === 'server_error'
+                      ? 'Erro no servidor. Tente novamente.'
+                      : error}
+                  </div>
                 )}
 
-                <Button
+                <button
                   type='submit'
-                  colorScheme='blue'
-                  size='lg'
-                  isLoading={loading}
-                  leftIcon={<FiLogIn />}
-                  isDisabled={!usuario || !senha || loading}
-                  w='full'
+                  className={clsx(
+                    'btn btn-primary btn-lg w-100 d-flex align-items-center justify-content-center',
+                    {
+                      disabled: !usuario || !senha || loading,
+                    }
+                  )}
+                  disabled={!usuario || !senha || loading}
                 >
                   {loading ? 'Entrando...' : 'Entrar no Sistema'}
-                </Button>
-                <Box textAlign='center' pt={4}>
-                  <Text
-                    as='button'
-                    fontSize='sm'
-                    color='blue.600'
-                    _hover={{ textDecoration: 'underline' }}
-                  >
+                </button>
+
+                <div className='text-center pt-3'>
+                  <button type='button' className='btn btn-link text-decoration-none small'>
                     Esqueceu sua senha?
-                  </Text>
-                </Box>
-              </VStack>
-            </form>
-          </Box>
-          <Box textAlign='center' color='gray.500' fontSize='sm'>
-            <Text>© 2025 Sistema Cantina Escolar</Text>
-            <Text mt={1}>Desenvolvido com Next.js e TypeScript</Text>
-          </Box>
-        </VStack>
-      </Center>
-    </Box>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div className='text-center text-muted small'>
+            <div>© 2025 Sistema Cantina Escolar</div>
+            <div className='mt-1'>Desenvolvido com Next.js e TypeScript</div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
 function ButtonLink() {
   return (
-    <Text as='button' fontSize='sm' color='blue.600' _hover={{ textDecoration: 'underline' }}>
+    <button type='button' className='btn btn-link p-0 small text-decoration-none'>
       Esqueceu sua senha?
-    </Text>
+    </button>
   );
 }

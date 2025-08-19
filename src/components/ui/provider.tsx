@@ -1,13 +1,12 @@
 'use client';
 
-import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import React from 'react';
 
+// Minimal provider component kept for parity with previous implementation.
+// Bootstrap doesn't require a React provider; this simply passes children through
+// and can be a place to add global context/providers in the future.
 export const Provider = ({ children }: { children: React.ReactNode }) => {
-  // Use the library default system to ensure the provider receives a valid system
-  // object with the expected `_config` and `_global` values. We'll iterate on
-  // custom theming later if desired.
-  return <ChakraProvider value={defaultSystem}>{children}</ChakraProvider>;
+  return <>{children}</>;
 };
 
 export default Provider;
