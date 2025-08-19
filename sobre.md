@@ -125,19 +125,25 @@ Observação: Implementado endpoint de login (`/api/login`) e logout (`/api/logo
 
 - Criar, editar, visualizar e desativar funcionários
 - Definir perfil de acesso (Administrador, Atendente, Estoquista)
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
+
+Implementado CRUD completo em `/api/usuarios` com criação (hash bcrypt), edição, desativação (soft delete) e reset de senha. Interface de gestão em `/dashboard/usuarios` permite criar, editar, desativar e resetar senha. Controle de acesso restrito a ADMIN.
 
 **RF-005** - Integração com dados de alunos
 
 - Utilizar tabelas existentes de alunos
 - Obter fotos via URL: <https://sistema.santanna.g12.br/carometr/$ra.jpg>
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
+
+Endpoint `/api/alunos` permite consulta por RA ou parte do nome (limite 20) retornando RA, nome, curso, série, turma e URL de foto. Interface de consulta em aba "Alunos" (somente leitura) dentro de `/dashboard/usuarios`. Não altera tabelas legadas.
 
 **RF-006** - Integração com dados de funcionários da escola
 
 - Utilizar tabelas existentes de funcionários
 - Definir valores de almoço por cargo
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
+
+Endpoints `/api/funcionarios` (busca código, nome ou cargo) e `/api/funcionarios/preco-cargo` (listar/criar/atualizar preço por cargo via UPSERT). Interface na aba "Funcionários Escola" para busca e manutenção de preços de refeição (`cant_preco_cargo`).
 
 ### Módulo de Produtos e Estoque
 

@@ -6,9 +6,32 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { Input } from '../../../components/ui/input';
 
 type Usuario = { id: number; usuario: string; nome: string; tipo: string; ativo: number };
+type Aluno = {
+  ra: number;
+  nome: string;
+  curso: string;
+  serie: string;
+  turma: string;
+  fotoUrl: string;
+};
+type Funcionario = { id: number; nome: string; cargo: string; valorRefeicao: number | null };
+type PrecoCargo = {
+  id: number;
+  cargo: string;
+  descricao: string;
+  valor_refeicao: number;
+  ativo: number;
+};
 
 export default function UsuariosClient() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+  const [precosCargo, setPrecosCargo] = useState<PrecoCargo[]>([]);
+  const [tab, setTab] = useState<'usuarios' | 'alunos' | 'funcionarios'>('usuarios');
+  const [searchAluno, setSearchAluno] = useState('');
+  const [searchFunc, setSearchFunc] = useState('');
+  const [cargoForm, setCargoForm] = useState({ cargo: '', descricao: '', valor: '' });
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<null | Usuario>(null);
   const [form, setForm] = useState({ usuario: '', nome: '', tipo: 'ATENDENTE', senha: '' });
@@ -29,6 +52,10 @@ export default function UsuariosClient() {
 
   useEffect(() => {
     fetchUsuarios();
+    fetch('/api/funcionarios/preco-cargo')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => data && setPrecosCargo(data.precos || []))
+      .catch(() => {});
   }, []);
 
   const handleChange = (k: string, v: any) => setForm((s) => ({ ...s, [k]: v }));
@@ -146,109 +173,207 @@ export default function UsuariosClient() {
     }
   };
 
-  return (
-    <div>
-      <Card className='mb-3'>
-        <CardHeader>
-          <CardTitle>Gerenciar Usuários</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className='row g-2 align-items-end'>
-            <div className='col-md-3'>
-              <Input
-                label='Usuário'
-                value={form.usuario}
-                onChange={(e) => handleChange('usuario', e.target.value)}
-              />
-            </div>
-            <div className='col-md-4'>
-              <Input
-                label='Nome'
-                value={form.nome}
-                onChange={(e) => handleChange('nome', e.target.value)}
-              />
-            </div>
-            <div className='col-md-3'>
-              <label className='form-label'>Perfil</label>
-              <select
-                className='form-select'
-                value={form.tipo}
-                onChange={(e) => handleChange('tipo', e.target.value)}
-              >
-                <option value='ADMIN'>ADMIN</option>
-                <option value='ATENDENTE'>ATENDENTE</option>
-                <option value='ESTOQUISTA'>ESTOQUISTA</option>
-              </select>
+  async function searchAlunos() {
+    if (!searchAluno) return setAlunos([]);
+    try {
+      const res = await fetch('/api/alunos?q=' + encodeURIComponent(searchAluno));
+      if (res.ok) {
+        const data = await res.json();
+        setAlunos(data.alunos || []);
+      }
+    } catch {}
+  }
 
-              {/* Senha apenas ao criar usuário */}
-              {!editing && (
-                <div className='mt-2'>
-                  <Input
-                    label='Senha'
-                    type='password'
-                    value={form.senha}
-                    onChange={(e) => handleChange('senha', e.target.value)}
-                  />
-                </div>
-              )}
-            </div>
-            <div className='col-md-2'>
-              {editing ? (
-                <>
-                  <Button variant='primary' onClick={handleUpdate} className='me-2'>
-                    Salvar
-                  </Button>
-                  <Button variant='secondary' onClick={() => setEditing(null)}>
-                    Cancelar
-                  </Button>
-                </>
-              ) : (
-                <Button variant='success' onClick={handleCreate}>
-                  Criar
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+  async function searchFuncionarios() {
+    if (!searchFunc) return setFuncionarios([]);
+    try {
+      const res = await fetch('/api/funcionarios?q=' + encodeURIComponent(searchFunc));
+      if (res.ok) {
+        const data = await res.json();
+        setFuncionarios(data.funcionarios || []);
+      }
+    } catch {}
+  }
 
+  async function salvarPrecoCargo() {
+    if (!cargoForm.cargo || !cargoForm.valor) return;
+    const payload = {
+      cargo: cargoForm.cargo,
+      descricao: cargoForm.descricao || cargoForm.cargo,
+      valor: parseFloat(cargoForm.valor.replace(',', '.')),
+    };
+    try {
+      const res = await fetch('/api/funcionarios/preco-cargo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const lista = await fetch('/api/funcionarios/preco-cargo').then((r) => r.json());
+        setPrecosCargo(lista.precos || []);
+        setCargoForm({ cargo: '', descricao: '', valor: '' });
+      }
+    } catch {}
+  }
+
+  function renderUsuariosTab() {
+    return (
+      <>
+        <Card className='mb-3'>
+          <CardHeader>
+            <CardTitle>Gerenciar Usuários</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className='row g-2 align-items-end'>
+              <div className='col-md-3'>
+                <Input
+                  label='Usuário'
+                  value={form.usuario}
+                  onChange={(e) => handleChange('usuario', e.target.value)}
+                />
+              </div>
+              <div className='col-md-4'>
+                <Input
+                  label='Nome'
+                  value={form.nome}
+                  onChange={(e) => handleChange('nome', e.target.value)}
+                />
+              </div>
+              <div className='col-md-3'>
+                <label className='form-label'>Perfil</label>
+                <select
+                  className='form-select'
+                  value={form.tipo}
+                  onChange={(e) => handleChange('tipo', e.target.value)}
+                >
+                  <option value='ADMIN'>ADMIN</option>
+                  <option value='ATENDENTE'>ATENDENTE</option>
+                  <option value='ESTOQUISTA'>ESTOQUISTA</option>
+                </select>
+
+                {!editing && (
+                  <div className='mt-2'>
+                    <Input
+                      label='Senha'
+                      type='password'
+                      value={form.senha}
+                      onChange={(e) => handleChange('senha', e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className='col-md-2'>
+                {editing ? (
+                  <>
+                    <Button variant='primary' onClick={handleUpdate} className='me-2'>
+                      Salvar
+                    </Button>
+                    <Button variant='secondary' onClick={() => setEditing(null)}>
+                      Cancelar
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant='success' onClick={handleCreate}>
+                    Criar
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Lista de Usuários</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className='table-responsive'>
+              <table className='table table-sm'>
+                <thead>
+                  <tr>
+                    <th>Usuário</th>
+                    <th>Nome</th>
+                    <th>Perfil</th>
+                    <th>Ativo</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usuarios.map((u) => (
+                    <tr key={u.id}>
+                      <td>{u.usuario}</td>
+                      <td>{u.nome}</td>
+                      <td>{u.tipo}</td>
+                      <td>{u.ativo ? 'Sim' : 'Não'}</td>
+                      <td>
+                        <Button variant='primary' className='me-2' onClick={() => handleEdit(u)}>
+                          Editar
+                        </Button>
+                        <Button
+                          variant='warning'
+                          className='me-2'
+                          onClick={() => handleResetPassword(u.id)}
+                        >
+                          Resetar senha
+                        </Button>
+                        <Button variant='danger' onClick={() => handleDelete(u.id)}>
+                          Desativar
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </>
+    );
+  }
+
+  function renderAlunosTab() {
+    return (
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Usuários</CardTitle>
+          <CardTitle>Alunos (consulta)</CardTitle>
         </CardHeader>
         <CardContent>
+          <div className='row g-2 mb-3'>
+            <div className='col-md-6'>
+              <Input
+                label='Buscar por RA ou Nome'
+                value={searchAluno}
+                onChange={(e) => setSearchAluno(e.target.value)}
+              />
+            </div>
+            <div className='col-md-2 d-flex align-items-end'>
+              <Button variant='primary' onClick={searchAlunos}>
+                Buscar
+              </Button>
+            </div>
+          </div>
           <div className='table-responsive'>
             <table className='table table-sm'>
               <thead>
                 <tr>
-                  <th>Usuário</th>
+                  <th>RA</th>
                   <th>Nome</th>
-                  <th>Perfil</th>
-                  <th>Ativo</th>
-                  <th></th>
+                  <th>Curso</th>
+                  <th>Série</th>
+                  <th>Turma</th>
+                  <th>Foto</th>
                 </tr>
               </thead>
               <tbody>
-                {usuarios.map((u) => (
-                  <tr key={u.id}>
-                    <td>{u.usuario}</td>
-                    <td>{u.nome}</td>
-                    <td>{u.tipo}</td>
-                    <td>{u.ativo ? 'Sim' : 'Não'}</td>
+                {alunos.map((a) => (
+                  <tr key={a.ra}>
+                    <td>{a.ra}</td>
+                    <td>{a.nome}</td>
+                    <td>{a.curso}</td>
+                    <td>{a.serie}</td>
+                    <td>{a.turma}</td>
                     <td>
-                      <Button variant='primary' className='me-2' onClick={() => handleEdit(u)}>
-                        Editar
-                      </Button>
-                      <Button
-                        variant='warning'
-                        className='me-2'
-                        onClick={() => handleResetPassword(u.id)}
-                      >
-                        Resetar senha
-                      </Button>
-                      <Button variant='danger' onClick={() => handleDelete(u.id)}>
-                        Desativar
-                      </Button>
+                      <img src={a.fotoUrl} alt={a.nome} style={{ width: 40, height: 40 }} />
                     </td>
                   </tr>
                 ))}
@@ -257,6 +382,138 @@ export default function UsuariosClient() {
           </div>
         </CardContent>
       </Card>
+    );
+  }
+
+  function renderFuncionariosTab() {
+    return (
+      <>
+        <Card className='mb-3'>
+          <CardHeader>
+            <CardTitle>Funcionários Escola</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className='row g-2 mb-3'>
+              <div className='col-md-6'>
+                <Input
+                  label='Buscar por Código, Nome ou Cargo'
+                  value={searchFunc}
+                  onChange={(e) => setSearchFunc(e.target.value)}
+                />
+              </div>
+              <div className='col-md-2 d-flex align-items-end'>
+                <Button variant='primary' onClick={searchFuncionarios}>
+                  Buscar
+                </Button>
+              </div>
+            </div>
+            <div className='table-responsive mb-4'>
+              <table className='table table-sm'>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Cargo</th>
+                    <th>Valor Refeição</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {funcionarios.map((f) => (
+                    <tr key={f.id}>
+                      <td>{f.id}</td>
+                      <td>{f.nome}</td>
+                      <td>{f.cargo}</td>
+                      <td>{f.valorRefeicao != null ? f.valorRefeicao.toFixed(2) : '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <h6>Definir / Atualizar Preço por Cargo</h6>
+            <div className='row g-2'>
+              <div className='col-md-3'>
+                <Input
+                  label='Cargo'
+                  value={cargoForm.cargo}
+                  onChange={(e) => setCargoForm({ ...cargoForm, cargo: e.target.value })}
+                />
+              </div>
+              <div className='col-md-4'>
+                <Input
+                  label='Descrição'
+                  value={cargoForm.descricao}
+                  onChange={(e) => setCargoForm({ ...cargoForm, descricao: e.target.value })}
+                />
+              </div>
+              <div className='col-md-2'>
+                <Input
+                  label='Valor (R$)'
+                  value={cargoForm.valor}
+                  onChange={(e) => setCargoForm({ ...cargoForm, valor: e.target.value })}
+                />
+              </div>
+              <div className='col-md-2 d-flex align-items-end'>
+                <Button variant='success' onClick={salvarPrecoCargo}>
+                  Salvar Preço
+                </Button>
+              </div>
+            </div>
+            <div className='table-responsive mt-3'>
+              <table className='table table-sm'>
+                <thead>
+                  <tr>
+                    <th>Cargo</th>
+                    <th>Descrição</th>
+                    <th>Valor Refeição</th>
+                    <th>Ativo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {precosCargo.map((p) => (
+                    <tr key={p.id}>
+                      <td>{p.cargo}</td>
+                      <td>{p.descricao}</td>
+                      <td>{p.valor_refeicao?.toFixed(2)}</td>
+                      <td>{p.ativo ? 'Sim' : 'Não'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </>
+    );
+  }
+
+  return (
+    <div>
+      <div className='mb-3'>
+        <div className='btn-group'>
+          <Button
+            variant={tab === 'usuarios' ? 'primary' : 'outline'}
+            onClick={() => setTab('usuarios')}
+          >
+            Usuários Cantina
+          </Button>
+          <Button
+            variant={tab === 'alunos' ? 'primary' : 'outline'}
+            onClick={() => setTab('alunos')}
+          >
+            Alunos
+          </Button>
+          <Button
+            variant={tab === 'funcionarios' ? 'primary' : 'outline'}
+            onClick={() => setTab('funcionarios')}
+          >
+            Funcionários Escola
+          </Button>
+        </div>
+      </div>
+      {tab === 'usuarios' && renderUsuariosTab()}
+      {tab === 'alunos' && renderAlunosTab()}
+      {tab === 'funcionarios' && renderFuncionariosTab()}
     </div>
   );
 }
