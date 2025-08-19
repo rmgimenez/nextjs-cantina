@@ -157,16 +157,28 @@ const menuItems: MenuItem[] = [
     roles: ['admin'],
     children: [
       {
+        id: 'financeiro-dashboard',
+        label: 'Dashboard',
+        icon: FiPieChart,
+        href: '/dashboard/financeiro',
+      },
+      {
         id: 'financeiro-pagar',
         label: 'Contas a Pagar',
         icon: FiCreditCard,
-        href: '/dashboard/financeiro/pagar',
+        href: '/dashboard/financeiro/contas-pagar',
       },
       {
         id: 'financeiro-receber',
         label: 'Contas a Receber',
         icon: FiDollarSign,
-        href: '/dashboard/financeiro/receber',
+        href: '/dashboard/financeiro/contas-receber',
+      },
+      {
+        id: 'financeiro-categorias',
+        label: 'Categorias',
+        icon: FiSettings,
+        href: '/dashboard/financeiro/categorias',
       },
     ],
   },

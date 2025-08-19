@@ -922,6 +922,573 @@ DELIMITER ;
 
 -- fim - stored procedures
 
+-- início - tabelas módulo contas a pagar e receber
+
+-- Categorias de contas (receitas e despesas)
+CREATE TABLE `cant_categoria_financeira` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `nome` VARCHAR(100) NOT NULL,
+  `tipo` ENUM('RECEITA','DESPESA') NOT NULL,
+  `descricao` TEXT,
+  `ativo` TINYINT(1) DEFAULT 1,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Contas a pagar
+CREATE TABLE `cant_conta_pagar` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `categoria_id` BIGINT,
+  `descricao` VARCHAR(255) NOT NULL,
+  `fornecedor` VARCHAR(255),
+  `numero_documento` VARCHAR(100),
+  `valor_original` DECIMAL(12,2) NOT NULL,
+  `valor_pago` DECIMAL(12,2) DEFAULT 0.00,
+  `valor_desconto` DECIMAL(12,2) DEFAULT 0.00,
+  `valor_juros` DECIMAL(12,2) DEFAULT 0.00,
+  `data_emissao` DATE NOT NULL,
+  `data_vencimento` DATE NOT NULL,
+  `data_pagamento` DATE NULL,
+  `status` ENUM('PENDENTE','PAGO','ATRASADO','CANCELADO') DEFAULT 'PENDENTE',
+  `observacoes` TEXT,
+  `usuario_cadastro_id` BIGINT NOT NULL,
+  `usuario_pagamento_id` BIGINT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`categoria_id`) REFERENCES `cant_categoria_financeira`(`id`),
+  FOREIGN KEY (`usuario_cadastro_id`) REFERENCES `cant_usuarios`(`id`),
+  FOREIGN KEY (`usuario_pagamento_id`) REFERENCES `cant_usuarios`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Contas a receber
+CREATE TABLE `cant_conta_receber` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `categoria_id` BIGINT,
+  `descricao` VARCHAR(255) NOT NULL,
+  `cliente` VARCHAR(255),
+  `numero_documento` VARCHAR(100),
+  `valor_original` DECIMAL(12,2) NOT NULL,
+  `valor_recebido` DECIMAL(12,2) DEFAULT 0.00,
+  `valor_desconto` DECIMAL(12,2) DEFAULT 0.00,
+  `valor_juros` DECIMAL(12,2) DEFAULT 0.00,
+  `data_emissao` DATE NOT NULL,
+  `data_vencimento` DATE NOT NULL,
+  `data_recebimento` DATE NULL,
+  `status` ENUM('PENDENTE','RECEBIDO','ATRASADO','CANCELADO') DEFAULT 'PENDENTE',
+  `observacoes` TEXT,
+  `usuario_cadastro_id` BIGINT NOT NULL,
+  `usuario_recebimento_id` BIGINT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`categoria_id`) REFERENCES `cant_categoria_financeira`(`id`),
+  FOREIGN KEY (`usuario_cadastro_id`) REFERENCES `cant_usuarios`(`id`),
+  FOREIGN KEY (`usuario_recebimento_id`) REFERENCES `cant_usuarios`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Parcelas das contas a pagar
+CREATE TABLE `cant_conta_pagar_parcela` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `conta_pagar_id` BIGINT NOT NULL,
+  `numero_parcela` INT NOT NULL,
+  `valor` DECIMAL(12,2) NOT NULL,
+  `data_vencimento` DATE NOT NULL,
+  `data_pagamento` DATE NULL,
+  `valor_pago` DECIMAL(12,2) DEFAULT 0.00,
+  `valor_desconto` DECIMAL(12,2) DEFAULT 0.00,
+  `valor_juros` DECIMAL(12,2) DEFAULT 0.00,
+  `status` ENUM('PENDENTE','PAGO','ATRASADO','CANCELADO') DEFAULT 'PENDENTE',
+  `observacoes` TEXT,
+  `usuario_pagamento_id` BIGINT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`conta_pagar_id`) REFERENCES `cant_conta_pagar`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`usuario_pagamento_id`) REFERENCES `cant_usuarios`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Parcelas das contas a receber
+CREATE TABLE `cant_conta_receber_parcela` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `conta_receber_id` BIGINT NOT NULL,
+  `numero_parcela` INT NOT NULL,
+  `valor` DECIMAL(12,2) NOT NULL,
+  `data_vencimento` DATE NOT NULL,
+  `data_recebimento` DATE NULL,
+  `valor_recebido` DECIMAL(12,2) DEFAULT 0.00,
+  `valor_desconto` DECIMAL(12,2) DEFAULT 0.00,
+  `valor_juros` DECIMAL(12,2) DEFAULT 0.00,
+  `status` ENUM('PENDENTE','RECEBIDO','ATRASADO','CANCELADO') DEFAULT 'PENDENTE',
+  `observacoes` TEXT,
+  `usuario_recebimento_id` BIGINT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`conta_receber_id`) REFERENCES `cant_conta_receber`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`usuario_recebimento_id`) REFERENCES `cant_usuarios`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Histórico de pagamentos das contas a pagar
+CREATE TABLE `cant_conta_pagar_pagamento` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `conta_pagar_id` BIGINT,
+  `parcela_id` BIGINT NULL,
+  `valor_pago` DECIMAL(12,2) NOT NULL,
+  `valor_desconto` DECIMAL(12,2) DEFAULT 0.00,
+  `valor_juros` DECIMAL(12,2) DEFAULT 0.00,
+  `data_pagamento` DATE NOT NULL,
+  `forma_pagamento` ENUM('DINHEIRO','CHEQUE','TRANSFERENCIA','PIX','CARTAO_DEBITO','CARTAO_CREDITO','OUTRO') NOT NULL,
+  `observacoes` TEXT,
+  `usuario_id` BIGINT NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`conta_pagar_id`) REFERENCES `cant_conta_pagar`(`id`),
+  FOREIGN KEY (`parcela_id`) REFERENCES `cant_conta_pagar_parcela`(`id`),
+  FOREIGN KEY (`usuario_id`) REFERENCES `cant_usuarios`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Histórico de recebimentos das contas a receber
+CREATE TABLE `cant_conta_receber_recebimento` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `conta_receber_id` BIGINT,
+  `parcela_id` BIGINT NULL,
+  `valor_recebido` DECIMAL(12,2) NOT NULL,
+  `valor_desconto` DECIMAL(12,2) DEFAULT 0.00,
+  `valor_juros` DECIMAL(12,2) DEFAULT 0.00,
+  `data_recebimento` DATE NOT NULL,
+  `forma_recebimento` ENUM('DINHEIRO','CHEQUE','TRANSFERENCIA','PIX','CARTAO_DEBITO','CARTAO_CREDITO','OUTRO') NOT NULL,
+  `observacoes` TEXT,
+  `usuario_id` BIGINT NOT NULL,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`conta_receber_id`) REFERENCES `cant_conta_receber`(`id`),
+  FOREIGN KEY (`parcela_id`) REFERENCES `cant_conta_receber_parcela`(`id`),
+  FOREIGN KEY (`usuario_id`) REFERENCES `cant_usuarios`(`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- início - views módulo contas a pagar e receber
+
+-- View para resumo das contas a pagar
+CREATE OR REPLACE VIEW `cant_view_conta_pagar_resumo` AS
+SELECT 
+  cp.id,
+  cp.descricao,
+  cp.fornecedor,
+  cp.numero_documento,
+  cp.valor_original,
+  cp.valor_pago,
+  cp.valor_desconto,
+  cp.valor_juros,
+  (cp.valor_original + cp.valor_juros - cp.valor_desconto - cp.valor_pago) AS valor_pendente,
+  cp.data_emissao,
+  cp.data_vencimento,
+  cp.data_pagamento,
+  cp.status,
+  cf.nome AS categoria_nome,
+  cf.tipo AS categoria_tipo,
+  CASE 
+    WHEN cp.status = 'PAGO' THEN 'Pago'
+    WHEN cp.data_vencimento < CURDATE() AND cp.status = 'PENDENTE' THEN 'Atrasado'
+    WHEN cp.data_vencimento = CURDATE() AND cp.status = 'PENDENTE' THEN 'Vence Hoje'
+    WHEN cp.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND cp.status = 'PENDENTE' THEN 'Vence Esta Semana'
+    ELSE 'Em Dia'
+  END AS situacao,
+  DATEDIFF(CURDATE(), cp.data_vencimento) AS dias_atraso,
+  uc.nome AS usuario_cadastro_nome,
+  up.nome AS usuario_pagamento_nome
+FROM cant_conta_pagar cp
+LEFT JOIN cant_categoria_financeira cf ON cp.categoria_id = cf.id
+LEFT JOIN cant_usuarios uc ON cp.usuario_cadastro_id = uc.id
+LEFT JOIN cant_usuarios up ON cp.usuario_pagamento_id = up.id;
+
+-- View para resumo das contas a receber
+CREATE OR REPLACE VIEW `cant_view_conta_receber_resumo` AS
+SELECT 
+  cr.id,
+  cr.descricao,
+  cr.cliente,
+  cr.numero_documento,
+  cr.valor_original,
+  cr.valor_recebido,
+  cr.valor_desconto,
+  cr.valor_juros,
+  (cr.valor_original + cr.valor_juros - cr.valor_desconto - cr.valor_recebido) AS valor_pendente,
+  cr.data_emissao,
+  cr.data_vencimento,
+  cr.data_recebimento,
+  cr.status,
+  cf.nome AS categoria_nome,
+  cf.tipo AS categoria_tipo,
+  CASE 
+    WHEN cr.status = 'RECEBIDO' THEN 'Recebido'
+    WHEN cr.data_vencimento < CURDATE() AND cr.status = 'PENDENTE' THEN 'Atrasado'
+    WHEN cr.data_vencimento = CURDATE() AND cr.status = 'PENDENTE' THEN 'Vence Hoje'
+    WHEN cr.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND cr.status = 'PENDENTE' THEN 'Vence Esta Semana'
+    ELSE 'Em Dia'
+  END AS situacao,
+  DATEDIFF(CURDATE(), cr.data_vencimento) AS dias_atraso,
+  uc.nome AS usuario_cadastro_nome,
+  ur.nome AS usuario_recebimento_nome
+FROM cant_conta_receber cr
+LEFT JOIN cant_categoria_financeira cf ON cr.categoria_id = cf.id
+LEFT JOIN cant_usuarios uc ON cr.usuario_cadastro_id = uc.id
+LEFT JOIN cant_usuarios ur ON cr.usuario_recebimento_id = ur.id;
+
+-- View para parcelas das contas a pagar
+CREATE OR REPLACE VIEW `cant_view_conta_pagar_parcela_resumo` AS
+SELECT 
+  cpp.id,
+  cpp.conta_pagar_id,
+  cp.descricao AS conta_descricao,
+  cp.fornecedor,
+  cpp.numero_parcela,
+  cpp.valor,
+  cpp.valor_pago,
+  cpp.valor_desconto,
+  cpp.valor_juros,
+  (cpp.valor + cpp.valor_juros - cpp.valor_desconto - cpp.valor_pago) AS valor_pendente,
+  cpp.data_vencimento,
+  cpp.data_pagamento,
+  cpp.status,
+  CASE 
+    WHEN cpp.status = 'PAGO' THEN 'Pago'
+    WHEN cpp.data_vencimento < CURDATE() AND cpp.status = 'PENDENTE' THEN 'Atrasado'
+    WHEN cpp.data_vencimento = CURDATE() AND cpp.status = 'PENDENTE' THEN 'Vence Hoje'
+    WHEN cpp.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND cpp.status = 'PENDENTE' THEN 'Vence Esta Semana'
+    ELSE 'Em Dia'
+  END AS situacao,
+  DATEDIFF(CURDATE(), cpp.data_vencimento) AS dias_atraso,
+  cf.nome AS categoria_nome
+FROM cant_conta_pagar_parcela cpp
+INNER JOIN cant_conta_pagar cp ON cpp.conta_pagar_id = cp.id
+LEFT JOIN cant_categoria_financeira cf ON cp.categoria_id = cf.id;
+
+-- View para parcelas das contas a receber
+CREATE OR REPLACE VIEW `cant_view_conta_receber_parcela_resumo` AS
+SELECT 
+  crp.id,
+  crp.conta_receber_id,
+  cr.descricao AS conta_descricao,
+  cr.cliente,
+  crp.numero_parcela,
+  crp.valor,
+  crp.valor_recebido,
+  crp.valor_desconto,
+  crp.valor_juros,
+  (crp.valor + crp.valor_juros - crp.valor_desconto - crp.valor_recebido) AS valor_pendente,
+  crp.data_vencimento,
+  crp.data_recebimento,
+  crp.status,
+  CASE 
+    WHEN crp.status = 'RECEBIDO' THEN 'Recebido'
+    WHEN crp.data_vencimento < CURDATE() AND crp.status = 'PENDENTE' THEN 'Atrasado'
+    WHEN crp.data_vencimento = CURDATE() AND crp.status = 'PENDENTE' THEN 'Vence Esta Semana'
+    WHEN crp.data_vencimento BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY) AND crp.status = 'PENDENTE' THEN 'Vence Esta Semana'
+    ELSE 'Em Dia'
+  END AS situacao,
+  DATEDIFF(CURDATE(), crp.data_vencimento) AS dias_atraso,
+  cf.nome AS categoria_nome
+FROM cant_conta_receber_parcela crp
+INNER JOIN cant_conta_receber cr ON crp.conta_receber_id = cr.id
+LEFT JOIN cant_categoria_financeira cf ON cr.categoria_id = cf.id;
+
+-- View para dashboard financeiro
+CREATE OR REPLACE VIEW `cant_view_dashboard_financeiro` AS
+SELECT 
+  (SELECT COUNT(*) FROM cant_conta_pagar WHERE status = 'PENDENTE') AS contas_pagar_pendentes,
+  (SELECT COUNT(*) FROM cant_conta_receber WHERE status = 'PENDENTE') AS contas_receber_pendentes,
+  (SELECT COUNT(*) FROM cant_conta_pagar WHERE status = 'ATRASADO' OR (status = 'PENDENTE' AND data_vencimento < CURDATE())) AS contas_pagar_atrasadas,
+  (SELECT COUNT(*) FROM cant_conta_receber WHERE status = 'ATRASADO' OR (status = 'PENDENTE' AND data_vencimento < CURDATE())) AS contas_receber_atrasadas,
+  (SELECT COALESCE(SUM(valor_original + valor_juros - valor_desconto - valor_pago), 0) FROM cant_conta_pagar WHERE status = 'PENDENTE') AS valor_total_pagar,
+  (SELECT COALESCE(SUM(valor_original + valor_juros - valor_desconto - valor_recebido), 0) FROM cant_conta_receber WHERE status = 'PENDENTE') AS valor_total_receber,
+  (SELECT COALESCE(SUM(valor_original + valor_juros - valor_desconto - valor_pago), 0) FROM cant_conta_pagar WHERE status = 'PENDENTE' AND data_vencimento < CURDATE()) AS valor_atrasado_pagar,
+  (SELECT COALESCE(SUM(valor_original + valor_juros - valor_desconto - valor_recebido), 0) FROM cant_conta_receber WHERE status = 'PENDENTE' AND data_vencimento < CURDATE()) AS valor_atrasado_receber;
+
+-- início - triggers módulo contas a pagar e receber
+
+-- Trigger para atualizar status de conta a pagar quando totalmente paga
+DELIMITER $$
+CREATE TRIGGER `trig_conta_pagar_after_pagamento` 
+AFTER INSERT ON `cant_conta_pagar_pagamento`
+FOR EACH ROW
+BEGIN
+  DECLARE v_valor_total_pago DECIMAL(12,2);
+  DECLARE v_valor_original DECIMAL(12,2);
+  DECLARE v_valor_juros DECIMAL(12,2);
+  DECLARE v_valor_desconto DECIMAL(12,2);
+  
+  -- Calcula valor total pago
+  SELECT COALESCE(SUM(valor_pago), 0) INTO v_valor_total_pago
+  FROM cant_conta_pagar_pagamento 
+  WHERE conta_pagar_id = NEW.conta_pagar_id;
+  
+  -- Busca dados da conta
+  SELECT valor_original, valor_juros, valor_desconto 
+  INTO v_valor_original, v_valor_juros, v_valor_desconto
+  FROM cant_conta_pagar 
+  WHERE id = NEW.conta_pagar_id;
+  
+  -- Atualiza conta a pagar
+  UPDATE cant_conta_pagar SET
+    valor_pago = v_valor_total_pago,
+    valor_juros = v_valor_juros + NEW.valor_juros,
+    valor_desconto = v_valor_desconto + NEW.valor_desconto,
+    status = CASE 
+      WHEN v_valor_total_pago >= (v_valor_original + v_valor_juros + NEW.valor_juros - v_valor_desconto - NEW.valor_desconto) THEN 'PAGO'
+      ELSE status 
+    END,
+    data_pagamento = CASE 
+      WHEN v_valor_total_pago >= (v_valor_original + v_valor_juros + NEW.valor_juros - v_valor_desconto - NEW.valor_desconto) THEN NEW.data_pagamento
+      ELSE data_pagamento
+    END,
+    usuario_pagamento_id = NEW.usuario_id
+  WHERE id = NEW.conta_pagar_id;
+  
+  -- Atualiza parcela se especificada
+  IF NEW.parcela_id IS NOT NULL THEN
+    UPDATE cant_conta_pagar_parcela SET
+      valor_pago = valor_pago + NEW.valor_pago,
+      valor_juros = valor_juros + NEW.valor_juros,
+      valor_desconto = valor_desconto + NEW.valor_desconto,
+      status = CASE 
+        WHEN (valor_pago + NEW.valor_pago) >= (valor + valor_juros + NEW.valor_juros - valor_desconto - NEW.valor_desconto) THEN 'PAGO'
+        ELSE status 
+      END,
+      data_pagamento = CASE 
+        WHEN (valor_pago + NEW.valor_pago) >= (valor + valor_juros + NEW.valor_juros - valor_desconto - NEW.valor_desconto) THEN NEW.data_pagamento
+        ELSE data_pagamento
+      END,
+      usuario_pagamento_id = NEW.usuario_id
+    WHERE id = NEW.parcela_id;
+  END IF;
+END $$
+DELIMITER ;
+
+-- Trigger para atualizar status de conta a receber quando totalmente recebida
+DELIMITER $$
+CREATE TRIGGER `trig_conta_receber_after_recebimento` 
+AFTER INSERT ON `cant_conta_receber_recebimento`
+FOR EACH ROW
+BEGIN
+  DECLARE v_valor_total_recebido DECIMAL(12,2);
+  DECLARE v_valor_original DECIMAL(12,2);
+  DECLARE v_valor_juros DECIMAL(12,2);
+  DECLARE v_valor_desconto DECIMAL(12,2);
+  
+  -- Calcula valor total recebido
+  SELECT COALESCE(SUM(valor_recebido), 0) INTO v_valor_total_recebido
+  FROM cant_conta_receber_recebimento 
+  WHERE conta_receber_id = NEW.conta_receber_id;
+  
+  -- Busca dados da conta
+  SELECT valor_original, valor_juros, valor_desconto 
+  INTO v_valor_original, v_valor_juros, v_valor_desconto
+  FROM cant_conta_receber 
+  WHERE id = NEW.conta_receber_id;
+  
+  -- Atualiza conta a receber
+  UPDATE cant_conta_receber SET
+    valor_recebido = v_valor_total_recebido,
+    valor_juros = v_valor_juros + NEW.valor_juros,
+    valor_desconto = v_valor_desconto + NEW.valor_desconto,
+    status = CASE 
+      WHEN v_valor_total_recebido >= (v_valor_original + v_valor_juros + NEW.valor_juros - v_valor_desconto - NEW.valor_desconto) THEN 'RECEBIDO'
+      ELSE status 
+    END,
+    data_recebimento = CASE 
+      WHEN v_valor_total_recebido >= (v_valor_original + v_valor_juros + NEW.valor_juros - v_valor_desconto - NEW.valor_desconto) THEN NEW.data_recebimento
+      ELSE data_recebimento
+    END,
+    usuario_recebimento_id = NEW.usuario_id
+  WHERE id = NEW.conta_receber_id;
+  
+  -- Atualiza parcela se especificada
+  IF NEW.parcela_id IS NOT NULL THEN
+    UPDATE cant_conta_receber_parcela SET
+      valor_recebido = valor_recebido + NEW.valor_recebido,
+      valor_juros = valor_juros + NEW.valor_juros,
+      valor_desconto = valor_desconto + NEW.valor_desconto,
+      status = CASE 
+        WHEN (valor_recebido + NEW.valor_recebido) >= (valor + valor_juros + NEW.valor_juros - valor_desconto - NEW.valor_desconto) THEN 'RECEBIDO'
+        ELSE status 
+      END,
+      data_recebimento = CASE 
+        WHEN (valor_recebido + NEW.valor_recebido) >= (valor + valor_juros + NEW.valor_juros - valor_desconto - NEW.valor_desconto) THEN NEW.data_recebimento
+        ELSE data_recebimento
+      END,
+      usuario_recebimento_id = NEW.usuario_id
+    WHERE id = NEW.parcela_id;
+  END IF;
+END $$
+DELIMITER ;
+
+-- Trigger para marcar contas como atrasadas
+DELIMITER $$
+CREATE EVENT IF NOT EXISTS `evt_atualiza_status_contas_atrasadas`
+ON SCHEDULE EVERY 1 DAY
+STARTS CURRENT_TIMESTAMP
+DO
+BEGIN
+  -- Atualiza contas a pagar atrasadas
+  UPDATE cant_conta_pagar 
+  SET status = 'ATRASADO' 
+  WHERE status = 'PENDENTE' AND data_vencimento < CURDATE();
+  
+  -- Atualiza contas a receber atrasadas
+  UPDATE cant_conta_receber 
+  SET status = 'ATRASADO' 
+  WHERE status = 'PENDENTE' AND data_vencimento < CURDATE();
+  
+  -- Atualiza parcelas a pagar atrasadas
+  UPDATE cant_conta_pagar_parcela 
+  SET status = 'ATRASADO' 
+  WHERE status = 'PENDENTE' AND data_vencimento < CURDATE();
+  
+  -- Atualiza parcelas a receber atrasadas
+  UPDATE cant_conta_receber_parcela 
+  SET status = 'ATRASADO' 
+  WHERE status = 'PENDENTE' AND data_vencimento < CURDATE();
+END $$
+DELIMITER ;
+
+-- início - stored procedures módulo contas a pagar e receber
+
+-- Procedure para gerar parcelas de conta a pagar
+DROP PROCEDURE IF EXISTS `cant_sp_gerar_parcelas_conta_pagar`;
+DELIMITER $$
+CREATE PROCEDURE `cant_sp_gerar_parcelas_conta_pagar`(
+  IN p_conta_pagar_id BIGINT,
+  IN p_numero_parcelas INT,
+  IN p_data_primeira_parcela DATE
+)
+BEGIN
+  DECLARE v_contador INT DEFAULT 1;
+  DECLARE v_valor_parcela DECIMAL(12,2);
+  DECLARE v_data_vencimento DATE;
+  DECLARE v_valor_original DECIMAL(12,2);
+  
+  -- Busca valor original da conta
+  SELECT valor_original INTO v_valor_original 
+  FROM cant_conta_pagar 
+  WHERE id = p_conta_pagar_id;
+  
+  -- Calcula valor da parcela
+  SET v_valor_parcela = v_valor_original / p_numero_parcelas;
+  
+  -- Gera as parcelas
+  WHILE v_contador <= p_numero_parcelas DO
+    SET v_data_vencimento = DATE_ADD(p_data_primeira_parcela, INTERVAL (v_contador - 1) MONTH);
+    
+    -- Ajusta valor da última parcela para compensar arredondamentos
+    IF v_contador = p_numero_parcelas THEN
+      SET v_valor_parcela = v_valor_original - ((p_numero_parcelas - 1) * (v_valor_original / p_numero_parcelas));
+    END IF;
+    
+    INSERT INTO cant_conta_pagar_parcela (conta_pagar_id, numero_parcela, valor, data_vencimento)
+    VALUES (p_conta_pagar_id, v_contador, v_valor_parcela, v_data_vencimento);
+    
+    SET v_contador = v_contador + 1;
+  END WHILE;
+END $$
+DELIMITER ;
+
+-- Procedure para gerar parcelas de conta a receber
+DROP PROCEDURE IF EXISTS `cant_sp_gerar_parcelas_conta_receber`;
+DELIMITER $$
+CREATE PROCEDURE `cant_sp_gerar_parcelas_conta_receber`(
+  IN p_conta_receber_id BIGINT,
+  IN p_numero_parcelas INT,
+  IN p_data_primeira_parcela DATE
+)
+BEGIN
+  DECLARE v_contador INT DEFAULT 1;
+  DECLARE v_valor_parcela DECIMAL(12,2);
+  DECLARE v_data_vencimento DATE;
+  DECLARE v_valor_original DECIMAL(12,2);
+  
+  -- Busca valor original da conta
+  SELECT valor_original INTO v_valor_original 
+  FROM cant_conta_receber 
+  WHERE id = p_conta_receber_id;
+  
+  -- Calcula valor da parcela
+  SET v_valor_parcela = v_valor_original / p_numero_parcelas;
+  
+  -- Gera as parcelas
+  WHILE v_contador <= p_numero_parcelas DO
+    SET v_data_vencimento = DATE_ADD(p_data_primeira_parcela, INTERVAL (v_contador - 1) MONTH);
+    
+    -- Ajusta valor da última parcela para compensar arredondamentos
+    IF v_contador = p_numero_parcelas THEN
+      SET v_valor_parcela = v_valor_original - ((p_numero_parcelas - 1) * (v_valor_original / p_numero_parcelas));
+    END IF;
+    
+    INSERT INTO cant_conta_receber_parcela (conta_receber_id, numero_parcela, valor, data_vencimento)
+    VALUES (p_conta_receber_id, v_contador, v_valor_parcela, v_data_vencimento);
+    
+    SET v_contador = v_contador + 1;
+  END WHILE;
+END $$
+DELIMITER ;
+
+-- Procedure para registrar pagamento de conta
+DROP PROCEDURE IF EXISTS `cant_sp_registrar_pagamento_conta`;
+DELIMITER $$
+CREATE PROCEDURE `cant_sp_registrar_pagamento_conta`(
+  IN p_conta_pagar_id BIGINT,
+  IN p_parcela_id BIGINT,
+  IN p_valor_pago DECIMAL(12,2),
+  IN p_valor_desconto DECIMAL(12,2),
+  IN p_valor_juros DECIMAL(12,2),
+  IN p_data_pagamento DATE,
+  IN p_forma_pagamento ENUM('DINHEIRO','CHEQUE','TRANSFERENCIA','PIX','CARTAO_DEBITO','CARTAO_CREDITO','OUTRO'),
+  IN p_observacoes TEXT,
+  IN p_usuario_id BIGINT
+)
+BEGIN
+  INSERT INTO cant_conta_pagar_pagamento (
+    conta_pagar_id, parcela_id, valor_pago, valor_desconto, valor_juros, 
+    data_pagamento, forma_pagamento, observacoes, usuario_id
+  ) VALUES (
+    p_conta_pagar_id, p_parcela_id, p_valor_pago, IFNULL(p_valor_desconto, 0), 
+    IFNULL(p_valor_juros, 0), p_data_pagamento, p_forma_pagamento, p_observacoes, p_usuario_id
+  );
+END $$
+DELIMITER ;
+
+-- Procedure para registrar recebimento de conta
+DROP PROCEDURE IF EXISTS `cant_sp_registrar_recebimento_conta`;
+DELIMITER $$
+CREATE PROCEDURE `cant_sp_registrar_recebimento_conta`(
+  IN p_conta_receber_id BIGINT,
+  IN p_parcela_id BIGINT,
+  IN p_valor_recebido DECIMAL(12,2),
+  IN p_valor_desconto DECIMAL(12,2),
+  IN p_valor_juros DECIMAL(12,2),
+  IN p_data_recebimento DATE,
+  IN p_forma_recebimento ENUM('DINHEIRO','CHEQUE','TRANSFERENCIA','PIX','CARTAO_DEBITO','CARTAO_CREDITO','OUTRO'),
+  IN p_observacoes TEXT,
+  IN p_usuario_id BIGINT
+)
+BEGIN
+  INSERT INTO cant_conta_receber_recebimento (
+    conta_receber_id, parcela_id, valor_recebido, valor_desconto, valor_juros, 
+    data_recebimento, forma_recebimento, observacoes, usuario_id
+  ) VALUES (
+    p_conta_receber_id, p_parcela_id, p_valor_recebido, IFNULL(p_valor_desconto, 0), 
+    IFNULL(p_valor_juros, 0), p_data_recebimento, p_forma_recebimento, p_observacoes, p_usuario_id
+  );
+END $$
+DELIMITER ;
+
+-- fim - tabelas, views, triggers e procedures módulo contas a pagar e receber
+
+-- Inserir categorias padrão
+INSERT IGNORE INTO cant_categoria_financeira (nome, tipo, descricao) VALUES
+('Fornecedores', 'DESPESA', 'Pagamentos a fornecedores de produtos'),
+('Utilities', 'DESPESA', 'Contas de luz, água, telefone, internet'),
+('Manutenção', 'DESPESA', 'Gastos com manutenção de equipamentos'),
+('Impostos', 'DESPESA', 'Pagamento de impostos e taxas'),
+('Salários', 'DESPESA', 'Pagamento de funcionários'),
+('Vendas Cantina', 'RECEITA', 'Receitas das vendas da cantina'),
+('Pacotes Alimentação', 'RECEITA', 'Vendas de pacotes de alimentação'),
+('Outros Recebimentos', 'RECEITA', 'Outras fontes de receita');
+
 -- fim - script sistema cantina
 
 -- ALTER TABLE incremental (caso já exista sem a coluna estoque_minimo)

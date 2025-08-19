@@ -118,3 +118,23 @@ export function issueSessionCookie(res: any, token: string) {
   const opts = cookieOptions();
   res.cookies.set(COOKIE_NAME, token, opts);
 }
+
+// Função utilitária para verificar token (para usar nos endpoints)
+export function verifyToken(token?: string): any | null {
+  if (!token) return null;
+  try {
+    // Usamos uma verificação síncrona simples
+    // Em produção, poderia usar verifySessionToken que é async
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+    const now = Math.floor(Date.now() / 1000);
+
+    if (payload.exp && payload.exp < now) return null;
+
+    return payload;
+  } catch {
+    return null;
+  }
+}

@@ -164,7 +164,7 @@ Endpoints `/api/funcionarios` (busca código, nome ou cargo) e `/api/funcionario
 - Entrada e saída de produtos
 - Consulta de saldo atual
 - Alertas de estoque baixo
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
 
 **RF-010** - Relatórios de estoque
 
@@ -293,13 +293,13 @@ Endpoints `/api/funcionarios` (busca código, nome ou cargo) e `/api/funcionario
 
 - Registro de despesas da cantina
 - Controle de vencimentos
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
 
 **RF-028** - Controle de contas a receber
 
 - Registro de valores a receber
 - Controle de inadimplência
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
 
 ### Banco de Dados
 

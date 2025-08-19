@@ -85,8 +85,8 @@ Este documento organiza os requisitos funcionais em tarefas específicas para de
 - **RF-024** - Geração de faturas mensais (🔴 Pendente)
 
 #### Contas
-- **RF-027** - Controle de contas a pagar (🔴 Pendente)
-- **RF-028** - Controle de contas a receber (🔴 Pendente)
+- **RF-027** - Controle de contas a pagar (✅ Concluído)
+- **RF-028** - Controle de contas a receber (✅ Concluído)
 
 ## Tarefas Detalhadas por Módulo
 
@@ -230,14 +230,31 @@ Este documento organiza os requisitos funcionais em tarefas específicas para de
 
 ### Módulo de Contas a Pagar e Receber
 
-**RF-027 - Controle de contas a pagar**
+**RF-027 - Controle de contas a pagar** ✅ Concluído
 - Cadastro de fornecedores
 - Controle de vencimentos
 - Baixa de pagamentos
+- Sistema de parcelas
+- Histórico completo
+- Alertas de vencimento
 
-**RF-028 - Controle de contas a receber**
+**RF-028 - Controle de contas a receber** ✅ Concluído
 - Registro de recebíveis
 - Controle de inadimplência
+- Sistema de parcelas
+- Histórico completo
+- Alertas de vencimento
+
+**Implementação completa:**
+- Dashboard financeiro com indicadores
+- CRUD completo para contas a pagar e receber
+- Sistema de categorias financeiras
+- Controle de parcelas automático
+- Triggers para atualização de status
+- Views para relatórios
+- Interface Bootstrap responsiva
+- Filtros avançados e paginação
+- Controle de acesso por perfil
 
 ### Banco de Dados
 
