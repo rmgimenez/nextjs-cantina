@@ -81,3 +81,22 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'server_error' }, { status: 500 });
   }
 }
+
+export async function PATCH(req: NextRequest) {
+  if (!(await ensureAdmin(req))) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  try {
+    const body = await req.json();
+    const { id } = body || {};
+    if (!id) return NextResponse.json({ error: 'missing_id' }, { status: 400 });
+
+    const bcrypt = (await import('bcryptjs')).default;
+    const newPass = 'senha123';
+    const hash = await bcrypt.hash(newPass, 10);
+
+    await query('UPDATE cant_usuarios SET senha_hash = ? WHERE id = ?', [hash, id]);
+    return NextResponse.json({ ok: true });
+  } catch (err: any) {
+    console.error('PATCH /api/usuarios error', err);
+    return NextResponse.json({ error: 'server_error' }, { status: 500 });
+  }
+}

@@ -111,7 +111,7 @@ Observação: Implementado endpoint de login (`/api/login`) e logout (`/api/logo
 - Administrador: Acesso total ao sistema
 - Atendente: Realizar vendas e consultar estoque
 - Estoquista: Gerenciar estoque de produtos
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
 
 **RF-003** - Controle de sessão e logout
 

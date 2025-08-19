@@ -120,6 +120,32 @@ export default function UsuariosClient() {
     }
   };
 
+  const handleResetPassword = async (id: number) => {
+    if (!confirm('Resetar senha do usuário para "senha123"?')) return;
+    try {
+      const res = await fetch('/api/usuarios', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!res.ok) {
+        let errBody = null;
+        try {
+          errBody = await res.json();
+        } catch (_) {
+          errBody = await res.text().catch(() => '<no body>');
+        }
+        console.error('reset password failed', res.status, errBody);
+        throw new Error('reset_failed');
+      }
+      alert('Senha resetada para: senha123');
+      await fetchUsuarios();
+    } catch (err) {
+      console.error(err);
+      alert('Falha ao resetar senha');
+    }
+  };
+
   return (
     <div>
       <Card className='mb-3'>
@@ -212,6 +238,13 @@ export default function UsuariosClient() {
                     <td>
                       <Button variant='primary' className='me-2' onClick={() => handleEdit(u)}>
                         Editar
+                      </Button>
+                      <Button
+                        variant='warning'
+                        className='me-2'
+                        onClick={() => handleResetPassword(u.id)}
+                      >
+                        Resetar senha
                       </Button>
                       <Button variant='danger' onClick={() => handleDelete(u.id)}>
                         Desativar
