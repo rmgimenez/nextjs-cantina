@@ -1,7 +1,7 @@
 'use client';
 
 import clsx from 'clsx';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   FiBell,
   FiChevronDown,
@@ -27,6 +27,9 @@ export default function Header({
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [name, setName] = useState(userName);
+  const [role, setRole] = useState(userRole);
+  const [loadingUser, setLoadingUser] = useState(true);
 
   const handleLogout = async () => {
     try {
@@ -36,6 +39,36 @@ export default function Header({
       console.error('Erro ao fazer logout:', error);
     }
   };
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadSession() {
+      try {
+        const res = await fetch('/api/session', { method: 'GET', credentials: 'include' });
+        if (!mounted) return;
+        if (res.ok) {
+          const body = await res.json();
+          // API returns { authenticated: true, user: { id, nome, tipo } }
+          if (body && body.user) {
+            setName(body.user.nome || body.user.usuario || userName);
+            setRole(body.user.tipo || userRole);
+          }
+        } else {
+          // keep fallbacks when not authenticated
+          setName(userName);
+          setRole(userRole);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar sessão:', err);
+      } finally {
+        if (mounted) setLoadingUser(false);
+      }
+    }
+    loadSession();
+    return () => {
+      mounted = false;
+    };
+  }, [userName, userRole]);
 
   const notifications = [
     { id: 1, message: 'Estoque baixo: Refrigerante Coca-Cola', type: 'warning', time: '5 min' },
@@ -103,11 +136,11 @@ export default function Header({
                 className='rounded-circle bg-primary text-white d-flex align-items-center justify-content-center'
                 style={{ width: 36, height: 36 }}
               >
-                <strong>{userName.charAt(0).toUpperCase()}</strong>
+                <strong>{(name && name.length > 0 ? name.charAt(0) : '?').toUpperCase()}</strong>
               </div>
               <div className='d-none d-md-block text-start'>
-                <div className='fw-semibold text-dark'>{userName}</div>
-                <small className='text-muted'>{userRole}</small>
+                <div className='fw-semibold text-dark'>{name}</div>
+                <small className='text-muted'>{role}</small>
               </div>
               <FiChevronDown className={clsx('', { 'rotate-180': isProfileMenuOpen })} />
             </button>
@@ -119,8 +152,8 @@ export default function Header({
                 aria-labelledby='profileDropdown'
               >
                 <li className='px-3 py-2 border-bottom'>
-                  <div className='fw-semibold'>{userName}</div>
-                  <small className='text-muted'>{userRole}</small>
+                  <div className='fw-semibold'>{name}</div>
+                  <small className='text-muted'>{role}</small>
                 </li>
                 <li>
                   <button className='dropdown-item' onClick={() => setIsProfileMenuOpen(false)}>
