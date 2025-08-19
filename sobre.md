@@ -21,8 +21,7 @@ O sistema utiliza as seguintes tecnologias:
 - **react-icons**: Para uso de ícones.
 - **MySQL**: Banco de dados relacional utilizado no backend.
 - **PNPM**: Gerenciador de pacotes utilizado para instalação das dependências.
-
-- **Chakra UI**: Biblioteca de componentes React baseada em design tokens para estilização da aplicação (usa Emotion para CSS-in-JS e integração com framer-motion para animações).
+- **Bootstrap**: Framework CSS para estilização da aplicação.
 
 ## Funcionalidades
 
@@ -323,17 +322,17 @@ Observação: Implementado endpoint de login (`/api/login`) e logout (`/api/logo
 **RF-032** - Design system
 
 - Implementar cores da identidade visual
-- Layout responsivo com Chakra UI (usar tokens de tema, componentes primitivos e system props)
-- Componentes reutilizáveis construídos com Chakra primitives e hooks
+- Layout responsivo com Bootstrap (usar tokens de tema, componentes primitivos e system props)
+- Componentes reutilizáveis construídos com Bootstrap e hooks
 - Status: 🔴 Pendente
 
-Observação de migração: o projeto foi migrado de Tailwind CSS para Chakra UI. Para manter histórico, arquivos de configuração do Tailwind podem permanecer temporariamente, mas a nova implementação deve:
+Observação de migração: o projeto foi migrado de Tailwind CSS para Bootstrap. Para manter histórico, arquivos de configuração do Tailwind podem permanecer temporariamente, mas a nova implementação deve:
 
-- Envolver a aplicação com `ChakraProvider` e um tema centralizado que expõe as cores do projeto.
-- Remover importações diretas de classes Tailwind nos componentes; substituir por componentes Chakra (`Box`, `Flex`, `Button`, `Input`, etc.) e propriedades de sistema.
-- Manter `pnpm` como gerenciador de pacotes e instalar as dependências: `@chakra-ui/react`, `@emotion/react`, `@emotion/styled`, `framer-motion`.
+- Envolver a aplicação com `Bootstrap` e um tema centralizado que expõe as cores do projeto.
+- Remover importações diretas de classes Tailwind nos componentes; substituir por componentes Bootstrap (`Box`, `Flex`, `Button`, `Input`, etc.) e propriedades de sistema.
+- Manter `pnpm` como gerenciador de pacotes e instalar as dependências.
 
-Se preferir, posso automatizar uma passagem inicial convertendo os componentes mais usados (ex: botões, cards, inputs) de classes Tailwind para componentes Chakra.
+Se preferir, posso automatizar uma passagem inicial convertendo os componentes mais usados (ex: botões, cards, inputs) de classes Tailwind para componentes Bootstrap.
 
 **RF-033** - Dashboard principal
 

@@ -6,7 +6,7 @@ Sistema de controle de cantina escolar com frontend Next.js/TypeScript e backend
 
 ## Tecnologias
 
-- **Frontend**: Next.js + TypeScript + Chakra UI + react-icons
+- **Frontend**: Next.js + TypeScript + Bootstrap + react-icons
 - **Backend**: Next.js API Routes
 - **Banco**: MySQL (com triggers, views, stored procedures)
 - **Gerenciador**: PNPM
@@ -42,7 +42,7 @@ Sistema de controle de cantina escolar com frontend Next.js/TypeScript e backend
 - RF-001: Sistema de login
 - RF-002: Controle de perfis
 - RF-003: Sessão e logout
-- RF-032: Design system (Chakra UI + cores)
+- RF-032: Design system (Bootstrap + cores)
 - RF-033: Dashboard principal
 - RF-034: Navegação por perfil
 
