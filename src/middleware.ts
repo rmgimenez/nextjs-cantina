@@ -6,11 +6,23 @@ const JWT_SECRET = process.env.JWT_SECRET || 'cantina-secret-key';
 
 export function middleware(request: NextRequest) {
   // Rotas que não precisam de autenticação
-  const publicPaths = ['/login', '/api/login'];
+  const publicPaths = ['/login', '/api/login', '/api/session'];
   const pathname = request.nextUrl.pathname;
 
   // Se é uma rota pública, permite acesso
   if (publicPaths.includes(pathname)) {
+    if (pathname === '/login') {
+      const token = request.cookies.get('cantina_session')?.value;
+      if (token) {
+        try {
+          jwt.verify(token, JWT_SECRET);
+          const dashboardUrl = new URL('/dashboard', request.url);
+          return NextResponse.redirect(dashboardUrl);
+        } catch (e) {
+          // token inválido, segue fluxo normal
+        }
+      }
+    }
     return NextResponse.next();
   }
 

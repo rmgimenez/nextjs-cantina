@@ -3,15 +3,37 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 import { FiEye, FiEyeOff, FiLock, FiLogIn, FiUser } from 'react-icons/fi';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/session', { cache: 'no-store' });
+        if (!cancelled && res.ok) {
+          router.replace('/dashboard');
+        }
+      } catch (e) {
+        // silent
+      } finally {
+        if (!cancelled) setCheckingSession(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,8 +54,8 @@ export default function LoginPage() {
         return;
       }
 
-      // Redirect to dashboard
-      window.location.href = '/dashboard';
+      // Redireciona sem recarregar a página
+      router.replace('/dashboard');
     } catch (err) {
       setError('Erro de conexão com o servidor');
     } finally {
@@ -45,10 +67,20 @@ export default function LoginPage() {
     setShowPassword(!showPassword);
   };
 
+  if (checkingSession) {
+    return (
+      <div className='min-h-screen flex items-center justify-center bg-gray-50'>
+        <div className='text-center text-gray-500 text-sm'>Verificando sessão...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4'>
+    <div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4 relative overflow-hidden'>
       {/* Background Pattern */}
-      <div className='absolute inset-0 bg-grid-pattern opacity-5'></div>
+      <div className='absolute inset-0 bg-grid-pattern opacity-10'></div>
+      <div className='absolute -top-32 -left-32 w-96 h-96 rounded-full bg-blue-100 blur-3xl opacity-70 animate-pulse'></div>
+      <div className='absolute top-1/2 -right-40 w-[32rem] h-[32rem] rounded-full bg-yellow-100 blur-3xl opacity-60 animate-pulse delay-700'></div>
 
       <div className='w-full max-w-md relative z-10'>
         {/* Logo e Header */}
@@ -61,7 +93,10 @@ export default function LoginPage() {
         </div>
 
         {/* Card de Login */}
-        <Card shadow='large' className='backdrop-blur-sm bg-white/80 border-0'>
+        <Card
+          shadow='large'
+          className='backdrop-blur-md bg-white/90 border-0 ring-1 ring-white/40 shadow-xl animate-fade-in'
+        >
           <CardContent>
             <form onSubmit={handleSubmit} className='space-y-6'>
               <div className='text-center mb-6'>
@@ -122,7 +157,7 @@ export default function LoginPage() {
                 icon={<FiLogIn className='w-4 h-4' />}
                 iconPosition='left'
                 className='w-full'
-                disabled={!usuario || !senha}
+                disabled={!usuario || !senha || loading}
               >
                 {loading ? 'Entrando...' : 'Entrar no Sistema'}
               </Button>
@@ -148,9 +183,9 @@ export default function LoginPage() {
       </div>
 
       {/* Elementos decorativos */}
-      <div className='absolute top-10 left-10 w-20 h-20 bg-blue-200 rounded-full opacity-20 animate-pulse'></div>
-      <div className='absolute bottom-10 right-10 w-32 h-32 bg-yellow-200 rounded-full opacity-20 animate-pulse delay-1000'></div>
-      <div className='absolute top-1/2 right-20 w-16 h-16 bg-red-200 rounded-full opacity-20 animate-pulse delay-500'></div>
+      <div className='absolute top-10 left-10 w-24 h-24 bg-blue-200 rounded-full opacity-30 animate-pulse'></div>
+      <div className='absolute bottom-10 right-10 w-40 h-40 bg-yellow-200 rounded-full opacity-30 animate-pulse delay-1000'></div>
+      <div className='absolute top-1/2 right-20 w-20 h-20 bg-red-200 rounded-full opacity-30 animate-pulse delay-500'></div>
     </div>
   );
 }

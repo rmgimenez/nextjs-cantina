@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { COOKIE_NAME, createSessionToken, verifyUserCredentials } from '../../../lib/auth';
+import {
+  COOKIE_NAME,
+  cookieOptions,
+  createSessionToken,
+  verifyUserCredentials,
+} from '../../../lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,8 +30,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       usuario: { id: user.id, nome: user.nome, tipo: user.tipo },
     });
-    // Ensure cookie is exposed as a Set-Cookie header so browsers receive it.
-    res.headers.set('Set-Cookie', `${COOKIE_NAME}=${token}; HttpOnly; Path=/; Max-Age=28800`);
+    res.cookies.set(COOKIE_NAME, token, cookieOptions());
     return res;
   } catch (err: any) {
     // Log the error server-side for debugging and return a JSON error to the client
