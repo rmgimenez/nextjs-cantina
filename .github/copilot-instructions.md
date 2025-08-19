@@ -31,7 +31,7 @@ Este projeto é um sistema de controle de cantina escolar, com frontend em Next.
 - Classifique produtos por tipo (ex: salgados, doces, etc).
 - Controle de saldo, pacotes de alimentação e restrições de consumo devem ser implementados no banco.
 - Relatórios e faturas para funcionários da escola devem ser gerados via procedures/views.
-- Use Tailwind CSS para estilização e mantenha a identidade visual conforme as cores definidas.
+  -- Use Chakra UI para estilização e mantenha a identidade visual conforme as cores definidas. Prefira tokens de tema, componentes primitivos e system props.
 
 ## Exemplos de Arquivos-Chave
 

@@ -276,12 +276,14 @@ Este documento organiza os requisitos funcionais em tarefas específicas para de
 ## Considerações Técnicas
 
 ### Tecnologias
-- Frontend: Next.js + TypeScript + Tailwind CSS
+
+- Frontend: Next.js + TypeScript + Chakra UI
 - Backend: Next.js API Routes
 - Banco: MySQL
 - Gerenciador: PNPM
 
 ### Convenções
+
 - camelCase para variáveis
 - PascalCase para classes
 - UPPER_SNAKE_CASE para constantes
@@ -289,6 +291,7 @@ Este documento organiza os requisitos funcionais em tarefas específicas para de
 - Prefixo `cant_` para todas as tabelas
 
 ### Cores do Sistema
+
 - Azul: #253287
 - Vermelho: #B20000
 - Amarelo: #FEA800
@@ -296,6 +299,7 @@ Este documento organiza os requisitos funcionais em tarefas específicas para de
 - Claro: #FFFFFF
 
 ### Observações Importantes
+
 - Fotos dos alunos: `https://sistema.santanna.g12.br/carometr/$ra.jpg`
 - Não alterar tabelas legadas existentes
 - Máximo uso de views, triggers e stored procedures

@@ -1,8 +1,23 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import {
+  Alert,
+  AlertIcon,
+  Box,
+  Button,
+  Center,
+  Input as ChakraInput,
+  Checkbox,
+  FormControl,
+  FormLabel,
+  Heading,
+  InputGroup,
+  InputLeftElement,
+  InputRightElement,
+  Stack,
+  Text,
+  VStack,
+} from '@chakra-ui/react';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { FiEye, FiEyeOff, FiLock, FiLogIn, FiUser } from 'react-icons/fi';
@@ -55,9 +70,6 @@ export default function LoginPage() {
         return;
       }
 
-      console.log('Login successful, data:', data);
-
-      // Salva as informações do usuário e token para desenvolvimento
       if (data.usuario) {
         localStorage.setItem('cantina_user', JSON.stringify(data.usuario));
       }
@@ -65,14 +77,7 @@ export default function LoginPage() {
         localStorage.setItem('cantina_token', data.token);
       }
 
-      // Aguarda um pouco para garantir que os dados sejam salvos
       await new Promise((resolve) => setTimeout(resolve, 100));
-
-      // Verifica se o cookie foi definido (em desenvolvimento está acessível via JS)
-      const cookies = document.cookie;
-      console.log('Cookies after login:', cookies);
-
-      // Redireciona para dashboard
       window.location.href = '/dashboard';
     } catch (err) {
       setError('Erro de conexão com o servidor');
@@ -87,117 +92,112 @@ export default function LoginPage() {
 
   if (checkingSession) {
     return (
-      <div className='min-h-screen flex items-center justify-center bg-gray-50'>
-        <div className='text-center text-gray-500 text-sm'>Verificando sessão...</div>
-      </div>
+      <Center minH='100vh' bg='gray.50'>
+        <Text color='gray.500' fontSize='sm'>
+          Verificando sessão...
+        </Text>
+      </Center>
     );
   }
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4 relative overflow-hidden'>
-      {/* Background decorativo (reduzido para menos distração) */}
-      <div className='absolute inset-0 opacity-6 pointer-events-none'>
-        <div
-          className='absolute top-0 left-0 w-full h-full'
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23253287' fill-opacity='0.06'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        />
-      </div>
+    <Box minH='100vh' bgGradient='linear(to-br, blue.50, white, blue.50)' p={6}>
+      <Center>
+        <VStack spacing={6} w='full' maxW='md' align='stretch'>
+          <Box textAlign='center'>
+            <Box
+              display='inline-flex'
+              alignItems='center'
+              justifyContent='center'
+              w='80px'
+              h='80px'
+              bgGradient='linear(to-br, blue.600, blue.700)'
+              borderRadius='16px'
+              boxShadow='lg'
+              mb={4}
+            >
+              <Text color='white' fontWeight='bold' fontSize='3xl'>
+                C
+              </Text>
+            </Box>
+            <Heading as='h1' size='lg'>
+              Sistema Cantina
+            </Heading>
+            <Text color='gray.600' mt={1}>
+              ERP Cantina Escolar
+            </Text>
+          </Box>
 
-      {/* Elementos decorativos com cores do sistema (subtis) */}
-      <div className='absolute -top-24 -left-24 w-80 h-80 rounded-full bg-gradient-to-r from-blue-100 to-blue-200 blur-3xl opacity-20'></div>
-      <div
-        className='absolute top-1/2 -right-36 w-96 h-96 rounded-full bg-gradient-to-r from-yellow-100 to-yellow-200 blur-3xl opacity-12'
-        style={{ animationDelay: '0.7s' }}
-      ></div>
+          <Box bg='white' boxShadow='2xl' borderRadius='md' p={8}>
+            <form onSubmit={handleSubmit} noValidate>
+              <VStack spacing={5} align='stretch'>
+                <Box textAlign='center'>
+                  <Heading as='h2' size='md'>
+                    Faça seu login
+                  </Heading>
+                  <Text color='gray.600' fontSize='sm' mt={2}>
+                    Entre com suas credenciais para acessar o sistema
+                  </Text>
+                </Box>
 
-      <div className='w-full max-w-md relative z-10'>
-        {/* Logo e Header */}
-        <div className='text-center mb-8'>
-          <div className='inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-700 rounded-3xl shadow-lg mb-6 transform transition-transform hover:scale-105'>
-            <span className='text-white font-bold text-3xl' aria-hidden='true'>
-              C
-            </span>
-            <span className='sr-only'>Sistema Cantina</span>
-          </div>
-          <h1 className='text-4xl font-bold text-gray-900 mb-2'>Sistema Cantina</h1>
-          <p className='text-gray-600 text-lg'>ERP Cantina Escolar</p>
-        </div>
+                <FormControl>
+                  <FormLabel>Usuário</FormLabel>
+                  <InputGroup>
+                    <InputLeftElement pointerEvents='none' color='gray.400'>
+                      <FiUser />
+                    </InputLeftElement>
+                    <ChakraInput
+                      type='text'
+                      value={usuario}
+                      onChange={(e) => setUsuario(e.target.value)}
+                      placeholder='Digite seu usuário'
+                      autoComplete='username'
+                      autoFocus
+                      aria-describedby={error ? 'login-error' : undefined}
+                    />
+                  </InputGroup>
+                </FormControl>
 
-        {/* Card de Login */}
-        <Card shadow='large' className='backdrop-blur-sm bg-white/95 border-0 shadow-2xl'>
-          <CardContent className='p-8'>
-            <form onSubmit={handleSubmit} className='space-y-6' noValidate>
-              <div className='text-center mb-6'>
-                <h2 className='text-2xl font-semibold text-gray-900'>Faça seu login</h2>
-                <p className='text-gray-600 text-sm mt-2'>
-                  Entre com suas credenciais para acessar o sistema
-                </p>
-              </div>
+                <FormControl>
+                  <FormLabel>Senha</FormLabel>
+                  <InputGroup>
+                    <InputLeftElement pointerEvents='none' color='gray.400'>
+                      <FiLock />
+                    </InputLeftElement>
+                    <ChakraInput
+                      type={showPassword ? 'text' : 'password'}
+                      value={senha}
+                      onChange={(e) => setSenha(e.target.value)}
+                      placeholder='Digite sua senha'
+                      autoComplete='current-password'
+                    />
+                    <InputRightElement>
+                      <Button
+                        aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                        size='sm'
+                        variant='ghost'
+                        onClick={togglePasswordVisibility}
+                      >
+                        {showPassword ? <FiEyeOff /> : <FiEye />}
+                      </Button>
+                    </InputRightElement>
+                  </InputGroup>
+                </FormControl>
 
-              {/* Campo Usuário */}
-              <Input
-                label='Usuário'
-                type='text'
-                value={usuario}
-                onChange={(e) => setUsuario(e.target.value)}
-                placeholder='Digite seu usuário'
-                icon={<FiUser className='w-5 h-5' />}
-                iconPosition='left'
-                required
-                autoComplete='username'
-                autoFocus
-                aria-describedby={error ? 'login-error' : undefined}
-              />
-
-              {/* Campo Senha */}
-              <div className='relative'>
-                <Input
-                  label='Senha'
-                  type={showPassword ? 'text' : 'password'}
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  placeholder='Digite sua senha'
-                  icon={<FiLock className='w-5 h-5' />}
-                  iconPosition='left'
-                  required
-                  autoComplete='current-password'
-                />
-                <button
-                  type='button'
-                  onClick={togglePasswordVisibility}
-                  className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200 p-1'
-                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                >
-                  {showPassword ? <FiEyeOff className='w-5 h-5' /> : <FiEye className='w-5 h-5' />}
-                </button>
-              </div>
-
-              {/* Lembrar-me e ajuda */}
-              <div className='flex items-center justify-between mt-1'>
-                <label className='inline-flex items-center text-sm text-gray-700'>
-                  <input
-                    type='checkbox'
-                    checked={rememberMe}
+                <Stack direction='row' align='center' justify='space-between'>
+                  <Checkbox
+                    isChecked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className='h-4 w-4 rounded border-gray-300 text-[#253287] focus:ring-[#253287]'
-                  />
-                  <span className='ml-2'>Lembrar-me</span>
-                </label>
-                <button
-                  type='button'
-                  className='text-sm text-blue-600 hover:text-blue-700 transition-colors duration-200 hover:underline'
-                >
-                  Esqueceu sua senha?
-                </button>
-              </div>
+                  >
+                    Lembrar-me
+                  </Checkbox>
+                  <ButtonLink />
+                </Stack>
 
-              {/* Erro */}
-              {error && (
-                <div id='login-error' role='alert' aria-live='assertive'>
-                  <div className='bg-red-50 border border-red-200 rounded-xl p-4'>
-                    <p className='text-red-700 text-sm text-center font-medium'>
+                {error && (
+                  <Alert status='error' id='login-error' aria-live='assertive'>
+                    <AlertIcon />
+                    <Text fontSize='sm'>
                       {error === 'credenciais_invalidas'
                         ? 'Usuário ou senha incorretos'
                         : error === 'usuario_e_senha_obrigatorios'
@@ -205,55 +205,48 @@ export default function LoginPage() {
                         : error === 'server_error'
                         ? 'Erro no servidor. Tente novamente.'
                         : error}
-                    </p>
-                  </div>
-                </div>
-              )}
+                    </Text>
+                  </Alert>
+                )}
 
-              {/* Botão de Login */}
-              <Button
-                type='submit'
-                variant='primary'
-                size='large'
-                loading={loading}
-                icon={<FiLogIn className='w-5 h-5' />}
-                iconPosition='left'
-                className='w-full py-4 text-lg font-semibold shadow-lg hover:shadow-xl transform transition-all duration-200 hover:-translate-y-0.5 bg-[#253287] hover:bg-[#1f276e]'
-                disabled={!usuario || !senha || loading}
-              >
-                {loading ? 'Entrando...' : 'Entrar no Sistema'}
-              </Button>
-
-              {/* Links auxiliares */}
-              <div className='text-center pt-4'>
-                <button
-                  type='button'
-                  className='text-sm text-blue-600 hover:text-blue-700 transition-colors duration-200 hover:underline'
+                <Button
+                  type='submit'
+                  colorScheme='blue'
+                  size='lg'
+                  isLoading={loading}
+                  leftIcon={<FiLogIn />}
+                  isDisabled={!usuario || !senha || loading}
+                  w='full'
                 >
-                  Esqueceu sua senha?
-                </button>
-              </div>
+                  {loading ? 'Entrando...' : 'Entrar no Sistema'}
+                </Button>
+                <Box textAlign='center' pt={4}>
+                  <Text
+                    as='button'
+                    fontSize='sm'
+                    color='blue.600'
+                    _hover={{ textDecoration: 'underline' }}
+                  >
+                    Esqueceu sua senha?
+                  </Text>
+                </Box>
+              </VStack>
             </form>
-          </CardContent>
-        </Card>
+          </Box>
+          <Box textAlign='center' color='gray.500' fontSize='sm'>
+            <Text>© 2025 Sistema Cantina Escolar</Text>
+            <Text mt={1}>Desenvolvido com Next.js e TypeScript</Text>
+          </Box>
+        </VStack>
+      </Center>
+    </Box>
+  );
+}
 
-        {/* Footer */}
-        <div className='text-center mt-8 text-gray-500 text-sm'>
-          <p>© 2025 Sistema Cantina Escolar</p>
-          <p className='mt-1'>Desenvolvido com Next.js e TypeScript</p>
-        </div>
-      </div>
-
-      {/* Elementos decorativos menores */}
-      <div className='absolute top-10 left-10 w-20 h-20 bg-blue-200 rounded-full opacity-20 animate-pulse'></div>
-      <div
-        className='absolute bottom-10 right-10 w-32 h-32 bg-yellow-200 rounded-full opacity-20 animate-pulse'
-        style={{ animationDelay: '1s' }}
-      ></div>
-      <div
-        className='absolute top-1/2 right-20 w-16 h-16 bg-red-200 rounded-full opacity-20 animate-pulse'
-        style={{ animationDelay: '0.5s' }}
-      ></div>
-    </div>
+function ButtonLink() {
+  return (
+    <Text as='button' fontSize='sm' color='blue.600' _hover={{ textDecoration: 'underline' }}>
+      Esqueceu sua senha?
+    </Text>
   );
 }

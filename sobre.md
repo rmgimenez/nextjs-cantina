@@ -18,10 +18,11 @@ O sistema utiliza as seguintes tecnologias:
 
 - **Next.js**: Framework React para construção do frontend com renderização híbrida (SSR/SSG).
 - **TypeScript**: Superset do JavaScript que adiciona tipagem estática.
-- **Tailwind CSS**: Framework CSS para estilização da aplicação.
 - **react-icons**: Para uso de ícones.
 - **MySQL**: Banco de dados relacional utilizado no backend.
 - **PNPM**: Gerenciador de pacotes utilizado para instalação das dependências.
+
+- **Chakra UI**: Biblioteca de componentes React baseada em design tokens para estilização da aplicação (usa Emotion para CSS-in-JS e integração com framer-motion para animações).
 
 ## Funcionalidades
 
@@ -322,9 +323,17 @@ Observação: Implementado endpoint de login (`/api/login`) e logout (`/api/logo
 **RF-032** - Design system
 
 - Implementar cores da identidade visual
-- Layout responsivo com Tailwind CSS
-- Componentes reutilizáveis
+- Layout responsivo com Chakra UI (usar tokens de tema, componentes primitivos e system props)
+- Componentes reutilizáveis construídos com Chakra primitives e hooks
 - Status: 🔴 Pendente
+
+Observação de migração: o projeto foi migrado de Tailwind CSS para Chakra UI. Para manter histórico, arquivos de configuração do Tailwind podem permanecer temporariamente, mas a nova implementação deve:
+
+- Envolver a aplicação com `ChakraProvider` e um tema centralizado que expõe as cores do projeto.
+- Remover importações diretas de classes Tailwind nos componentes; substituir por componentes Chakra (`Box`, `Flex`, `Button`, `Input`, etc.) e propriedades de sistema.
+- Manter `pnpm` como gerenciador de pacotes e instalar as dependências: `@chakra-ui/react`, `@emotion/react`, `@emotion/styled`, `framer-motion`.
+
+Se preferir, posso automatizar uma passagem inicial convertendo os componentes mais usados (ex: botões, cards, inputs) de classes Tailwind para componentes Chakra.
 
 **RF-033** - Dashboard principal
 
