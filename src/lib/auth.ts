@@ -22,8 +22,8 @@ export async function verifyUserCredentials(usuario: string, senha: string) {
 
   // Fallback: try funcionarios table with plain senha field (legacy)
   const f = await query<any[]>(
-    'SELECT codigo as id, nome, senha FROM funcionarios WHERE usuario = ? OR email = ? LIMIT 1',
-    [usuario, usuario]
+    'SELECT codigo as id, nome, senha FROM funcionarios WHERE email = ? OR email_pessoal = ? OR cpf = ? LIMIT 1',
+    [usuario, usuario, usuario]
   );
   if (f && f.length > 0) {
     const uf = f[0];

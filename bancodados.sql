@@ -270,6 +270,7 @@ CREATE TABLE `familias` (
   KEY `idx_familia_codigo` (`codigo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
+-- tabela dos funcionários da escola
 CREATE TABLE `funcionarios` (
   `codigo` int NOT NULL AUTO_INCREMENT,
   `nome` varchar(255) DEFAULT NULL,
