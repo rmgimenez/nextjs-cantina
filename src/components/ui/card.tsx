@@ -9,24 +9,30 @@ interface CardProps {
 }
 
 export function Card({ children, className, padding = 'medium', shadow = 'small' }: CardProps) {
+  const paddingMap: Record<string, string> = {
+    none: 'p-0',
+    small: 'p-2',
+    medium: 'p-3',
+    large: 'p-4',
+  };
+
+  const shadowMap: Record<string, string> = {
+    none: '',
+    small: 'shadow-sm',
+    medium: 'shadow',
+    large: 'shadow-lg',
+  };
+
   return (
     <div
       className={clsx(
-        'bg-white rounded-lg border border-gray-200',
-        {
-          'p-0': padding === 'none',
-          'p-3': padding === 'small',
-          'p-6': padding === 'medium',
-          'p-8': padding === 'large',
-          'shadow-none': shadow === 'none',
-          'shadow-sm': shadow === 'small',
-          'shadow-md': shadow === 'medium',
-          'shadow-lg': shadow === 'large',
-        },
+        'card border-0 rounded-3 bg-white',
+        paddingMap[padding],
+        shadowMap[shadow],
         className
       )}
     >
-      {children}
+      <div className='card-body p-0'>{children}</div>
     </div>
   );
 }
@@ -37,7 +43,7 @@ interface CardHeaderProps {
 }
 
 export function CardHeader({ children, className }: CardHeaderProps) {
-  return <div className={clsx('border-b border-gray-200 pb-4 mb-4', className)}>{children}</div>;
+  return <div className={clsx('border-bottom pb-2 mb-3', className)}>{children}</div>;
 }
 
 interface CardTitleProps {
@@ -46,7 +52,7 @@ interface CardTitleProps {
 }
 
 export function CardTitle({ children, className }: CardTitleProps) {
-  return <h3 className={clsx('text-lg font-semibold text-gray-900', className)}>{children}</h3>;
+  return <h5 className={clsx('card-title mb-0', className)}>{children}</h5>;
 }
 
 interface CardContentProps {

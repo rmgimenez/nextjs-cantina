@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import {
   FiBarChart,
   FiCalendar,
+  FiChevronDown,
   FiClipboard,
   FiCreditCard,
   FiDollarSign,
@@ -239,58 +240,47 @@ export default function Sidebar({ isOpen, onToggle, userRole = 'admin' }: Sideba
     const hasChildren = item.children && item.children.length > 0;
     const isSubmenuOpen = openSubmenus.includes(item.id);
 
+    const Icon = item.icon as React.ComponentType<any>;
+
     return (
       <div key={item.id}>
         <div
-          className={clsx(
-            'flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all duration-200',
-            {
-              'bg-blue-100 text-blue-700 border-r-3 border-blue-700': isActive,
-              'text-gray-700 hover:bg-gray-100': !isActive,
-              'ml-4': level > 0,
-            }
-          )}
           onClick={hasChildren ? () => toggleSubmenu(item.id) : undefined}
+          className={clsx('d-flex align-items-center justify-content-between', {
+            'bg-primary bg-opacity-10': isActive,
+          })}
+          style={{ padding: 8, borderRadius: 8, cursor: 'pointer', marginLeft: level > 0 ? 12 : 0 }}
         >
           <Link
             href={item.href}
-            className='flex items-center flex-1'
+            className='d-flex align-items-center flex-grow-1 text-decoration-none text-dark'
             onClick={(e) => hasChildren && e.preventDefault()}
+            title={!isOpen && level === 0 ? item.label : undefined}
           >
-            <item.icon
-              className={clsx('w-5 h-5 mr-3', {
-                'text-blue-700': isActive,
-                'text-gray-500': !isActive,
-              })}
-            />
-            <span
-              className={clsx('font-medium', {
-                'opacity-0 w-0': !isOpen && level === 0,
-                'opacity-100 w-auto': isOpen || level > 0,
-              })}
-            >
-              {item.label}
-            </span>
+            <Icon size={18} className={clsx({ 'text-primary': isActive })} />
+            {(isOpen || level > 0) && <span className='ms-2'>{item.label}</span>}
           </Link>
+
           {hasChildren && isOpen && (
-            <div
-              className={clsx('transform transition-transform duration-200', {
-                'rotate-180': isSubmenuOpen,
-              })}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleSubmenu(item.id);
+              }}
+              className='btn btn-sm btn-light'
+              aria-expanded={isSubmenuOpen}
+              aria-label={isSubmenuOpen ? 'Fechar submenu' : 'Abrir submenu'}
             >
-              <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M19 9l-7 7-7-7'
-                />
-              </svg>
-            </div>
+              <FiChevronDown
+                size={14}
+                style={{ transform: isSubmenuOpen ? 'rotate(180deg)' : undefined }}
+              />
+            </button>
           )}
         </div>
+
         {hasChildren && isSubmenuOpen && isOpen && (
-          <div className='mt-1 space-y-1'>
+          <div className='mt-1 ps-3'>
             {item.children?.map((child) => renderMenuItem(child, level + 1))}
           </div>
         )}
@@ -299,44 +289,42 @@ export default function Sidebar({ isOpen, onToggle, userRole = 'admin' }: Sideba
   };
 
   return (
-    <div
-      className={clsx(
-        'fixed left-0 top-0 h-full bg-white shadow-xl transition-all duration-300 z-30',
-        {
-          'w-64': isOpen,
-          'w-16': !isOpen,
-        }
-      )}
+    <aside
+      className={clsx('position-fixed top-0 start-0 h-100 bg-white shadow-sm transition w-auto', {
+        'vw-100': false,
+        'sidebar-open': isOpen,
+      })}
+      style={{ width: isOpen ? 260 : 64, zIndex: 1040 }}
     >
       {/* Header */}
-      <div className='flex items-center justify-between p-4 border-b border-gray-200'>
-        <div
-          className={clsx('flex items-center', {
-            'opacity-0': !isOpen,
-            'opacity-100': isOpen,
-          })}
-        >
-          <div className='w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center'>
-            <span className='text-white font-bold text-sm'>C</span>
+      <div className='d-flex align-items-center justify-content-between p-3 border-bottom'>
+        <div className={clsx('d-flex align-items-center', { 'opacity-0': !isOpen })}>
+          <div
+            className='d-flex align-items-center justify-content-center bg-primary rounded me-2'
+            style={{ width: 40, height: 40 }}
+          >
+            <span className='text-white fw-bold'>C</span>
           </div>
-          <div className='ml-3'>
-            <h1 className='text-lg font-bold text-gray-800'>Sistema Cantina</h1>
-            <p className='text-xs text-gray-500'>ERP Cantina Escolar</p>
+          <div className='d-none d-md-block'>
+            <h6 className='mb-0 fw-bold text-dark'>Sistema Cantina</h6>
+            <small className='text-muted'>ERP Cantina Escolar</small>
           </div>
         </div>
-        <button onClick={onToggle} className='p-2 rounded-lg hover:bg-gray-100 transition-colors'>
-          {isOpen ? (
-            <FiX className='w-5 h-5 text-gray-600' />
-          ) : (
-            <FiMenu className='w-5 h-5 text-gray-600' />
-          )}
+        <button onClick={onToggle} className='btn btn-light btn-sm'>
+          {isOpen ? <FiX /> : <FiMenu />}
         </button>
       </div>
 
       {/* Menu Items */}
-      <div className='p-4 space-y-2 overflow-y-auto h-full pb-20'>
-        {menuItems.map((item) => renderMenuItem(item))}
+      <div className='p-2 overflow-auto' style={{ height: 'calc(100vh - 72px)' }}>
+        <ul className='list-unstyled m-0'>
+          {menuItems.map((item) => (
+            <li key={item.id} className='mb-1'>
+              {renderMenuItem(item)}
+            </li>
+          ))}
+        </ul>
       </div>
-    </div>
+    </aside>
   );
 }

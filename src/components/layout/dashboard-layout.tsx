@@ -34,35 +34,37 @@ export default function DashboardLayout({ children, title, subtitle }: Dashboard
   };
 
   return (
-    <div className='flex h-screen bg-gray-50'>
+    <div className='d-flex vh-100 bg-light'>
       {/* Sidebar */}
       <Sidebar isOpen={isSidebarOpen} onToggle={toggleSidebar} userRole='admin' />
 
       {/* Overlay para mobile */}
       {isMobile && isSidebarOpen && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 z-20' onClick={toggleSidebar} />
+        <div
+          className='position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50'
+          onClick={toggleSidebar}
+        />
       )}
 
       {/* Main Content */}
       <div
-        className={clsx('flex-1 flex flex-col transition-all duration-300', {
-          'ml-64': isSidebarOpen && !isMobile,
-          'ml-16': !isSidebarOpen && !isMobile,
-          'ml-0': isMobile,
+        className={clsx('flex-grow-1 d-flex flex-column transition', {
+          'ms-4': !isMobile,
         })}
+        style={{ marginLeft: isMobile ? 0 : isSidebarOpen ? 260 : 64 }}
       >
         {/* Header */}
         <Header userName='João Silva' userRole='Administrador' />
 
         {/* Page Content */}
-        <main className='flex-1 overflow-y-auto'>
+        <main className='flex-grow-1 overflow-auto'>
           {(title || subtitle) && (
-            <div className='bg-white border-b border-gray-200 px-6 py-4'>
-              {title && <h1 className='text-2xl font-bold text-gray-900'>{title}</h1>}
-              {subtitle && <p className='text-gray-600 mt-1'>{subtitle}</p>}
+            <div className='bg-white border-bottom px-3 py-3'>
+              {title && <h1 className='h4 mb-1 text-dark'>{title}</h1>}
+              {subtitle && <p className='text-muted mb-0'>{subtitle}</p>}
             </div>
           )}
-          <div className='p-6'>{children}</div>
+          <div className='p-3'>{children}</div>
         </main>
       </div>
     </div>
