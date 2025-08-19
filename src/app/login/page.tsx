@@ -55,23 +55,13 @@ export default function LoginPage() {
       }
 
       if (data.usuario) {
-        localStorage.setItem('cantina_user', JSON.stringify(data.usuario));
-      }
-      if (data.token) {
-        localStorage.setItem('cantina_token', data.token);
-
-        // Fallback: definir cookie via JavaScript também
         try {
-          const maxAge = 60 * 60 * 8; // 8 horas
-          document.cookie = `cantina_session=${data.token}; Max-Age=${maxAge}; Path=/; SameSite=Lax`;
-          console.log('Cookie set via JavaScript fallback');
-        } catch (e) {
-          console.log('Could not set cookie via JavaScript:', e);
-        }
+          localStorage.setItem('cantina_user', JSON.stringify(data.usuario));
+        } catch {}
       }
 
-      // Aguarda um pouco para garantir que o cookie foi definido
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Pequeno delay para garantir gravação do cookie httpOnly
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
       // Verifica se a sessão está válida antes de redirecionar
       const sessionCheck = await fetch('/api/session', {
@@ -82,24 +72,7 @@ export default function LoginPage() {
       if (sessionCheck.ok) {
         window.location.href = '/dashboard';
       } else {
-        console.log('Session check failed, trying to set cookie again');
-        // Tenta definir o cookie novamente
-        if (data.token) {
-          document.cookie = `cantina_session=${data.token}; Max-Age=28800; Path=/; SameSite=Lax`;
-          await new Promise((resolve) => setTimeout(resolve, 200));
-          // Tenta novamente
-          const retryCheck = await fetch('/api/session', {
-            cache: 'no-store',
-            credentials: 'include',
-          });
-          if (retryCheck.ok) {
-            window.location.href = '/dashboard';
-          } else {
-            setError('Erro ao estabelecer sessão. Tente novamente.');
-          }
-        } else {
-          setError('Erro ao estabelecer sessão. Tente novamente.');
-        }
+        setError('Erro ao estabelecer sessão. Tente novamente.');
       }
     } catch (err) {
       setError('Erro de conexão com o servidor');

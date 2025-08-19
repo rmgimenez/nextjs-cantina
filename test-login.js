@@ -13,7 +13,7 @@ const testLogin = async () => {
         usuario: 'admin',
         senha: 'admin123',
       }),
-      credentials: 'include',
+      // credentials não funciona em node-fetch como no browser
     });
 
     console.log('Login response status:', loginResponse.status);
@@ -26,9 +26,19 @@ const testLogin = async () => {
       console.log('Login bem-sucedido! Testando sessão...');
 
       // Agora vamos verificar a sessão
+      // Extrai cookie de sessão
+      const setCookie = loginResponse.headers.get('set-cookie');
+      let cookieHeader = '';
+      if (setCookie) {
+        cookieHeader = setCookie
+          .split(',')
+          .map((c) => c.split(';')[0])
+          .join('; ');
+      }
+
       const sessionResponse = await fetch('http://localhost:3000/api/session', {
         method: 'GET',
-        credentials: 'include',
+        headers: cookieHeader ? { Cookie: cookieHeader } : {},
       });
 
       console.log('Session response status:', sessionResponse.status);
@@ -55,11 +65,16 @@ const testLogin = async () => {
 
 // Executar o teste se estiver sendo executado diretamente
 if (typeof window === 'undefined') {
-  // Node.js environment
-  const fetch = require('node-fetch');
-  testLogin();
+  // Node.js environment (ESM fetch dynamic import for node-fetch v3)
+  (async () => {
+    if (!global.fetch) {
+      const { default: fetchFn } = await import('node-fetch');
+      // @ts-ignore
+      global.fetch = fetchFn;
+    }
+    await testLogin();
+  })();
 } else {
-  // Browser environment
   testLogin();
 }
 

@@ -1,21 +1,8 @@
-import { jwtVerify } from 'jose';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { COOKIE_NAME, refreshSessionTokenIfNeeded } from './lib/auth';
 
-// Para compatibilidade com Edge runtime, usar WebCrypto + jose em vez de jsonwebtoken
-const JWT_SECRET = process.env.JWT_SECRET || 'cantina-secret-key';
-// Chave precisa ser passada como Uint8Array para jose
-const JWT_SECRET_KEY = new TextEncoder().encode(JWT_SECRET);
-const COOKIE_NAME = 'cantina_session';
-
-async function validateToken(token: string) {
-  try {
-    const { payload } = await jwtVerify(token, JWT_SECRET_KEY);
-    return payload as any;
-  } catch (e) {
-    return null;
-  }
-}
+// Middleware agora só delega a lógica de validar / refresh para lib/auth
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -29,14 +16,13 @@ export async function middleware(request: NextRequest) {
   // Página de login: se já autenticado redireciona
   if (pathname === '/login') {
     if (token) {
-      const payload = await validateToken(token);
-      if (payload) {
+      const result = await refreshSessionTokenIfNeeded(token);
+      if (result) {
         return NextResponse.redirect(new URL('/dashboard', request.url));
-      } else {
-        const resp = NextResponse.next();
-        resp.cookies.delete(COOKIE_NAME);
-        return resp;
       }
+      const resp = NextResponse.next();
+      resp.cookies.delete(COOKIE_NAME);
+      return resp;
     }
     return NextResponse.next();
   }
@@ -50,16 +36,26 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  const payload = await validateToken(token);
-  if (!payload) {
+  const result = await refreshSessionTokenIfNeeded(token);
+  if (!result) {
     const resp = NextResponse.redirect(new URL('/login', request.url));
     resp.cookies.delete(COOKIE_NAME);
     return resp;
   }
-
+  const { payload, token: newToken, refreshed } = result;
   const resp = NextResponse.next();
   resp.headers.set('x-user-id', (payload as any).id?.toString() || '');
   resp.headers.set('x-user-tipo', (payload as any).tipo || '');
+  if (refreshed) {
+    // Regrava cookie atualizado
+    resp.cookies.set(COOKIE_NAME, newToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 8,
+    });
+  }
   return resp;
 }
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { COOKIE_NAME, createSessionToken, verifyUserCredentials } from '../../../lib/auth';
+import { createSessionToken, issueSessionCookie, verifyUserCredentials } from '../../../lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,24 +30,10 @@ export async function POST(req: NextRequest) {
 
     const res = NextResponse.json({
       ok: true,
-      token: token, // Enviamos o token na resposta também
       usuario: { id: user.id, nome: user.nome, tipo: user.tipo },
     });
-
-    // Configuração do cookie - usar httpOnly: false em desenvolvimento
-    const isProd = process.env.NODE_ENV === 'production';
-    res.cookies.set(COOKIE_NAME, token, {
-      httpOnly: false, // false para permitir acesso via JavaScript em dev
-      secure: false, // false para desenvolvimento local
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 8, // 8 horas
-    });
-
-    console.log('Cookie set via res.cookies.set with httpOnly: false');
-
-    console.log('Cookie set with token');
-
+    issueSessionCookie(res, token);
+    console.log('Session cookie issued');
     return res;
   } catch (err: any) {
     // Log the error server-side for debugging and return a JSON error to the client

@@ -1,12 +1,13 @@
 import bcrypt from 'bcryptjs';
 import { jwtVerify, SignJWT } from 'jose';
-import jwt from 'jsonwebtoken';
 import { query } from './db';
 
-// Use the same default secret as middleware to avoid verification mismatch in dev
+// Config JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'cantina-secret-key';
 const JWT_SECRET_KEY = new TextEncoder().encode(JWT_SECRET);
-const COOKIE_NAME = 'cantina_session';
+export const COOKIE_NAME = 'cantina_session';
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 8; // 8h
+const SESSION_REFRESH_THRESHOLD_SECONDS = 60 * 30; // 30 min antes de expirar renova
 
 export async function verifyUserCredentials(usuario: string, senha: string) {
   try {
@@ -43,43 +44,55 @@ export async function verifyUserCredentials(usuario: string, senha: string) {
   }
 }
 
-// Prefer jose (compatível com Edge). Mantém fallback para jsonwebtoken se necessário.
 export async function createSessionToken(payload: any): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const exp = now + SESSION_MAX_AGE_SECONDS;
+  return new SignJWT({ ...payload })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt(now)
+    .setExpirationTime(exp)
+    .sign(JWT_SECRET_KEY);
+}
+
+export async function verifySessionToken(
+  token: string
+): Promise<null | (any & { exp?: number; iat?: number })> {
   try {
-    const now = Math.floor(Date.now() / 1000);
-    const exp = now + 60 * 60 * 8; // 8h
-    const token = await new SignJWT({ ...payload })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt(now)
-      .setExpirationTime(exp)
-      .sign(JWT_SECRET_KEY);
-    return token;
-  } catch (e) {
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
+    const { payload } = await jwtVerify(token, JWT_SECRET_KEY);
+    return payload as any;
+  } catch {
+    return null;
   }
 }
 
-export function verifySessionToken(token: string): Promise<any | null> | any | null {
-  return jwtVerify(token, JWT_SECRET_KEY)
-    .then((result: any) => result?.payload as any)
-    .catch(() => {
-      try {
-        return jwt.verify(token, JWT_SECRET) as any;
-      } catch (e) {
-        return null;
-      }
-    });
+export async function refreshSessionTokenIfNeeded(
+  token: string
+): Promise<{ refreshed: boolean; token: string; payload: any } | null> {
+  const payload = await verifySessionToken(token);
+  if (!payload) return null;
+  const now = Math.floor(Date.now() / 1000);
+  const exp = payload.exp || 0;
+  if (exp - now <= SESSION_REFRESH_THRESHOLD_SECONDS) {
+    // Reemite com mesmo payload base
+    const { id, usuario, nome, tipo } = payload as any;
+    const newToken = await createSessionToken({ id, usuario, nome, tipo });
+    return { refreshed: true, token: newToken, payload: { id, usuario, nome, tipo } };
+  }
+  return { refreshed: false, token, payload };
 }
 
 export function cookieOptions() {
   const isProd = process.env.NODE_ENV === 'production';
   return {
-    httpOnly: true,
-    secure: false, // Sempre false para desenvolvimento local funcionar
+    httpOnly: true, // sempre httpOnly; front guarda infos mínimas em localStorage se quiser
+    secure: isProd,
     sameSite: 'lax' as const,
     path: '/',
-    maxAge: 60 * 60 * 8, // 8 horas
+    maxAge: SESSION_MAX_AGE_SECONDS,
   };
 }
 
-export { COOKIE_NAME };
+export function issueSessionCookie(res: any, token: string) {
+  const opts = cookieOptions();
+  res.cookies.set(COOKIE_NAME, token, opts);
+}

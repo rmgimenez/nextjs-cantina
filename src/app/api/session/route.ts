@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { COOKIE_NAME, verifySessionToken } from '../../../lib/auth';
+import { COOKIE_NAME, issueSessionCookie, refreshSessionTokenIfNeeded } from '../../../lib/auth';
 
 export async function GET(req: NextRequest) {
   console.log('Session check requested');
@@ -13,17 +13,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 
-  const payload = await verifySessionToken(token);
-  console.log('Token verification result:', payload ? 'valid' : 'invalid');
-
-  if (!payload) {
+  const refreshed = await refreshSessionTokenIfNeeded(token);
+  if (!refreshed) {
     console.log('Invalid token, returning 401');
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 
-  console.log('Valid session for user:', (payload as any).usuario);
-  return NextResponse.json({
+  const { payload, token: newToken, refreshed: didRefresh } = refreshed;
+  if (didRefresh) {
+    console.log('Session token refreshed');
+  } else {
+    console.log('Session token still valid (no refresh)');
+  }
+  const res = NextResponse.json({
     authenticated: true,
+    refreshed: didRefresh,
     user: { id: (payload as any).id, nome: (payload as any).nome, tipo: (payload as any).tipo },
   });
+  if (didRefresh) {
+    issueSessionCookie(res, newToken);
+  }
+  return res;
 }
