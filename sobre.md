@@ -180,7 +180,7 @@ Endpoints `/api/funcionarios` (busca código, nome ou cargo) e `/api/funcionario
 - Interface para registrar vendas
 - Busca de produtos por código ou nome
 - Cálculo automático de totais
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
 
 **RF-012** - Vendas para alunos
 
@@ -188,20 +188,20 @@ Endpoints `/api/funcionarios` (busca código, nome ou cargo) e `/api/funcionario
 - Verificação de saldo disponível
 - Desconto automático do saldo
 - Exibição de foto do aluno
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
 
 **RF-013** - Vendas para funcionários da escola
 
 - Identificação do funcionário
 - Registro na conta mensal
 - Aplicação de preços específicos por cargo
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
 
 **RF-014** - Vendas avulsas (dinheiro/cartão)
 
 - Registro de vendas sem identificação
 - Controle de pagamento em dinheiro
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
 
 ### Módulo de Controle de Caixa
 
@@ -209,14 +209,14 @@ Endpoints `/api/funcionarios` (busca código, nome ou cargo) e `/api/funcionario
 
 - Registrar valor inicial do caixa
 - Identificar funcionário responsável
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
 
 **RF-016** - Fechamento de caixa
 
 - Calcular total de vendas
 - Verificar diferenças de caixa
 - Gerar relatório de fechamento
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
 
 **RF-017** - Sangria e reforço de caixa
 
@@ -252,13 +252,13 @@ Endpoints `/api/funcionarios` (busca código, nome ou cargo) e `/api/funcionario
 
 - Bloquear produtos específicos por aluno
 - Bloquear categorias de produtos por aluno
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
 
 **RF-022** - Observações do aluno
 
 - Cadastrar observações importantes
 - Exibir observações durante a venda
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
 
 ### Módulo de Relatórios e Faturas
 

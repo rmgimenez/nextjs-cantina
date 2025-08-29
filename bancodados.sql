@@ -1489,6 +1489,57 @@ INSERT IGNORE INTO cant_categoria_financeira (nome, tipo, descricao) VALUES
 ('Pacotes Alimentação', 'RECEITA', 'Vendas de pacotes de alimentação'),
 ('Outros Recebimentos', 'RECEITA', 'Outras fontes de receita');
 
+-- View unificada para restrições de alunos
+DROP VIEW IF EXISTS `cant_view_aluno_restricao`;
+CREATE VIEW `cant_view_aluno_restricao` AS
+SELECT 
+  aluno_ra,
+  produto_id,
+  'produto' as tipo_restricao,
+  p.nome as item_nome
+FROM cant_aluno_restricao_produto ar
+JOIN cant_produtos p ON p.id = ar.produto_id
+WHERE ar.ativo = 1
+UNION ALL
+SELECT 
+  aluno_ra,
+  NULL as produto_id,
+  'categoria' as tipo_restricao,
+  pt.descricao as item_nome
+FROM cant_aluno_restricao_tipo art
+JOIN cant_produto_tipo pt ON pt.id = art.tipo_produto_id
+WHERE art.ativo = 1;
+
+-- Dados de exemplo para teste do PDV
+INSERT IGNORE INTO `cant_produto_tipo` (`id`, `descricao`, `codigo`, `exige_peso`) VALUES
+(1, 'Salgados', 'salgados', 0),
+(2, 'Doces', 'doces', 0),
+(3, 'Bebidas', 'bebidas', 0),
+(4, 'Refeições', 'refeicoes', 1);
+
+INSERT IGNORE INTO `cant_produtos` (`id`, `tipo_id`, `nome`, `descricao`, `preco_unitario`, `codigo_barra`, `estoque_minimo`) VALUES
+(1, 1, 'Coxinha', 'Coxinha de frango tradicional', 4.50, '7891234567890', 10.000),
+(2, 1, 'Pastel de Queijo', 'Pastel frito recheado com queijo', 5.50, '7891234567891', 8.000),
+(3, 1, 'Pão de Açúcar', 'Pão doce tradicional', 3.00, '7891234567892', 15.000),
+(4, 2, 'Brigadeiro', 'Brigadeiro gourmet', 2.50, '7891234567893', 20.000),
+(5, 2, 'Bolo de Chocolate', 'Fatia de bolo de chocolate', 6.00, '7891234567894', 5.000),
+(6, 3, 'Coca-Cola 350ml', 'Refrigerante Coca-Cola lata', 5.00, '7891234567895', 24.000),
+(7, 3, 'Água 500ml', 'Água mineral natural', 2.00, '7891234567896', 50.000),
+(8, 3, 'Suco de Laranja', 'Suco natural de laranja', 4.00, '7891234567897', 12.000),
+(9, 4, 'Almoço Executivo', 'Refeição completa por quilo', 32.00, '7891234567898', 1.000);
+
+-- Estoque inicial para os produtos
+INSERT IGNORE INTO `cant_estoque_mov` (`produto_id`, `tipo_mov`, `quantidade`, `referencia`, `observacao`) VALUES
+(1, 'ENTRADA', 50.000, 'ESTOQUE_INICIAL', 'Estoque inicial do produto'),
+(2, 'ENTRADA', 30.000, 'ESTOQUE_INICIAL', 'Estoque inicial do produto'),
+(3, 'ENTRADA', 40.000, 'ESTOQUE_INICIAL', 'Estoque inicial do produto'),
+(4, 'ENTRADA', 60.000, 'ESTOQUE_INICIAL', 'Estoque inicial do produto'),
+(5, 'ENTRADA', 15.000, 'ESTOQUE_INICIAL', 'Estoque inicial do produto'),
+(6, 'ENTRADA', 48.000, 'ESTOQUE_INICIAL', 'Estoque inicial do produto'),
+(7, 'ENTRADA', 100.000, 'ESTOQUE_INICIAL', 'Estoque inicial do produto'),
+(8, 'ENTRADA', 24.000, 'ESTOQUE_INICIAL', 'Estoque inicial do produto'),
+(9, 'ENTRADA', 10.000, 'ESTOQUE_INICIAL', 'Estoque inicial do produto');
+
 -- fim - script sistema cantina
 
 -- ALTER TABLE incremental (caso já exista sem a coluna estoque_minimo)

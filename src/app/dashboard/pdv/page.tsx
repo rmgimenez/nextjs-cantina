@@ -1,200 +1,342 @@
+'use client';
+
 import DashboardLayout from '@/components/layout/dashboard-layout';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import {
-  FiCreditCard,
-  FiMinus,
-  FiPlus,
-  FiSearch,
-  FiShoppingCart,
-  FiTrash,
-  FiUser,
-} from 'react-icons/fi';
+import { useEffect, useState } from 'react';
+import { FiRefreshCw, FiSearch } from 'react-icons/fi';
+
+// Componentes do PDV
+import Carrinho from '@/components/pdv/Carrinho';
+import Checkout from '@/components/pdv/Checkout';
+import ControleCaixa from '@/components/pdv/ControleCaixa';
+import GridProdutos from '@/components/pdv/GridProdutos';
+import SeletorCliente from '@/components/pdv/SeletorCliente';
+
+interface Produto {
+  id: number;
+  nome: string;
+  preco: number;
+  categoria: string;
+  estoque: number;
+  estoqueMinimo: number;
+  exigePeso: boolean;
+}
+
+interface ItemCarrinho {
+  id: number;
+  nome: string;
+  preco: number;
+  quantidade: number;
+  categoria: string;
+}
+
+interface Cliente {
+  tipo: 'aluno' | 'funcionario';
+  id: number;
+  nome: string;
+  curso?: string;
+  serie?: string;
+  turma?: string;
+  cargo?: string;
+  saldo?: number;
+  precoRefeicao?: number;
+  observacao?: string;
+  fotoUrl?: string;
+}
+
+interface StatusCaixa {
+  caixaAberto: boolean;
+  caixa: {
+    id: number;
+    dataAbertura: string;
+    valorInicial: number;
+    totalVendas: number;
+    totalSangrias: number;
+    totalReforcos: number;
+    valorCalculado: number;
+    usuarioAbertura: string;
+  } | null;
+}
 
 export default function PDVPage() {
+  // Estados principais
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [carrinho, setCarrinho] = useState<ItemCarrinho[]>([]);
+  const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null);
+  const [statusCaixa, setStatusCaixa] = useState<StatusCaixa>({ caixaAberto: false, caixa: null });
+
+  // Estados de controle
+  const [buscaProduto, setBuscaProduto] = useState('');
+  const [filtroCategoria, setFiltroCategoria] = useState('');
+  const [loadingProdutos, setLoadingProdutos] = useState(false);
+  const [loadingCaixa, setLoadingCaixa] = useState(true);
+
+  // Carregar status do caixa
+  const carregarStatusCaixa = async () => {
+    try {
+      const response = await fetch('/api/pdv/caixa');
+      const data = await response.json();
+
+      if (data.ok) {
+        setStatusCaixa(data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar status do caixa:', error);
+    } finally {
+      setLoadingCaixa(false);
+    }
+  };
+
+  // Buscar produtos
+  const buscarProdutos = async (busca: string = '', categoria: string = '') => {
+    setLoadingProdutos(true);
+    try {
+      const params = new URLSearchParams();
+      if (busca) params.append('q', busca);
+      if (categoria) params.append('categoria', categoria);
+      params.append('estoque', 'true'); // Apenas produtos com estoque
+
+      const response = await fetch(`/api/pdv/produtos?${params}`);
+      const data = await response.json();
+
+      if (data.ok) {
+        setProdutos(data.produtos);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar produtos:', error);
+    } finally {
+      setLoadingProdutos(false);
+    }
+  };
+
+  // Buscar clientes
+  const buscarClientes = async (busca: string): Promise<Cliente[]> => {
+    try {
+      const response = await fetch(`/api/pdv/clientes?q=${encodeURIComponent(busca)}`);
+      const data = await response.json();
+      return data.ok ? data.clientes : [];
+    } catch (error) {
+      console.error('Erro ao buscar clientes:', error);
+      return [];
+    }
+  };
+
+  // Adicionar produto ao carrinho
+  const adicionarAoCarrinho = (produto: Produto) => {
+    if (!statusCaixa.caixaAberto) {
+      alert('Abra o caixa antes de realizar vendas');
+      return;
+    }
+
+    const itemExistente = carrinho.find((item) => item.id === produto.id);
+
+    if (itemExistente) {
+      if (itemExistente.quantidade >= produto.estoque) {
+        alert('Quantidade solicitada excede o estoque disponível');
+        return;
+      }
+      setCarrinho(
+        carrinho.map((item) =>
+          item.id === produto.id ? { ...item, quantidade: item.quantidade + 1 } : item
+        )
+      );
+    } else {
+      const novoItem: ItemCarrinho = {
+        id: produto.id,
+        nome: produto.nome,
+        preco: produto.preco,
+        quantidade: 1,
+        categoria: produto.categoria,
+      };
+      setCarrinho([...carrinho, novoItem]);
+    }
+  };
+
+  // Atualizar quantidade no carrinho
+  const atualizarQuantidade = (id: number, novaQuantidade: number) => {
+    if (novaQuantidade <= 0) {
+      removerItem(id);
+      return;
+    }
+
+    const produto = produtos.find((p) => p.id === id);
+    if (produto && novaQuantidade > produto.estoque) {
+      alert('Quantidade solicitada excede o estoque disponível');
+      return;
+    }
+
+    setCarrinho(
+      carrinho.map((item) => (item.id === id ? { ...item, quantidade: novaQuantidade } : item))
+    );
+  };
+
+  // Remover item do carrinho
+  const removerItem = (id: number) => {
+    setCarrinho(carrinho.filter((item) => item.id !== id));
+  };
+
+  // Finalizar venda
+  const finalizarVenda = async (formaPagamento: string) => {
+    try {
+      let tipoComprador: 'ALUNO' | 'FUNCIONARIO_ESCOLA' | 'AVULSA';
+      let compradorId: number | undefined;
+
+      if (clienteSelecionado) {
+        if (clienteSelecionado.tipo === 'aluno') {
+          tipoComprador = 'ALUNO';
+          compradorId = clienteSelecionado.id;
+        } else {
+          tipoComprador = 'FUNCIONARIO_ESCOLA';
+          compradorId = clienteSelecionado.id;
+        }
+      } else {
+        tipoComprador = 'AVULSA';
+      }
+
+      const dadosVenda = {
+        tipoComprador,
+        compradorId,
+        formaPagamento,
+        itens: carrinho.map((item) => ({
+          produtoId: item.id,
+          quantidade: item.quantidade,
+          precoUnitario: item.preco,
+        })),
+      };
+
+      const response = await fetch('/api/pdv/vendas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dadosVenda),
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        alert(
+          `Venda realizada com sucesso!\nVenda #${
+            data.vendaId
+          }\nTotal: R$ ${data.valorTotal.toFixed(2)}`
+        );
+
+        // Limpar carrinho e cliente
+        setCarrinho([]);
+        setClienteSelecionado(null);
+
+        // Recarregar produtos e status do caixa
+        buscarProdutos(buscaProduto, filtroCategoria);
+        carregarStatusCaixa();
+      } else {
+        alert(data.error || 'Erro ao processar venda');
+      }
+    } catch (error) {
+      console.error('Erro ao finalizar venda:', error);
+      alert('Erro ao conectar com o servidor');
+    }
+  };
+
+  // Effect para carregar dados iniciais
+  useEffect(() => {
+    carregarStatusCaixa();
+    buscarProdutos();
+  }, []);
+
+  // Effect para busca de produtos
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      buscarProdutos(buscaProduto, filtroCategoria);
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [buscaProduto, filtroCategoria]);
+
   return (
     <DashboardLayout title='PDV - Ponto de Venda' subtitle='Sistema de vendas da cantina'>
-      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-        {/* Área de Produtos */}
-        <div className='lg:col-span-2 space-y-6'>
-          {/* Busca de Produtos */}
-          <Card>
-            <CardContent className='pt-6'>
-              <div className='flex space-x-4'>
-                <div className='flex-1'>
-                  <Input
-                    placeholder='Buscar produtos por nome ou código...'
-                    icon={<FiSearch className='w-4 h-4' />}
-                    iconPosition='left'
-                  />
-                </div>
-                <Button variant='primary'>Buscar</Button>
-              </div>
-            </CardContent>
-          </Card>
+      <div className='space-y-6'>
+        {/* Status do Caixa */}
+        <ControleCaixa
+          status={statusCaixa}
+          onAtualizarStatus={carregarStatusCaixa}
+          loading={loadingCaixa}
+        />
 
-          {/* Grid de Produtos */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Produtos Disponíveis</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4'>
-                {[
-                  { id: 1, name: 'Coxinha', price: 4.5, category: 'Salgados', stock: 25 },
-                  { id: 2, name: 'Coca-Cola 350ml', price: 5.0, category: 'Bebidas', stock: 15 },
-                  { id: 3, name: 'Pão de Açúcar', price: 3.0, category: 'Doces', stock: 30 },
-                  { id: 4, name: 'Suco de Laranja', price: 4.0, category: 'Bebidas', stock: 20 },
-                  { id: 5, name: 'Brigadeiro', price: 2.5, category: 'Doces', stock: 40 },
-                  { id: 6, name: 'Pastel de Queijo', price: 5.5, category: 'Salgados', stock: 18 },
-                  { id: 7, name: 'Água 500ml', price: 2.0, category: 'Bebidas', stock: 50 },
-                  { id: 8, name: 'Bolo de Chocolate', price: 6.0, category: 'Doces', stock: 12 },
-                ].map((product) => (
-                  <div
-                    key={product.id}
-                    className='bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer'
-                  >
-                    <div className='aspect-square bg-gray-100 rounded-lg mb-2 flex items-center justify-center'>
-                      <span className='text-gray-400 text-xs'>Sem imagem</span>
+        {statusCaixa.caixaAberto && (
+          <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
+            {/* Área de Produtos */}
+            <div className='lg:col-span-2 space-y-6'>
+              {/* Filtros e Busca */}
+              <div className='bg-white border rounded-lg p-4'>
+                <div className='flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4'>
+                  <div className='flex-1'>
+                    <div className='relative'>
+                      <input
+                        type='text'
+                        value={buscaProduto}
+                        onChange={(e) => setBuscaProduto(e.target.value)}
+                        placeholder='Buscar produtos por nome ou código...'
+                        className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                      />
+                      <FiSearch className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4' />
                     </div>
-                    <h3 className='font-medium text-sm text-gray-900 mb-1'>{product.name}</h3>
-                    <p className='text-xs text-gray-500 mb-2'>{product.category}</p>
-                    <div className='flex items-center justify-between'>
-                      <span className='font-bold text-green-600'>
-                        R$ {product.price.toFixed(2)}
-                      </span>
-                      <span className='text-xs text-gray-500'>Est: {product.stock}</span>
-                    </div>
-                    <Button
-                      size='small'
-                      variant='primary'
-                      className='w-full mt-2'
-                      icon={<FiPlus className='w-3 h-3' />}
-                      iconPosition='left'
-                    >
-                      Adicionar
-                    </Button>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
-        {/* Carrinho e Checkout */}
-        <div className='space-y-6'>
-          {/* Identificação do Cliente */}
-          <Card>
-            <CardHeader>
-              <CardTitle className='flex items-center'>
-                <FiUser className='w-5 h-5 mr-2' />
-                Cliente
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className='space-y-4'>
-                <Input
-                  placeholder='RA do aluno ou CPF do funcionário'
-                  icon={<FiSearch className='w-4 h-4' />}
-                  iconPosition='left'
+                  <select
+                    value={filtroCategoria}
+                    onChange={(e) => setFiltroCategoria(e.target.value)}
+                    className='px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                  >
+                    <option value=''>Todas as categorias</option>
+                    <option value='salgados'>Salgados</option>
+                    <option value='doces'>Doces</option>
+                    <option value='bebidas'>Bebidas</option>
+                    <option value='refeicoes'>Refeições</option>
+                  </select>
+
+                  <button
+                    onClick={() => buscarProdutos(buscaProduto, filtroCategoria)}
+                    className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2'
+                  >
+                    <FiRefreshCw className='w-4 h-4' />
+                    <span>Atualizar</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Grid de Produtos */}
+              <div className='bg-white border rounded-lg p-4'>
+                <h3 className='font-semibold text-lg mb-4'>Produtos Disponíveis</h3>
+                <GridProdutos
+                  produtos={produtos}
+                  onAdicionarAoCarrinho={adicionarAoCarrinho}
+                  loading={loadingProdutos}
                 />
-                <div className='bg-blue-50 border border-blue-200 rounded-lg p-3'>
-                  <div className='flex items-center space-x-3'>
-                    <div className='w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center'>
-                      <span className='text-white font-bold'>JS</span>
-                    </div>
-                    <div>
-                      <p className='font-medium text-gray-900'>João Silva</p>
-                      <p className='text-sm text-gray-600'>Aluno - RA: 12345</p>
-                      <p className='text-sm text-green-600 font-medium'>Saldo: R$ 125,50</p>
-                    </div>
-                  </div>
-                </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* Carrinho */}
-          <Card>
-            <CardHeader>
-              <CardTitle className='flex items-center'>
-                <FiShoppingCart className='w-5 h-5 mr-2' />
-                Carrinho
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className='space-y-3'>
-                {[
-                  { id: 1, name: 'Coxinha', price: 4.5, qty: 2 },
-                  { id: 2, name: 'Coca-Cola 350ml', price: 5.0, qty: 1 },
-                ].map((item) => (
-                  <div
-                    key={item.id}
-                    className='flex items-center justify-between py-2 border-b border-gray-100'
-                  >
-                    <div className='flex-1'>
-                      <p className='font-medium text-sm'>{item.name}</p>
-                      <p className='text-xs text-gray-500'>R$ {item.price.toFixed(2)} cada</p>
-                    </div>
-                    <div className='flex items-center space-x-2'>
-                      <Button size='small' variant='outline'>
-                        <FiMinus className='w-3 h-3' />
-                      </Button>
-                      <span className='text-sm font-medium w-8 text-center'>{item.qty}</span>
-                      <Button size='small' variant='outline'>
-                        <FiPlus className='w-3 h-3' />
-                      </Button>
-                      <Button size='small' variant='danger'>
-                        <FiTrash className='w-3 h-3' />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+            {/* Área do Cliente e Carrinho */}
+            <div className='space-y-6'>
+              {/* Seletor de Cliente */}
+              <SeletorCliente
+                clienteSelecionado={clienteSelecionado}
+                onClienteSelecionado={setClienteSelecionado}
+                onBuscarClientes={buscarClientes}
+              />
 
-                {/* Total */}
-                <div className='pt-3 border-t border-gray-200'>
-                  <div className='flex justify-between items-center'>
-                    <span className='font-medium'>Total:</span>
-                    <span className='text-xl font-bold text-green-600'>R$ 14,00</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              {/* Carrinho */}
+              <Carrinho
+                itens={carrinho}
+                onUpdateQuantidade={atualizarQuantidade}
+                onRemoverItem={removerItem}
+              />
 
-          {/* Forma de Pagamento */}
-          <Card>
-            <CardHeader>
-              <CardTitle className='flex items-center'>
-                <FiCreditCard className='w-5 h-5 mr-2' />
-                Pagamento
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className='space-y-3'>
-                <div className='grid grid-cols-2 gap-2'>
-                  <Button variant='outline' className='flex-col h-16'>
-                    <FiUser className='w-5 h-5 mb-1' />
-                    <span className='text-xs'>Saldo Aluno</span>
-                  </Button>
-                  <Button variant='outline' className='flex-col h-16'>
-                    <FiCreditCard className='w-5 h-5 mb-1' />
-                    <span className='text-xs'>Dinheiro</span>
-                  </Button>
-                </div>
-                <Button
-                  variant='success'
-                  size='large'
-                  className='w-full'
-                  icon={<FiShoppingCart className='w-4 h-4' />}
-                >
-                  Finalizar Venda
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              {/* Checkout */}
+              <Checkout
+                itens={carrinho}
+                cliente={clienteSelecionado}
+                onFinalizarVenda={finalizarVenda}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
