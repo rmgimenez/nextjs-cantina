@@ -114,10 +114,12 @@ export default function ControleCaixa({ status, onAtualizarStatus, loading }: Co
 
   if (loading) {
     return (
-      <div className='bg-white border rounded-lg p-4'>
-        <div className='animate-pulse space-y-4'>
-          <div className='h-6 bg-gray-200 rounded w-1/3'></div>
-          <div className='h-20 bg-gray-200 rounded'></div>
+      <div className='card shadow-sm'>
+        <div className='card-body'>
+          <div className='placeholder-glow'>
+            <span className='placeholder col-3 me-2'></span>
+            <span className='placeholder col-8'></span>
+          </div>
         </div>
       </div>
     );
@@ -125,179 +127,166 @@ export default function ControleCaixa({ status, onAtualizarStatus, loading }: Co
 
   return (
     <>
-      <div className='bg-white border rounded-lg p-4'>
-        <h3 className='font-semibold text-lg mb-4 flex items-center'>
-          {status.caixaAberto ? (
-            <FiUnlock className='mr-2 text-green-600' />
+      <div className='card shadow-sm'>
+        <div className='card-body pb-3'>
+          <h5 className='fw-semibold d-flex align-items-center mb-3'>
+            {status.caixaAberto ? (
+              <FiUnlock className='me-2 text-success' />
+            ) : (
+              <FiLock className='me-2 text-danger' />
+            )}
+            Status do Caixa
+          </h5>
+
+          {!status.caixaAberto ? (
+            <div className=''>
+              <div className='alert alert-danger text-center py-3'>
+                <FiLock className='me-2' /> Caixa fechado – abra para realizar vendas
+              </div>
+              <div className='row g-2 align-items-end'>
+                <div className='col-12'>
+                  <label className='form-label small fw-semibold'>Valor inicial</label>
+                  <div className='input-group'>
+                    <span className='input-group-text'>R$</span>
+                    <input
+                      type='text'
+                      value={valorInicial}
+                      onChange={(e) => setValorInicial(formatarMoeda(e.target.value))}
+                      className='form-control'
+                      placeholder='0,00'
+                    />
+                  </div>
+                </div>
+                <div className='col-12 d-grid'>
+                  <button
+                    onClick={handleAbrirCaixa}
+                    disabled={processando}
+                    className='btn btn-success fw-semibold'
+                  >
+                    <FiUnlock className='me-2' /> {processando ? 'Abrindo...' : 'Abrir Caixa'}
+                  </button>
+                </div>
+              </div>
+            </div>
           ) : (
-            <FiLock className='mr-2 text-red-600' />
+            <div className=''>
+              <div className='border rounded p-3 mb-3 bg-success bg-opacity-10'>
+                <div className='d-flex justify-content-between mb-2 small'>
+                  <div className='d-flex align-items-center fw-medium text-success'>
+                    <FiUnlock className='me-2' /> Caixa Aberto
+                  </div>
+                  <span className='text-success'>#{status.caixa?.id}</span>
+                </div>
+                <div className='row g-2 small'>
+                  <div className='col-6'>
+                    <div className='text-muted d-flex align-items-center'>
+                      <FiClock className='me-1' /> Aberto em:
+                    </div>
+                    <div className='fw-semibold'>
+                      {status.caixa?.dataAbertura
+                        ? new Date(status.caixa.dataAbertura).toLocaleString('pt-BR')
+                        : '-'}
+                    </div>
+                  </div>
+                  <div className='col-6'>
+                    <div className='text-muted d-flex align-items-center'>
+                      <FiUser className='me-1' /> Operador:
+                    </div>
+                    <div className='fw-semibold'>{status.caixa?.usuarioAbertura || '-'}</div>
+                  </div>
+                </div>
+              </div>
+              <div className='bg-light rounded p-3 mb-3'>
+                <h6 className='fw-semibold mb-2'>Resumo Financeiro</h6>
+                <ul className='list-unstyled mb-0 small'>
+                  <li className='d-flex justify-content-between'>
+                    <span className='text-muted'>Valor inicial</span>
+                    <span>R$ {status.caixa?.valorInicial.toFixed(2) || '0,00'}</span>
+                  </li>
+                  <li className='d-flex justify-content-between'>
+                    <span className='text-muted'>Total vendas</span>
+                    <span className='text-success'>
+                      + R$ {status.caixa?.totalVendas.toFixed(2) || '0,00'}
+                    </span>
+                  </li>
+                  <li className='d-flex justify-content-between'>
+                    <span className='text-muted'>Reforços</span>
+                    <span className='text-success'>
+                      + R$ {status.caixa?.totalReforcos.toFixed(2) || '0,00'}
+                    </span>
+                  </li>
+                  <li className='d-flex justify-content-between'>
+                    <span className='text-muted'>Sangrias</span>
+                    <span className='text-danger'>
+                      - R$ {status.caixa?.totalSangrias.toFixed(2) || '0,00'}
+                    </span>
+                  </li>
+                  <li className='border-top pt-2 mt-2 d-flex justify-content-between fw-bold'>
+                    <span>Total calculado</span>
+                    <span className='text-primary'>
+                      R$ {status.caixa?.valorCalculado.toFixed(2) || '0,00'}
+                    </span>
+                  </li>
+                </ul>
+              </div>
+              <div className='d-grid'>
+                <button
+                  onClick={() => setMostrarModalFechamento(true)}
+                  className='btn btn-danger fw-semibold'
+                >
+                  <FiLock className='me-2' /> Fechar Caixa
+                </button>
+              </div>
+            </div>
           )}
-          Status do Caixa
-        </h3>
-
-        {!status.caixaAberto ? (
-          <div className='space-y-4'>
-            <div className='bg-red-50 border border-red-200 rounded-lg p-4 text-center'>
-              <FiLock className='mx-auto mb-2 text-red-600 text-2xl' />
-              <p className='text-red-700 font-medium'>Caixa fechado</p>
-              <p className='text-red-600 text-sm'>Abra o caixa para realizar vendas</p>
-            </div>
-
-            <div className='space-y-3'>
-              <label className='block text-sm font-medium text-gray-700'>
-                Valor inicial do caixa
-              </label>
-              <div className='relative'>
-                <span className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500'>
-                  R$
-                </span>
-                <input
-                  type='text'
-                  value={valorInicial}
-                  onChange={(e) => setValorInicial(formatarMoeda(e.target.value))}
-                  className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                  placeholder='0,00'
-                />
-              </div>
-
-              <button
-                onClick={handleAbrirCaixa}
-                disabled={processando}
-                className='w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2'
-              >
-                <FiUnlock className='w-4 h-4' />
-                <span>{processando ? 'Abrindo...' : 'Abrir Caixa'}</span>
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className='space-y-4'>
-            <div className='bg-green-50 border border-green-200 rounded-lg p-4'>
-              <div className='flex items-center justify-between mb-3'>
-                <div className='flex items-center space-x-2'>
-                  <FiUnlock className='text-green-600' />
-                  <span className='font-medium text-green-800'>Caixa Aberto</span>
-                </div>
-                <span className='text-sm text-green-600'>#{status.caixa?.id}</span>
-              </div>
-
-              <div className='grid grid-cols-2 gap-4 text-sm'>
-                <div>
-                  <p className='text-gray-600 flex items-center'>
-                    <FiClock className='w-4 h-4 mr-1' />
-                    Aberto em:
-                  </p>
-                  <p className='font-medium'>
-                    {status.caixa?.dataAbertura
-                      ? new Date(status.caixa.dataAbertura).toLocaleString('pt-BR')
-                      : '-'}
-                  </p>
-                </div>
-
-                <div>
-                  <p className='text-gray-600 flex items-center'>
-                    <FiUser className='w-4 h-4 mr-1' />
-                    Operador:
-                  </p>
-                  <p className='font-medium'>{status.caixa?.usuarioAbertura || '-'}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Resumo financeiro */}
-            <div className='bg-gray-50 rounded-lg p-4 space-y-2'>
-              <h4 className='font-medium text-gray-800 mb-3'>Resumo Financeiro</h4>
-
-              <div className='flex justify-between text-sm'>
-                <span className='text-gray-600'>Valor inicial:</span>
-                <span>R$ {status.caixa?.valorInicial.toFixed(2) || '0,00'}</span>
-              </div>
-
-              <div className='flex justify-between text-sm'>
-                <span className='text-gray-600'>Total vendas:</span>
-                <span className='text-green-600'>
-                  + R$ {status.caixa?.totalVendas.toFixed(2) || '0,00'}
-                </span>
-              </div>
-
-              <div className='flex justify-between text-sm'>
-                <span className='text-gray-600'>Reforços:</span>
-                <span className='text-green-600'>
-                  + R$ {status.caixa?.totalReforcos.toFixed(2) || '0,00'}
-                </span>
-              </div>
-
-              <div className='flex justify-between text-sm'>
-                <span className='text-gray-600'>Sangrias:</span>
-                <span className='text-red-600'>
-                  - R$ {status.caixa?.totalSangrias.toFixed(2) || '0,00'}
-                </span>
-              </div>
-
-              <div className='border-t pt-2 mt-2'>
-                <div className='flex justify-between font-bold'>
-                  <span>Total calculado:</span>
-                  <span className='text-blue-600'>
-                    R$ {status.caixa?.valorCalculado.toFixed(2) || '0,00'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setMostrarModalFechamento(true)}
-              className='w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 flex items-center justify-center space-x-2'
-            >
-              <FiLock className='w-4 h-4' />
-              <span>Fechar Caixa</span>
-            </button>
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Modal de fechamento */}
       {mostrarModalFechamento && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
-          <div className='bg-white rounded-lg p-6 max-w-md w-full mx-4'>
-            <h3 className='text-lg font-bold mb-4'>Fechar Caixa</h3>
-
-            <div className='space-y-4'>
-              <div className='bg-gray-50 rounded p-3'>
-                <p className='text-sm text-gray-600'>Valor esperado no caixa:</p>
-                <p className='text-xl font-bold text-blue-600'>
-                  R$ {status.caixa?.valorCalculado.toFixed(2) || '0,00'}
-                </p>
+        <div className='modal d-block' style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className='modal-dialog modal-dialog-centered'>
+            <div className='modal-content'>
+              <div className='modal-header'>
+                <h5 className='modal-title'>Fechar Caixa</h5>
+                <button
+                  type='button'
+                  className='btn-close'
+                  onClick={() => setMostrarModalFechamento(false)}
+                ></button>
               </div>
-
-              <div>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Valor real contado no caixa
-                </label>
-                <div className='relative'>
-                  <span className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500'>
-                    R$
-                  </span>
+              <div className='modal-body'>
+                <div className='mb-3 p-3 rounded bg-light'>
+                  <div className='small text-muted'>Valor esperado no caixa:</div>
+                  <div className='fs-5 fw-bold text-primary'>
+                    R$ {status.caixa?.valorCalculado.toFixed(2) || '0,00'}
+                  </div>
+                </div>
+                <label className='form-label small fw-semibold'>Valor real contado</label>
+                <div className='input-group mb-2'>
+                  <span className='input-group-text'>R$</span>
                   <input
                     type='text'
                     value={valorFechamento}
                     onChange={(e) => setValorFechamento(formatarMoeda(e.target.value))}
-                    className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
+                    className='form-control'
                     placeholder='0,00'
                   />
                 </div>
               </div>
-
-              <div className='flex space-x-3'>
+              <div className='modal-footer'>
                 <button
+                  type='button'
+                  className='btn btn-secondary'
                   onClick={() => setMostrarModalFechamento(false)}
-                  className='flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400'
                 >
                   Cancelar
                 </button>
                 <button
+                  type='button'
                   onClick={handleFecharCaixa}
                   disabled={processando || !valorFechamento}
-                  className='flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed'
+                  className='btn btn-danger'
                 >
                   {processando ? 'Fechando...' : 'Fechar'}
                 </button>

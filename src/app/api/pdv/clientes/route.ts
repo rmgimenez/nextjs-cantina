@@ -33,17 +33,18 @@ export async function GET(req: NextRequest) {
     // Buscar alunos
     if (!tipo || tipo === 'aluno') {
       try {
+        // Algumas instalações podem não possuir tabela de matrícula detalhada acessível.
+        // Para evitar erro em ambientes onde 'matricula_cursos' não existe, usamos apenas cadastro_alunos.
         const alunosSql = `
           SELECT 
             a.ra,
             a.nome,
-            COALESCE(mc.curso, '') as curso,
-            COALESCE(mc.serie, '') as serie,
-            COALESCE(mc.turma, '') as turma,
-            COALESCE(vs.saldo, 0) as saldo,
+            '' as curso,
+            '' as serie,
+            '' as turma,
+            COALESCE(vs.saldo_atual, 0) as saldo,
             COALESCE(obs.observacao, '') as observacao
           FROM cadastro_alunos a
-          LEFT JOIN matricula_cursos mc ON mc.ra = a.ra AND mc.ativo = 1
           LEFT JOIN cant_view_aluno_saldo vs ON vs.aluno_ra = a.ra
           LEFT JOIN cant_aluno_observacao obs ON obs.aluno_ra = a.ra AND obs.ativo = 1
           WHERE (a.ra = ? OR a.nome LIKE ?)
@@ -81,9 +82,9 @@ export async function GET(req: NextRequest) {
             f.codigo,
             f.nome,
             f.cargo,
-            COALESCE(pc.preco, 0) as preco_refeicao
+            COALESCE(pc.valor_refeicao, 0) as preco_refeicao
           FROM funcionarios f
-          LEFT JOIN cant_preco_cargo pc ON pc.cargo = f.cargo
+          LEFT JOIN cant_preco_cargo pc ON pc.cargo = f.cargo AND pc.ativo = 1
           WHERE (f.codigo = ? OR f.nome LIKE ?)
           AND f.ativo = 1
           ORDER BY f.nome

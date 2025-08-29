@@ -100,110 +100,95 @@ export default function Checkout({ itens, cliente, onFinalizarVenda, loading }: 
   const podeFinalizarVenda = itens.length > 0 && formaSelecionada && !processando && !loading;
 
   return (
-    <div className='bg-white border rounded-lg p-4'>
-      <h3 className='font-semibold text-lg mb-4 flex items-center'>
-        <FiCreditCard className='mr-2' />
-        Pagamento
-      </h3>
-
-      {itens.length === 0 ? (
-        <div className='text-center py-8 text-gray-500'>
-          <p>Adicione produtos ao carrinho para continuar</p>
-        </div>
-      ) : (
-        <div className='space-y-4'>
-          {/* Resumo da venda */}
-          <div className='bg-gray-50 rounded-lg p-3'>
-            <div className='flex justify-between items-center mb-2'>
-              <span className='text-sm text-gray-600'>Itens ({itens.length})</span>
-              <span className='text-sm'>R$ {total.toFixed(2)}</span>
-            </div>
-            <div className='flex justify-between items-center font-bold text-lg border-t pt-2'>
-              <span>Total</span>
-              <span className='text-green-600'>R$ {total.toFixed(2)}</span>
-            </div>
+    <div className='card shadow-sm'>
+      <div className='card-header bg-white border-0 pb-0'>
+        <h5 className='fw-semibold mb-0 d-flex align-items-center'>
+          <FiCreditCard className='me-2' /> Pagamento
+        </h5>
+      </div>
+      <div className='card-body pt-2'>
+        {itens.length === 0 ? (
+          <div className='text-center text-muted small py-4'>
+            Adicione produtos ao carrinho para continuar
           </div>
-
-          {/* Formas de pagamento */}
-          <div className='space-y-2'>
-            <label className='block text-sm font-medium text-gray-700 mb-2'>
-              Forma de Pagamento
-            </label>
-
-            {formasPagamento.map((forma) => (
-              <button
-                key={forma.id}
-                onClick={() => (forma.disponivel ? setFormaSelecionada(forma.id) : null)}
-                disabled={!forma.disponivel}
-                className={`w-full p-3 border-2 rounded-lg flex items-center space-x-3 transition-all ${
-                  !forma.disponivel
-                    ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : formaSelecionada === forma.id
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                }`}
-              >
-                <div
-                  className={`p-2 rounded-full ${
-                    !forma.disponivel
-                      ? 'bg-gray-200'
-                      : formaSelecionada === forma.id
-                      ? 'bg-blue-100'
-                      : 'bg-gray-100'
-                  }`}
-                >
-                  {forma.icon}
-                </div>
-
-                <div className='flex-1 text-left'>
-                  <p className='font-medium'>{forma.nome}</p>
-                  {forma.id === 'SALDO_ALUNO' && cliente?.tipo === 'aluno' && (
-                    <p className='text-sm text-gray-500'>
-                      Saldo atual: R$ {(cliente.saldo || 0).toFixed(2)}
-                    </p>
-                  )}
-                  {forma.requerCliente && !cliente && (
-                    <p className='text-xs text-red-500'>Selecione um cliente</p>
-                  )}
-                </div>
-
-                {formaSelecionada === forma.id && (
-                  <FiCheckCircle className='w-5 h-5 text-blue-600' />
-                )}
-              </button>
-            ))}
-          </div>
-
-          {/* Alertas */}
-          {formaSelecionada === 'SALDO_ALUNO' &&
-            cliente?.tipo === 'aluno' &&
-            (cliente.saldo || 0) < total && (
-              <div className='bg-red-50 border border-red-200 rounded-lg p-3'>
-                <p className='text-red-700 text-sm'>
-                  ⚠️ Saldo insuficiente. Faltam R$ {(total - (cliente.saldo || 0)).toFixed(2)}
-                </p>
+        ) : (
+          <>
+            <div className='p-2 rounded bg-light mb-3'>
+              <div className='d-flex justify-content-between small mb-1'>
+                <span className='text-muted'>Itens ({itens.length})</span>
+                <span>R$ {total.toFixed(2)}</span>
               </div>
-            )}
-
-          {/* Botão finalizar */}
-          <button
-            onClick={handleFinalizarVenda}
-            disabled={!podeFinalizarVenda}
-            className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all flex items-center justify-center space-x-2 ${
-              podeFinalizarVenda
-                ? 'bg-green-600 hover:bg-green-700 active:bg-green-800'
-                : 'bg-gray-400 cursor-not-allowed'
-            }`}
-          >
-            {processando ? (
-              <FiLoader className='w-5 h-5 animate-spin' />
-            ) : (
-              <FiCheckCircle className='w-5 h-5' />
-            )}
-            <span>{processando ? 'Processando...' : 'Finalizar Venda'}</span>
-          </button>
-        </div>
-      )}
+              <div className='border-top pt-2 d-flex justify-content-between align-items-center fw-bold'>
+                <span>Total</span>
+                <span className='text-success'>R$ {total.toFixed(2)}</span>
+              </div>
+            </div>
+            <div className='mb-2'>
+              <label className='form-label small fw-semibold'>Forma de Pagamento</label>
+              <div className='d-flex flex-column gap-2'>
+                {formasPagamento.map((forma) => {
+                  const active = formaSelecionada === forma.id;
+                  return (
+                    <button
+                      key={forma.id}
+                      onClick={() => (forma.disponivel ? setFormaSelecionada(forma.id) : null)}
+                      disabled={!forma.disponivel}
+                      className={`btn btn-sm text-start d-flex align-items-center gap-2 border-2 ${
+                        !forma.disponivel
+                          ? 'btn-outline-secondary disabled opacity-50'
+                          : active
+                          ? 'btn-outline-primary bg-primary bg-opacity-10'
+                          : 'btn-outline-secondary'
+                      }`}
+                    >
+                      <span
+                        className={`p-2 rounded-circle d-inline-flex align-items-center justify-content-center ${
+                          active ? 'bg-primary bg-opacity-25 text-primary' : 'bg-light'
+                        }`}
+                      >
+                        {forma.icon}
+                      </span>
+                      <span className='flex-grow-1 small'>
+                        <span className='fw-semibold d-block'>{forma.nome}</span>
+                        {forma.id === 'SALDO_ALUNO' && cliente?.tipo === 'aluno' && (
+                          <span className='text-muted'>
+                            Saldo: R$ {(cliente.saldo || 0).toFixed(2)}
+                          </span>
+                        )}
+                        {forma.requerCliente && !cliente && (
+                          <span className='text-danger d-block'>Selecione um cliente</span>
+                        )}
+                      </span>
+                      {active && <FiCheckCircle className='text-primary' />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {formaSelecionada === 'SALDO_ALUNO' &&
+              cliente?.tipo === 'aluno' &&
+              (cliente.saldo || 0) < total && (
+                <div className='alert alert-danger py-2 small'>
+                  Saldo insuficiente. Faltam R$ {(total - (cliente.saldo || 0)).toFixed(2)}
+                </div>
+              )}
+            <div className='d-grid mt-3'>
+              <button
+                onClick={handleFinalizarVenda}
+                disabled={!podeFinalizarVenda}
+                className='btn btn-success fw-semibold d-flex justify-content-center align-items-center gap-2'
+              >
+                {processando ? (
+                  <FiLoader className='spinner-border spinner-border-sm' />
+                ) : (
+                  <FiCheckCircle />
+                )}
+                {processando ? 'Processando...' : 'Finalizar Venda'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

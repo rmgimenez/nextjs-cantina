@@ -251,84 +251,90 @@ export default function PDVPage() {
 
   return (
     <DashboardLayout title='PDV - Ponto de Venda' subtitle='Sistema de vendas da cantina'>
-      <div className='space-y-6'>
-        {/* Status do Caixa */}
-        <ControleCaixa
-          status={statusCaixa}
-          onAtualizarStatus={carregarStatusCaixa}
-          loading={loadingCaixa}
-        />
+      <div className='pb-3'>
+        {/* Barra superior de status do caixa */}
+        <div className='mb-4'>
+          <ControleCaixa
+            status={statusCaixa}
+            onAtualizarStatus={carregarStatusCaixa}
+            loading={loadingCaixa}
+          />
+        </div>
 
         {statusCaixa.caixaAberto && (
-          <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-            {/* Área de Produtos */}
-            <div className='lg:col-span-2 space-y-6'>
-              {/* Filtros e Busca */}
-              <div className='bg-white border rounded-lg p-4'>
-                <div className='flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4'>
-                  <div className='flex-1'>
-                    <div className='relative'>
-                      <input
-                        type='text'
-                        value={buscaProduto}
-                        onChange={(e) => setBuscaProduto(e.target.value)}
-                        placeholder='Buscar produtos por nome ou código...'
-                        className='w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                      />
-                      <FiSearch className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4' />
+          <div className='row g-3'>
+            {/* Coluna Produtos */}
+            <div className='col-12 col-lg-7 d-flex flex-column'>
+              {/* Card filtros */}
+              <div className='card shadow-sm mb-3'>
+                <div className='card-body py-3'>
+                  <div className='row g-2 align-items-center'>
+                    <div className='col-12 col-md-5'>
+                      <div className='position-relative'>
+                        <FiSearch className='position-absolute top-50 translate-middle-y ms-2 text-muted' />
+                        <input
+                          type='text'
+                          value={buscaProduto}
+                          onChange={(e) => setBuscaProduto(e.target.value)}
+                          placeholder='Buscar produto ou código'
+                          className='form-control ps-5'
+                        />
+                      </div>
+                    </div>
+                    <div className='col-8 col-md-4'>
+                      <select
+                        value={filtroCategoria}
+                        onChange={(e) => setFiltroCategoria(e.target.value)}
+                        className='form-select'
+                      >
+                        <option value=''>Todas as categorias</option>
+                        <option value='salgados'>Salgados</option>
+                        <option value='doces'>Doces</option>
+                        <option value='bebidas'>Bebidas</option>
+                        <option value='refeicoes'>Refeições</option>
+                      </select>
+                    </div>
+                    <div className='col-4 col-md-3 d-grid'>
+                      <button
+                        onClick={() => buscarProdutos(buscaProduto, filtroCategoria)}
+                        className='btn btn-primary d-flex align-items-center justify-content-center gap-2'
+                        title='Recarregar lista'
+                      >
+                        <FiRefreshCw /> <span>Atualizar</span>
+                      </button>
                     </div>
                   </div>
-
-                  <select
-                    value={filtroCategoria}
-                    onChange={(e) => setFiltroCategoria(e.target.value)}
-                    className='px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'
-                  >
-                    <option value=''>Todas as categorias</option>
-                    <option value='salgados'>Salgados</option>
-                    <option value='doces'>Doces</option>
-                    <option value='bebidas'>Bebidas</option>
-                    <option value='refeicoes'>Refeições</option>
-                  </select>
-
-                  <button
-                    onClick={() => buscarProdutos(buscaProduto, filtroCategoria)}
-                    className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2'
-                  >
-                    <FiRefreshCw className='w-4 h-4' />
-                    <span>Atualizar</span>
-                  </button>
                 </div>
               </div>
 
-              {/* Grid de Produtos */}
-              <div className='bg-white border rounded-lg p-4'>
-                <h3 className='font-semibold text-lg mb-4'>Produtos Disponíveis</h3>
-                <GridProdutos
-                  produtos={produtos}
-                  onAdicionarAoCarrinho={adicionarAoCarrinho}
-                  loading={loadingProdutos}
-                />
+              {/* Produtos */}
+              <div className='card flex-fill shadow-sm'>
+                <div className='card-header bg-white pb-2 pt-3 border-0 d-flex justify-content-between align-items-center'>
+                  <h5 className='mb-0 fw-semibold'>Produtos Disponíveis</h5>
+                  <small className='text-muted'>{produtos.length} itens</small>
+                </div>
+                <div className='card-body pt-0 overflow-auto' style={{ maxHeight: '62vh' }}>
+                  <GridProdutos
+                    produtos={produtos}
+                    onAdicionarAoCarrinho={adicionarAoCarrinho}
+                    loading={loadingProdutos}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Área do Cliente e Carrinho */}
-            <div className='space-y-6'>
-              {/* Seletor de Cliente */}
+            {/* Coluna lateral: cliente + carrinho + checkout */}
+            <div className='col-12 col-lg-5 d-flex flex-column gap-3'>
               <SeletorCliente
                 clienteSelecionado={clienteSelecionado}
                 onClienteSelecionado={setClienteSelecionado}
                 onBuscarClientes={buscarClientes}
               />
-
-              {/* Carrinho */}
               <Carrinho
                 itens={carrinho}
                 onUpdateQuantidade={atualizarQuantidade}
                 onRemoverItem={removerItem}
               />
-
-              {/* Checkout */}
               <Checkout
                 itens={carrinho}
                 cliente={clienteSelecionado}
