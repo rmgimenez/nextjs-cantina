@@ -22,7 +22,12 @@
   --background: #ffffff;
   --foreground: #333333;
   /* Gradiente de marca */
-  --brand-gradient: linear-gradient(90deg, var(--primary-blue) 0%, #3141a8 50%, #2a2f86 100%);
+  --brand-gradient: linear-gradient(
+    90deg,
+    var(--primary-blue) 0%,
+    #3141a8 50%,
+    #2a2f86 100%
+  );
   --brand-soft: rgba(37, 50, 135, 0.06);
 }
 
@@ -35,8 +40,8 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -102,7 +107,11 @@ body {
 
 /* Navbar branding */
 .navbar {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.9));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 255, 255, 0.9)
+  );
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
 }
 
@@ -175,4 +184,60 @@ body {
 
 .h-64 {
   height: 16rem;
+}
+
+/* Toast melhorados */
+.toast {
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Melhorias nos badges */
+.badge {
+  font-weight: 500;
+  padding: 0.4em 0.6em;
+}
+
+/* Estados dos botões */
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-group-sm .btn {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.8rem;
+}
+
+/* Imagens de perfil */
+.profile-image {
+  transition: transform 0.2s ease;
+}
+
+.profile-image:hover {
+  transform: scale(1.05);
+}
+
+/* Estados da tabela */
+.table-hover tbody tr:hover {
+  background-color: rgba(37, 50, 135, 0.05);
+}
+
+/* Loading states */
+.btn .spinner-border-sm {
+  width: 0.875rem;
+  height: 0.875rem;
 }
