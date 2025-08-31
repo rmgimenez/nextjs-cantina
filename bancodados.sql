@@ -1544,3 +1544,244 @@ INSERT IGNORE INTO `cant_estoque_mov` (`produto_id`, `tipo_mov`, `quantidade`, `
 
 -- ALTER TABLE incremental (caso já exista sem a coluna estoque_minimo)
 ALTER TABLE cant_produtos ADD COLUMN IF NOT EXISTS `estoque_minimo` DECIMAL(12,3) NULL DEFAULT 0.000 COMMENT 'Quantidade mínima para alerta de baixo estoque';
+
+-- =====================================================================
+-- INÍCIO - INTEGRAÇÕES / AJUSTES ADICIONAIS RF-029, RF-030, RF-031 (2025-08-31)
+-- Objetivo: finalizar requisitos de estrutura, procedures e integração com
+-- tabelas legadas sem alterá-las.
+-- =====================================================================
+
+/* =============================
+   INTEGRAÇÃO COM TABELAS LEGADAS (RF-031)
+   Criação de relacionamentos (FK) para garantir integridade referencial.
+   Observação: executar apenas uma vez. Caso já existam, comentar as linhas.
+============================= */
+-- Relações com cadastro_alunos
+ALTER TABLE `cant_aluno_saldo_mov`
+  ADD CONSTRAINT `fk_cant_aluno_saldo_mov_aluno` FOREIGN KEY (`aluno_ra`) REFERENCES `cadastro_alunos`(`ra`);
+ALTER TABLE `cant_pacote_aluno`
+  ADD CONSTRAINT `fk_cant_pacote_aluno_aluno` FOREIGN KEY (`aluno_ra`) REFERENCES `cadastro_alunos`(`ra`);
+ALTER TABLE `cant_aluno_restricao_produto`
+  ADD CONSTRAINT `fk_cant_aluno_restricao_produto_aluno` FOREIGN KEY (`aluno_ra`) REFERENCES `cadastro_alunos`(`ra`);
+ALTER TABLE `cant_aluno_restricao_tipo`
+  ADD CONSTRAINT `fk_cant_aluno_restricao_tipo_aluno` FOREIGN KEY (`aluno_ra`) REFERENCES `cadastro_alunos`(`ra`);
+ALTER TABLE `cant_aluno_observacao`
+  ADD CONSTRAINT `fk_cant_aluno_observacao_aluno` FOREIGN KEY (`aluno_ra`) REFERENCES `cadastro_alunos`(`ra`);
+
+-- Relações com funcionarios
+ALTER TABLE `cant_funcionario_conta_lanc`
+  ADD CONSTRAINT `fk_cant_func_conta_func` FOREIGN KEY (`funcionario_id`) REFERENCES `funcionarios`(`codigo`);
+ALTER TABLE `cant_funcionario_fatura`
+  ADD CONSTRAINT `fk_cant_func_fatura_func` FOREIGN KEY (`funcionario_id`) REFERENCES `funcionarios`(`codigo`);
+
+/* =============================
+   FUNÇÕES AUXILIARES (RF-030)
+============================= */
+DROP FUNCTION IF EXISTS `cant_fn_estoque_saldo`;
+DELIMITER $$
+CREATE FUNCTION `cant_fn_estoque_saldo`(p_produto_id BIGINT)
+RETURNS DECIMAL(12,3)
+DETERMINISTIC
+BEGIN
+  DECLARE v_saldo DECIMAL(12,3);
+  SELECT COALESCE(SUM(CASE WHEN tipo_mov IN ('ENTRADA','AJUSTE_POSITIVO') THEN quantidade
+                           WHEN tipo_mov IN ('SAIDA','AJUSTE_NEGATIVO','SAIDA_VENDA') THEN -quantidade
+                           ELSE 0 END),0)
+    INTO v_saldo
+  FROM cant_estoque_mov WHERE produto_id = p_produto_id;
+  RETURN IFNULL(v_saldo,0);
+END $$
+DELIMITER ;
+
+DROP FUNCTION IF EXISTS `cant_fn_pacote_validavel`;
+DELIMITER $$
+/* Retorna 1 se o pacote pode ser utilizado (aluno, ativo, data válida, usos restantes >0) */
+CREATE FUNCTION `cant_fn_pacote_validavel`(p_pacote_id BIGINT)
+RETURNS TINYINT
+DETERMINISTIC
+BEGIN
+  RETURN IF(EXISTS(
+    SELECT 1 FROM cant_pacote_aluno pa
+     WHERE pa.id = p_pacote_id
+       AND pa.status='ATIVO'
+       AND pa.usos_restantes > 0
+       AND pa.data_inicio <= CURDATE()
+       AND pa.data_fim >= CURDATE()
+  ),1,0);
+END $$
+DELIMITER ;
+
+/* =============================
+   PROCEDURE COMPLETA DE VENDA (RF-030)
+   Substitui lógica dispersa no backend consolidando regras no banco:
+   - Validação de estoque
+   - Restrições de aluno (produto / tipo)
+   - Saldo de aluno
+   - Uso de pacote
+   - Inserção cabeçalho + itens + movimentos
+   Formato de p_itens: lista separada por ponto-e-vírgula.
+   Cada item no formato: produto_id,quantidade,preco_unitario
+   Ex: '1,2,4.50;3,1,6.00;'
+============================= */
+DROP PROCEDURE IF EXISTS `cant_sp_realiza_venda`;
+DELIMITER $$
+CREATE PROCEDURE `cant_sp_realiza_venda`(
+  IN p_usuario_id BIGINT,
+  IN p_caixa_id BIGINT,
+  IN p_tipo_comprador ENUM('ALUNO','FUNCIONARIO_ESCOLA','AVULSA'),
+  IN p_aluno_ra INT,
+  IN p_funcionario_id INT,
+  IN p_forma_pag ENUM('DINHEIRO','CARTAO','SALDO_ALUNO','CONTA_FUNCIONARIO','PACOTE','OUTRO'),
+  IN p_pacote_aluno_id BIGINT,
+  IN p_desconto DECIMAL(12,2),
+  IN p_observacao VARCHAR(255),
+  IN p_itens TEXT
+)
+BEGIN
+  DECLARE v_line TEXT;
+  DECLARE v_pos INT;
+  DECLARE v_prod BIGINT; DECLARE v_qtd DECIMAL(12,3); DECLARE v_preco DECIMAL(12,2);
+  DECLARE v_valor_bruto DECIMAL(12,2) DEFAULT 0.00;
+  DECLARE v_saldo_aluno DECIMAL(12,2);
+  DECLARE v_usos_rest INT; DECLARE v_usos_dia INT; DECLARE v_max_usos_dia INT; DECLARE v_dummy INT;
+  DECLARE v_venda_id BIGINT;
+  DECLARE v_tipo_id BIGINT;
+
+  -- Pré-validações básicas
+  IF p_tipo_comprador NOT IN ('ALUNO','FUNCIONARIO_ESCOLA','AVULSA') THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Tipo de comprador inválido';
+  END IF;
+  IF p_tipo_comprador='ALUNO' AND p_aluno_ra IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Aluno não informado';
+  END IF;
+  IF p_tipo_comprador='FUNCIONARIO_ESCOLA' AND p_funcionario_id IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Funcionário não informado';
+  END IF;
+
+  CREATE TEMPORARY TABLE IF NOT EXISTS tmp_venda_itens (
+    produto_id BIGINT,
+    quantidade DECIMAL(12,3),
+    preco_unit DECIMAL(12,2)
+  ) ENGINE=Memory;
+  TRUNCATE tmp_venda_itens;
+
+  -- Parse de itens
+  WHILE p_itens IS NOT NULL AND LENGTH(p_itens) > 0 DO
+    SET v_pos = INSTR(p_itens,';');
+    IF v_pos = 0 THEN
+      SET v_line = p_itens; SET p_itens='';
+    ELSE
+      SET v_line = SUBSTRING(p_itens,1,v_pos-1);
+      SET p_itens = SUBSTRING(p_itens,v_pos+1);
+    END IF;
+    IF v_line IS NULL OR TRIM(v_line) = '' THEN
+      ITERATE;
+    END IF;
+    SET v_prod = CAST(SUBSTRING_INDEX(v_line,',',1) AS UNSIGNED);
+    SET v_qtd = CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(v_line,',',2),',',-1) AS DECIMAL(12,3));
+    SET v_preco = CAST(SUBSTRING_INDEX(v_line,',',-1) AS DECIMAL(12,2));
+    IF v_prod IS NULL OR v_qtd IS NULL OR v_preco IS NULL OR v_qtd <= 0 THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Item inválido na lista';
+    END IF;
+    INSERT INTO tmp_venda_itens VALUES (v_prod, v_qtd, v_preco);
+  END WHILE;
+
+  -- Verificar se houve itens
+  SELECT COUNT(*) INTO v_dummy FROM tmp_venda_itens;
+  IF v_dummy = 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Carrinho vazio';
+  END IF;
+
+  -- Validações por item
+  DECLARE cur CURSOR FOR SELECT produto_id, quantidade, preco_unit FROM tmp_venda_itens;
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_dummy = 1;
+  SET v_dummy = 0;
+  OPEN cur;
+  read_loop: LOOP
+    FETCH cur INTO v_prod, v_qtd, v_preco;
+    IF v_dummy = 1 THEN LEAVE read_loop; END IF;
+    -- Tipo do produto
+    SELECT tipo_id INTO v_tipo_id FROM cant_produtos WHERE id = v_prod LIMIT 1;
+    IF v_tipo_id IS NULL THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Produto inexistente';
+    END IF;
+    -- Restrição de aluno
+    IF p_tipo_comprador='ALUNO' THEN
+      IF cant_fn_aluno_restrito_produto(p_aluno_ra, v_prod)=1 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT=CONCAT('Produto restrito para aluno (prod ',v_prod,')');
+      END IF;
+      IF cant_fn_aluno_restrito_tipo(p_aluno_ra, v_tipo_id)=1 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT=CONCAT('Tipo de produto restrito para aluno (prod ',v_prod,')');
+      END IF;
+    END IF;
+    -- Estoque
+    IF cant_fn_estoque_saldo(v_prod) < v_qtd THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT=CONCAT('Estoque insuficiente para produto ',v_prod);
+    END IF;
+    -- Acumula valor
+    SET v_valor_bruto = v_valor_bruto + (v_qtd * v_preco);
+  END LOOP;
+  CLOSE cur;
+
+  -- Validação saldo aluno
+  IF p_forma_pag='SALDO_ALUNO' AND p_tipo_comprador='ALUNO' THEN
+    SET v_saldo_aluno = cant_fn_saldo_aluno(p_aluno_ra);
+    IF v_saldo_aluno < (v_valor_bruto - p_desconto) THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Saldo insuficiente';
+    END IF;
+  END IF;
+
+  -- Validação pacote
+  IF p_forma_pag='PACOTE' THEN
+    IF p_pacote_aluno_id IS NULL THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Pacote não informado';
+    END IF;
+    IF cant_fn_pacote_validavel(p_pacote_aluno_id)=0 THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Pacote inválido ou indisponível';
+    END IF;
+    -- Limite diário
+    SELECT usos_restantes INTO v_usos_rest FROM cant_pacote_aluno WHERE id=p_pacote_aluno_id;
+    SELECT COUNT(*) INTO v_usos_dia FROM cant_pacote_utilizacao WHERE pacote_aluno_id=p_pacote_aluno_id AND DATE(data_utilizacao)=CURDATE();
+    SELECT pt.max_usos_dia INTO v_max_usos_dia FROM cant_pacote_aluno pa JOIN cant_pacote_tipo pt ON pt.id=pa.pacote_tipo_id WHERE pa.id=p_pacote_aluno_id;
+    IF v_usos_rest <= 0 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Pacote sem usos restantes'; END IF;
+    IF v_max_usos_dia IS NOT NULL AND v_usos_dia >= v_max_usos_dia THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Limite diário do pacote atingido'; END IF;
+  END IF;
+
+  START TRANSACTION;
+  -- Cabeçalho da venda
+  INSERT INTO cant_venda (caixa_id, usuario_id, tipo_comprador, comprador_aluno_ra, comprador_funcionario_id, forma_pagamento, valor_bruto, desconto, valor_liquido, observacao)
+  VALUES (p_caixa_id, p_usuario_id, p_tipo_comprador,
+          IF(p_tipo_comprador='ALUNO', p_aluno_ra, NULL),
+          IF(p_tipo_comprador='FUNCIONARIO_ESCOLA', p_funcionario_id, NULL),
+          p_forma_pag, v_valor_bruto, IFNULL(p_desconto,0), v_valor_bruto - IFNULL(p_desconto,0), p_observacao);
+  SET v_venda_id = LAST_INSERT_ID();
+
+  -- Itens + saída de estoque
+  SET v_dummy = 0; OPEN cur; read_loop2: LOOP
+    FETCH cur INTO v_prod, v_qtd, v_preco;
+    IF v_dummy = 1 THEN LEAVE read_loop2; END IF;
+    INSERT INTO cant_venda_item (venda_id, produto_id, quantidade, preco_unitario, valor_total)
+    VALUES (v_venda_id, v_prod, v_qtd, v_preco, v_qtd * v_preco);
+    INSERT INTO cant_estoque_mov (produto_id, tipo_mov, quantidade, referencia, usuario_id)
+    VALUES (v_prod, 'SAIDA_VENDA', v_qtd, CONCAT('VENDA#', v_venda_id), p_usuario_id);
+  END LOOP; CLOSE cur;
+
+  -- Pagamento caixa
+  IF p_forma_pag IN ('DINHEIRO','CARTAO') THEN
+    INSERT INTO cant_caixa_mov (caixa_id, tipo, valor, descricao, referencia, usuario_id)
+    VALUES (p_caixa_id, 'VENDA', v_valor_bruto - IFNULL(p_desconto,0), CONCAT('Venda ', p_forma_pag), CONCAT('VENDA#',v_venda_id), p_usuario_id);
+  END IF;
+
+  -- Uso de pacote
+  IF p_forma_pag='PACOTE' THEN
+    INSERT INTO cant_pacote_utilizacao (pacote_aluno_id, venda_id) VALUES (p_pacote_aluno_id, v_venda_id);
+  END IF;
+
+  COMMIT;
+  SELECT v_venda_id AS venda_id, v_valor_bruto AS valor_bruto, (v_valor_bruto - IFNULL(p_desconto,0)) AS valor_liquido;
+END $$
+DELIMITER ;
+
+-- =====================================================================
+-- FIM - INTEGRAÇÕES / AJUSTES ADICIONAIS RF-029, RF-030, RF-031
+-- =====================================================================

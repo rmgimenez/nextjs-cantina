@@ -272,26 +272,44 @@ Validação adicionada no fluxo de venda (`/api/pdv/vendas`) quando formaPagamen
 
 - Listagem de compras por funcionário
 - Totais por período
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
+
+Implementado endpoint `/api/relatorios/funcionarios/consumo` com filtros `inicio`, `fim` e `funcionarioId` retornando agregados e detalhes (últimas 1000 vendas). Interface inicial pode ser expandida posteriormente.
 
 **RF-024** - Geração de faturas mensais
 
 - Fatura por funcionário da escola
 - Fechamento mensal automático
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
+
+Criados endpoints `/api/relatorios/funcionarios/faturas` (GET lista de faturas por ano/mês e POST para geração via procedure `cant_sp_gera_faturas_funcionarios`). Página em `/dashboard/funcionarios/faturas` para seleção de mês/ano e geração.
 
 **RF-025** - Histórico de vendas dos alunos
 
 - Consultar compras por aluno
 - Filtros por período e produto
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
+
+Endpoint `/api/relatorios/alunos/historico` com filtros de período e RA. Página `/dashboard/alunos/historico` permite consulta rápida do histórico e total no período.
 
 **RF-026** - Relatórios gerenciais
 
 - Vendas por período
 - Produtos mais vendidos
 - Performance por funcionário
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
+
+Endpoints:
+
+- `/api/relatorios/gerenciais/vendas` (agregação diária)
+- `/api/relatorios/gerenciais/produtos` (ranking de produtos)
+- `/api/relatorios/gerenciais/performance` (performance por usuário do sistema)
+
+Páginas:
+
+- `/dashboard/relatorios/vendas`
+- `/dashboard/relatorios/produtos`
+- `/dashboard/relatorios/financeiro` (performance)
 
 ### Módulo de Contas a Pagar e Receber
 
@@ -314,20 +332,26 @@ Validação adicionada no fluxo de venda (`/api/pdv/vendas`) quando formaPagamen
 - Criar todas as tabelas com prefixo `cant_`
 - Implementar triggers para automações
 - Criar views para consultas complexas
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
+
+Resumo de implementação: Todas as tabelas funcionais da cantina foram criadas (`cant_usuarios`, produtos, estoque, vendas, pacotes, restrições, financeiro, contas a pagar/receber, faturas, etc.), com chaves primárias, índices e colunas de auditoria. Views criadas para saldos, performance, produtos mais vendidos, dashboards financeiros e unificação de restrições. Triggers implementadas para: cálculo de valor líquido da venda, saída automática de estoque, débito automático de saldo de aluno, lançamento em conta de funcionário, decremento de usos de pacotes, atualização automática de status de contas/parcela (pagas/recebidas) e rotina diária de marcação de atrasos. Eventos e padrões de nomenclatura preservados conforme convenção.
 
 **RF-030** - Stored procedures
 
 - Procedures para lógica de negócio
 - Funções auxiliares
 - Encapsular operações complexas
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
+
+Resumo de implementação: Incluídas procedures de crédito de saldo, compra de pacote, fechamento de caixa, geração de faturas mensais, registro de venda simples, geração de parcelas (pagar/receber), registro de pagamento e recebimento, além de nova procedure consolidada `cant_sp_realiza_venda` que centraliza validações (estoque, restrições de aluno, saldo, pacote, cálculo de totais e geração de movimentos) reduzindo lógica de negócio no backend. Adicionadas funções auxiliares: `cant_fn_valor_refeicao_cargo`, `cant_fn_saldo_aluno`, `cant_fn_aluno_restrito_produto`, `cant_fn_aluno_restrito_tipo`, mais novas `cant_fn_estoque_saldo` e `cant_fn_pacote_validavel` para apoiar validações no banco.
 
 **RF-031** - Integração com tabelas existentes
 
 - Usar tabelas legadas sem alterá-las
 - Criar relacionamentos necessários
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
+
+Resumo de implementação: Adicionadas FKs de integração referenciando tabelas legadas `cadastro_alunos` (para saldo, pacotes, restrições e observações) e `funcionarios` (para lançamentos e faturas), garantindo integridade referencial sem modificar a estrutura original das tabelas legadas. Todas as referências utilizam chaves naturais já existentes (`ra`, `codigo`).
 
 ### Interface do Sistema
 

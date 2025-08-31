@@ -19,7 +19,7 @@ interface ItemVenda {
 
 interface DadosVenda {
   tipoComprador: "ALUNO" | "FUNCIONARIO_ESCOLA" | "AVULSA";
-  compradorId?: number;
+  compradorId?: number; // RA do aluno ou código do funcionário
   formaPagamento:
     | "DINHEIRO"
     | "CARTAO"
@@ -39,11 +39,10 @@ export async function POST(req: NextRequest) {
 
     const dados: DadosVenda = await req.json();
 
-    // Validações básicas
+    // Validações mínimas antes de delegar à procedure
     if (!dados.itens || dados.itens.length === 0) {
       return NextResponse.json({ error: "Carrinho vazio" }, { status: 400 });
     }
-
     if (
       !["ALUNO", "FUNCIONARIO_ESCOLA", "AVULSA"].includes(dados.tipoComprador)
     ) {
@@ -52,7 +51,6 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-
     if (
       (dados.tipoComprador === "ALUNO" ||
         dados.tipoComprador === "FUNCIONARIO_ESCOLA") &&
@@ -80,267 +78,83 @@ export async function POST(req: NextRequest) {
 
     const caixaId = caixaAberto[0].id;
 
-    // Calcular totais
-    let valorBruto = 0;
-    for (const item of dados.itens) {
-      valorBruto += item.quantidade * item.precoUnitario;
-    }
-    const desconto = 0; // Por enquanto sem desconto
-    const valorLiquido = valorBruto - desconto;
-
-    // Validações específicas por tipo de comprador
-    // usado caso pagamento via PACOTE
-    let pacoteSelecionado: any = null;
-
-    if (
-      dados.tipoComprador === "ALUNO" &&
-      ["SALDO_ALUNO", "PACOTE"].includes(dados.formaPagamento)
-    ) {
-      // Verificar saldo do aluno
-      if (dados.formaPagamento === "SALDO_ALUNO") {
-        const saldoResult = await query(
-          "SELECT COALESCE(saldo_atual, 0) as saldo FROM cant_view_aluno_saldo WHERE aluno_ra = ?",
-          [dados.compradorId]
-        );
-        const saldoAtual =
-          saldoResult.length > 0 ? parseFloat(saldoResult[0].saldo) : 0;
-        if (saldoAtual < valorLiquido) {
-          return NextResponse.json(
-            {
-              error: "Saldo insuficiente",
-              saldoAtual,
-              valorNecessario: valorLiquido,
-            },
-            { status: 400 }
-          );
-        }
-      }
-
-      // Verificar pacote ativo se formaPagamento = PACOTE
-      if (dados.formaPagamento === "PACOTE") {
-        const pacotes = await query<any[]>(
-          `SELECT pa.id, pa.usos_restantes, pa.data_inicio, pa.data_fim, pt.max_usos_dia
-             FROM cant_pacote_aluno pa
-             JOIN cant_pacote_tipo pt ON pt.id = pa.pacote_tipo_id
-            WHERE pa.aluno_ra=? AND pa.status='ATIVO' AND pa.data_inicio <= CURDATE() AND pa.data_fim >= CURDATE() AND pa.usos_restantes > 0
-            ORDER BY pa.id ASC LIMIT 1`,
-          [dados.compradorId]
-        );
-        if (!pacotes.length) {
-          return NextResponse.json(
-            { error: "Nenhum pacote ativo disponível" },
-            { status: 400 }
-          );
-        }
-        const p = pacotes[0];
-        if (p.max_usos_dia) {
-          const [{ qt }] = await query<any[]>(
-            "SELECT COUNT(*) qt FROM cant_pacote_utilizacao WHERE pacote_aluno_id=? AND DATE(data_utilizacao)=CURDATE()",
-            [p.id]
-          );
-          if (qt >= p.max_usos_dia) {
-            return NextResponse.json(
-              { error: "Limite diário do pacote atingido" },
-              { status: 400 }
-            );
-          }
-        }
-        pacoteSelecionado = p;
-      }
-
-      // Verificar restrições do aluno
-      const restricoes = await query(
-        `
-        SELECT produto_id, tipo_restricao, item_nome
-        FROM cant_view_aluno_restricao
-        WHERE aluno_ra = ? 
-      `,
+    // Selecionar pacote válido se necessário (a procedure validará novamente)
+    let pacoteId: number | null = null;
+    if (dados.tipoComprador === "ALUNO" && dados.formaPagamento === "PACOTE") {
+      const pacotes = await query<any[]>(
+        `SELECT pa.id
+           FROM cant_pacote_aluno pa
+           WHERE pa.aluno_ra=? AND pa.status='ATIVO' AND pa.data_inicio <= CURDATE() AND pa.data_fim >= CURDATE() AND pa.usos_restantes > 0
+           ORDER BY pa.id ASC LIMIT 1`,
         [dados.compradorId]
       );
-
-      for (const item of dados.itens) {
-        const restricaoProduto = restricoes.find(
-          (r: any) => r.produto_id === item.produtoId
-        );
-        if (restricaoProduto) {
-          return NextResponse.json(
-            {
-              error: `Produto ${restricaoProduto.item_nome} está restrito para este aluno`,
-              restricao: restricaoProduto.tipo_restricao,
-            },
-            { status: 400 }
-          );
-        }
-      }
-    }
-
-    // Verificar estoque dos produtos
-    for (const item of dados.itens) {
-      const estoqueResult = await query(
-        "SELECT COALESCE(saldo, 0) as estoque FROM cant_view_estoque_saldo WHERE produto_id = ?",
-        [item.produtoId]
-      );
-
-      const estoqueAtual =
-        estoqueResult.length > 0 ? parseFloat(estoqueResult[0].estoque) : 0;
-
-      if (estoqueAtual < item.quantidade) {
-        const produtoResult = await query(
-          "SELECT nome FROM cant_produtos WHERE id = ?",
-          [item.produtoId]
-        );
-        const nomeProduto =
-          produtoResult.length > 0 ? produtoResult[0].nome : "Produto";
-
+      if (!pacotes.length) {
         return NextResponse.json(
-          {
-            error: `Estoque insuficiente para ${nomeProduto}`,
-            estoqueAtual,
-            quantidadeSolicitada: item.quantidade,
-          },
+          { error: "Nenhum pacote ativo disponível" },
           { status: 400 }
         );
       }
+      pacoteId = pacotes[0].id;
     }
 
-    // Iniciar transação
-    await query("START TRANSACTION");
+    // Montar string de itens no formato esperado pela procedure: prod,qtd,preco;prod,qtd,preco;
+    const itensFmt =
+      dados.itens
+        .map(
+          (i) =>
+            `${i.produtoId},${Number(i.quantidade).toString()},${Number(
+              i.precoUnitario
+            ).toFixed(2)}`
+        )
+        .join(";") + ";";
 
     try {
-      // Inserir venda
-      const vendaResult = await query(
-        `
-        INSERT INTO cant_venda (
-          caixa_id, usuario_id, tipo_comprador, comprador_aluno_ra, comprador_funcionario_id,
-          forma_pagamento, valor_bruto, desconto, valor_liquido, observacao
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
+      const rows: any = await query(
+        "CALL cant_sp_realiza_venda(?,?,?,?,?,?,?,?,?,?)",
         [
-          caixaId,
           user.id,
+          caixaId,
           dados.tipoComprador,
           dados.tipoComprador === "ALUNO" ? dados.compradorId : null,
           dados.tipoComprador === "FUNCIONARIO_ESCOLA"
             ? dados.compradorId
             : null,
           dados.formaPagamento,
-          valorBruto,
-          desconto,
-          valorLiquido,
+          pacoteId,
+          0, // desconto (placeholder)
           dados.observacao || null,
+          itensFmt,
         ]
       );
 
-      const vendaId = vendaResult.insertId;
-
-      // Inserir itens da venda
-      for (const item of dados.itens) {
-        const valorTotalItem = item.quantidade * item.precoUnitario;
-
-        await query(
-          `
-          INSERT INTO cant_venda_item (venda_id, produto_id, quantidade, preco_unitario, valor_total)
-          VALUES (?, ?, ?, ?, ?)
-        `,
-          [
-            vendaId,
-            item.produtoId,
-            item.quantidade,
-            item.precoUnitario,
-            valorTotalItem,
-          ]
-        );
-
-        // Dar baixa no estoque
-        await query(
-          `
-          INSERT INTO cant_estoque_mov (produto_id, tipo_mov, quantidade, referencia, usuario_id)
-          VALUES (?, 'SAIDA_VENDA', ?, ?, ?)
-        `,
-          [item.produtoId, item.quantidade, `Venda #${vendaId}`, user.id]
-        );
-      }
-
-      // Movimentar saldo do aluno se necessário
-      if (
-        dados.tipoComprador === "ALUNO" &&
-        dados.formaPagamento === "SALDO_ALUNO"
-      ) {
-        await query(
-          `
-          INSERT INTO cant_aluno_saldo_mov (aluno_ra, tipo, valor, origem, referencia, usuario_id)
-          VALUES (?, 'DEBITO', ?, 'VENDA', ?, ?)
-        `,
-          [dados.compradorId, valorLiquido, `Venda #${vendaId}`, user.id]
-        );
-      }
-
-      // Utiliza pacote (1 uso) se pagamento por PACOTE
-      if (
-        dados.tipoComprador === "ALUNO" &&
-        dados.formaPagamento === "PACOTE"
-      ) {
-        // inserir utilização (trigger cuidará decremento)
-        await query(
-          "INSERT INTO cant_pacote_utilizacao (pacote_aluno_id, venda_id) VALUES (?, ?)",
-          [pacoteSelecionado.id, vendaId]
-        );
-      }
-
-      // Registrar movimentação no caixa (apenas para dinheiro/cartão)
-      if (["DINHEIRO", "CARTAO"].includes(dados.formaPagamento)) {
-        await query(
-          `
-          INSERT INTO cant_caixa_mov (caixa_id, tipo, valor, descricao, referencia, usuario_id)
-          VALUES (?, 'VENDA', ?, ?, ?, ?)
-        `,
-          [
-            caixaId,
-            valorLiquido,
-            `Venda ${dados.formaPagamento}`,
-            `Venda #${vendaId}`,
-            user.id,
-          ]
-        );
-      }
-
-      // Registrar conta a receber para funcionário da escola
-      if (
-        dados.tipoComprador === "FUNCIONARIO_ESCOLA" &&
-        dados.formaPagamento === "CONTA_FUNCIONARIO"
-      ) {
-        const dataVencimento = new Date();
-        dataVencimento.setMonth(dataVencimento.getMonth() + 1); // Vence no próximo mês
-
-        await query(
-          `
-          INSERT INTO cant_contas_receber (
-            descricao, valor, data_vencimento, funcionario_codigo, 
-            referencia, created_by
-          ) VALUES (?, ?, ?, ?, ?, ?)
-        `,
-          [
-            `Consumo cantina - Venda #${vendaId}`,
-            valorLiquido,
-            dataVencimento.toISOString().split("T")[0],
-            dados.compradorId,
-            `venda_${vendaId}`,
-            user.id,
-          ]
-        );
-      }
-
-      await query("COMMIT");
+      // mysql2 retorna: [ [ resultRow ], otherMeta ] – nosso helper devolve primeiro recordset
+      const resultRow = Array.isArray(rows) ? rows[0] : rows;
+      const vendaId = resultRow?.venda_id;
+      const valorTotal = resultRow?.valor_liquido;
 
       return NextResponse.json({
         ok: true,
         vendaId,
-        valorTotal: valorLiquido,
+        valorTotal,
         message: "Venda realizada com sucesso!",
       });
-    } catch (error) {
-      await query("ROLLBACK");
-      throw error;
+    } catch (err: any) {
+      // Erros sinalizados pela procedure usam SQLSTATE '45000'
+      const msg = err?.message || "Erro ao processar venda";
+      // Heurística: se for erro de validação de negócio retornar 400
+      if (
+        msg.includes("Saldo") ||
+        msg.includes("Pacote") ||
+        msg.includes("Estoque") ||
+        msg.includes("Produto") ||
+        msg.includes("Tipo") ||
+        msg.includes("Aluno") ||
+        msg.includes("Funcionário")
+      ) {
+        return NextResponse.json({ error: msg }, { status: 400 });
+      }
+      console.error("Erro procedure cant_sp_realiza_venda", err);
+      return NextResponse.json({ error: "server_error" }, { status: 500 });
     }
   } catch (error) {
     console.error("POST /api/pdv/vendas", error);
