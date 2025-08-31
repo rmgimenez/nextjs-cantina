@@ -151,13 +151,17 @@ Endpoints `/api/funcionarios` (busca código, nome ou cargo) e `/api/funcionario
 
 - Criar categorias (salgados, doces, bebidas, etc.)
 - Incluir tipo "por quilo" para refeições
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
+
+Implementado endpoint `/api/produtos/tipos` com CRUD completo (listagem com busca, criação, edição e inativação). Interface disponível em `/dashboard/produtos` (modal "Novo Tipo"). Tipos padrão criados via script SQL incluindo categoria "Refeições" (`exige_peso=1`) para venda por quilo. Controle de permissão: apenas ADMIN e ESTOQUISTA podem criar/alterar/inativar.
 
 **RF-008** - Cadastro de produtos
 
 - Nome, descrição, preço, categoria
 - Controle de ativo/inativo
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
+
+Endpoint `/api/produtos` com suporte a filtros (nome, código de barras, tipo) e operações de criação, atualização parcial e inativação (soft delete). Interface de gestão em `/dashboard/produtos` com criação, edição (modal) e exclusão lógica, usando UI otimista. Exibe estoque atual (via `cant_view_estoque_saldo`), status (OK / Baixo / Sem estoque) e calcula valor estimado do estoque. Implementado cadastro de estoque mínimo por produto. Permissões restritas a ADMIN e ESTOQUISTA para mutações.
 
 **RF-009** - Controle de estoque
 
@@ -166,12 +170,22 @@ Endpoints `/api/funcionarios` (busca código, nome ou cargo) e `/api/funcionario
 - Alertas de estoque baixo
 - Status: ✅ Concluído
 
+Implementados endpoints `/api/estoque/movimentacoes` (listagem + criação de movimentações) e `/api/estoque/saldo` (saldo agregado com status). UI integrada na página de produtos (modal de movimentação) e nova página dedicada em `/dashboard/estoque/movimentacao`.
+
 **RF-010** - Relatórios de estoque
 
 - Produtos em falta
 - Movimentação de estoque
 - Produtos mais vendidos
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
+
+Endpoint consolidado `/api/estoque/relatorios` retornando: produtos sem estoque, produtos com baixo estoque (saldo <= mínimo), movimentações recentes e ranking de produtos mais vendidos em janela configurável (`diasTop`). Páginas criadas:
+
+- `/dashboard/estoque` (hub do módulo)
+- `/dashboard/estoque/movimentacao` (listagem + lançamento manuais)
+- `/dashboard/estoque/relatorios` (relatórios operacionais e ranking por período)
+
+Relatórios reutilizam views e tabelas existentes (`cant_view_estoque_saldo`, `cant_venda_item`, `cant_venda`). Sidebar já possuía entradas; páginas adicionadas completam fluxo do módulo de estoque. Controle de acesso exige usuário autenticado; mutações de movimentação restritas por perfil.
 
 ### Módulo de Vendas e PDV
 
