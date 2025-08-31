@@ -1,10 +1,11 @@
-import { COOKIE_NAME, verifySessionToken } from '@/lib/auth';
-import { query } from '@/lib/db';
-import { NextRequest, NextResponse } from 'next/server';
+import { COOKIE_NAME, verifySessionToken } from "@/lib/auth";
+import { query } from "@/lib/db";
+import { NextRequest, NextResponse } from "next/server";
 
 async function ensureAuth(req: NextRequest) {
   const token =
-    req.cookies.get(COOKIE_NAME)?.value || req.headers.get('authorization')?.replace('Bearer ', '');
+    req.cookies.get(COOKIE_NAME)?.value ||
+    req.headers.get("authorization")?.replace("Bearer ", "");
   if (!token) return null;
   const payload = await verifySessionToken(token);
   return payload as any;
@@ -17,9 +18,14 @@ interface ItemVenda {
 }
 
 interface DadosVenda {
-  tipoComprador: 'ALUNO' | 'FUNCIONARIO_ESCOLA' | 'AVULSA';
+  tipoComprador: "ALUNO" | "FUNCIONARIO_ESCOLA" | "AVULSA";
   compradorId?: number;
-  formaPagamento: 'DINHEIRO' | 'CARTAO' | 'SALDO_ALUNO' | 'CONTA_FUNCIONARIO' | 'PACOTE';
+  formaPagamento:
+    | "DINHEIRO"
+    | "CARTAO"
+    | "SALDO_ALUNO"
+    | "CONTA_FUNCIONARIO"
+    | "PACOTE";
   itens: ItemVenda[];
   observacao?: string;
 }
@@ -27,26 +33,35 @@ interface DadosVenda {
 export async function POST(req: NextRequest) {
   try {
     const user = await ensureAuth(req);
-    if (!user || !['ADMIN', 'ATENDENTE'].includes(user.tipo)) {
-      return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    if (!user || !["ADMIN", "ATENDENTE"].includes(user.tipo)) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
     const dados: DadosVenda = await req.json();
 
     // Validações básicas
     if (!dados.itens || dados.itens.length === 0) {
-      return NextResponse.json({ error: 'Carrinho vazio' }, { status: 400 });
-    }
-
-    if (!['ALUNO', 'FUNCIONARIO_ESCOLA', 'AVULSA'].includes(dados.tipoComprador)) {
-      return NextResponse.json({ error: 'Tipo de comprador inválido' }, { status: 400 });
+      return NextResponse.json({ error: "Carrinho vazio" }, { status: 400 });
     }
 
     if (
-      (dados.tipoComprador === 'ALUNO' || dados.tipoComprador === 'FUNCIONARIO_ESCOLA') &&
+      !["ALUNO", "FUNCIONARIO_ESCOLA", "AVULSA"].includes(dados.tipoComprador)
+    ) {
+      return NextResponse.json(
+        { error: "Tipo de comprador inválido" },
+        { status: 400 }
+      );
+    }
+
+    if (
+      (dados.tipoComprador === "ALUNO" ||
+        dados.tipoComprador === "FUNCIONARIO_ESCOLA") &&
       !dados.compradorId
     ) {
-      return NextResponse.json({ error: 'ID do comprador é obrigatório' }, { status: 400 });
+      return NextResponse.json(
+        { error: "ID do comprador é obrigatório" },
+        { status: 400 }
+      );
     }
 
     // Verificar se existe caixa aberto
@@ -56,7 +71,9 @@ export async function POST(req: NextRequest) {
 
     if (caixaAberto.length === 0) {
       return NextResponse.json(
-        { error: 'Não há caixa aberto. Abra o caixa antes de realizar vendas.' },
+        {
+          error: "Não há caixa aberto. Abra o caixa antes de realizar vendas.",
+        },
         { status: 400 }
       );
     }
@@ -72,24 +89,63 @@ export async function POST(req: NextRequest) {
     const valorLiquido = valorBruto - desconto;
 
     // Validações específicas por tipo de comprador
-    if (dados.tipoComprador === 'ALUNO' && dados.formaPagamento === 'SALDO_ALUNO') {
+    // usado caso pagamento via PACOTE
+    let pacoteSelecionado: any = null;
+
+    if (
+      dados.tipoComprador === "ALUNO" &&
+      ["SALDO_ALUNO", "PACOTE"].includes(dados.formaPagamento)
+    ) {
       // Verificar saldo do aluno
-      const saldoResult = await query(
-        'SELECT COALESCE(saldo, 0) as saldo FROM cant_view_aluno_saldo WHERE aluno_ra = ?',
-        [dados.compradorId]
-      );
-
-      const saldoAtual = saldoResult.length > 0 ? parseFloat(saldoResult[0].saldo) : 0;
-
-      if (saldoAtual < valorLiquido) {
-        return NextResponse.json(
-          {
-            error: 'Saldo insuficiente',
-            saldoAtual,
-            valorNecessario: valorLiquido,
-          },
-          { status: 400 }
+      if (dados.formaPagamento === "SALDO_ALUNO") {
+        const saldoResult = await query(
+          "SELECT COALESCE(saldo_atual, 0) as saldo FROM cant_view_aluno_saldo WHERE aluno_ra = ?",
+          [dados.compradorId]
         );
+        const saldoAtual =
+          saldoResult.length > 0 ? parseFloat(saldoResult[0].saldo) : 0;
+        if (saldoAtual < valorLiquido) {
+          return NextResponse.json(
+            {
+              error: "Saldo insuficiente",
+              saldoAtual,
+              valorNecessario: valorLiquido,
+            },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Verificar pacote ativo se formaPagamento = PACOTE
+      if (dados.formaPagamento === "PACOTE") {
+        const pacotes = await query<any[]>(
+          `SELECT pa.id, pa.usos_restantes, pa.data_inicio, pa.data_fim, pt.max_usos_dia
+             FROM cant_pacote_aluno pa
+             JOIN cant_pacote_tipo pt ON pt.id = pa.pacote_tipo_id
+            WHERE pa.aluno_ra=? AND pa.status='ATIVO' AND pa.data_inicio <= CURDATE() AND pa.data_fim >= CURDATE() AND pa.usos_restantes > 0
+            ORDER BY pa.id ASC LIMIT 1`,
+          [dados.compradorId]
+        );
+        if (!pacotes.length) {
+          return NextResponse.json(
+            { error: "Nenhum pacote ativo disponível" },
+            { status: 400 }
+          );
+        }
+        const p = pacotes[0];
+        if (p.max_usos_dia) {
+          const [{ qt }] = await query<any[]>(
+            "SELECT COUNT(*) qt FROM cant_pacote_utilizacao WHERE pacote_aluno_id=? AND DATE(data_utilizacao)=CURDATE()",
+            [p.id]
+          );
+          if (qt >= p.max_usos_dia) {
+            return NextResponse.json(
+              { error: "Limite diário do pacote atingido" },
+              { status: 400 }
+            );
+          }
+        }
+        pacoteSelecionado = p;
       }
 
       // Verificar restrições do aluno
@@ -103,7 +159,9 @@ export async function POST(req: NextRequest) {
       );
 
       for (const item of dados.itens) {
-        const restricaoProduto = restricoes.find((r: any) => r.produto_id === item.produtoId);
+        const restricaoProduto = restricoes.find(
+          (r: any) => r.produto_id === item.produtoId
+        );
         if (restricaoProduto) {
           return NextResponse.json(
             {
@@ -119,17 +177,20 @@ export async function POST(req: NextRequest) {
     // Verificar estoque dos produtos
     for (const item of dados.itens) {
       const estoqueResult = await query(
-        'SELECT COALESCE(saldo, 0) as estoque FROM cant_view_estoque_saldo WHERE produto_id = ?',
+        "SELECT COALESCE(saldo, 0) as estoque FROM cant_view_estoque_saldo WHERE produto_id = ?",
         [item.produtoId]
       );
 
-      const estoqueAtual = estoqueResult.length > 0 ? parseFloat(estoqueResult[0].estoque) : 0;
+      const estoqueAtual =
+        estoqueResult.length > 0 ? parseFloat(estoqueResult[0].estoque) : 0;
 
       if (estoqueAtual < item.quantidade) {
-        const produtoResult = await query('SELECT nome FROM cant_produtos WHERE id = ?', [
-          item.produtoId,
-        ]);
-        const nomeProduto = produtoResult.length > 0 ? produtoResult[0].nome : 'Produto';
+        const produtoResult = await query(
+          "SELECT nome FROM cant_produtos WHERE id = ?",
+          [item.produtoId]
+        );
+        const nomeProduto =
+          produtoResult.length > 0 ? produtoResult[0].nome : "Produto";
 
         return NextResponse.json(
           {
@@ -143,7 +204,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Iniciar transação
-    await query('START TRANSACTION');
+    await query("START TRANSACTION");
 
     try {
       // Inserir venda
@@ -158,8 +219,10 @@ export async function POST(req: NextRequest) {
           caixaId,
           user.id,
           dados.tipoComprador,
-          dados.tipoComprador === 'ALUNO' ? dados.compradorId : null,
-          dados.tipoComprador === 'FUNCIONARIO_ESCOLA' ? dados.compradorId : null,
+          dados.tipoComprador === "ALUNO" ? dados.compradorId : null,
+          dados.tipoComprador === "FUNCIONARIO_ESCOLA"
+            ? dados.compradorId
+            : null,
           dados.formaPagamento,
           valorBruto,
           desconto,
@@ -179,7 +242,13 @@ export async function POST(req: NextRequest) {
           INSERT INTO cant_venda_item (venda_id, produto_id, quantidade, preco_unitario, valor_total)
           VALUES (?, ?, ?, ?, ?)
         `,
-          [vendaId, item.produtoId, item.quantidade, item.precoUnitario, valorTotalItem]
+          [
+            vendaId,
+            item.produtoId,
+            item.quantidade,
+            item.precoUnitario,
+            valorTotalItem,
+          ]
         );
 
         // Dar baixa no estoque
@@ -193,7 +262,10 @@ export async function POST(req: NextRequest) {
       }
 
       // Movimentar saldo do aluno se necessário
-      if (dados.tipoComprador === 'ALUNO' && dados.formaPagamento === 'SALDO_ALUNO') {
+      if (
+        dados.tipoComprador === "ALUNO" &&
+        dados.formaPagamento === "SALDO_ALUNO"
+      ) {
         await query(
           `
           INSERT INTO cant_aluno_saldo_mov (aluno_ra, tipo, valor, origem, referencia, usuario_id)
@@ -203,21 +275,39 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // Utiliza pacote (1 uso) se pagamento por PACOTE
+      if (
+        dados.tipoComprador === "ALUNO" &&
+        dados.formaPagamento === "PACOTE"
+      ) {
+        // inserir utilização (trigger cuidará decremento)
+        await query(
+          "INSERT INTO cant_pacote_utilizacao (pacote_aluno_id, venda_id) VALUES (?, ?)",
+          [pacoteSelecionado.id, vendaId]
+        );
+      }
+
       // Registrar movimentação no caixa (apenas para dinheiro/cartão)
-      if (['DINHEIRO', 'CARTAO'].includes(dados.formaPagamento)) {
+      if (["DINHEIRO", "CARTAO"].includes(dados.formaPagamento)) {
         await query(
           `
           INSERT INTO cant_caixa_mov (caixa_id, tipo, valor, descricao, referencia, usuario_id)
           VALUES (?, 'VENDA', ?, ?, ?, ?)
         `,
-          [caixaId, valorLiquido, `Venda ${dados.formaPagamento}`, `Venda #${vendaId}`, user.id]
+          [
+            caixaId,
+            valorLiquido,
+            `Venda ${dados.formaPagamento}`,
+            `Venda #${vendaId}`,
+            user.id,
+          ]
         );
       }
 
       // Registrar conta a receber para funcionário da escola
       if (
-        dados.tipoComprador === 'FUNCIONARIO_ESCOLA' &&
-        dados.formaPagamento === 'CONTA_FUNCIONARIO'
+        dados.tipoComprador === "FUNCIONARIO_ESCOLA" &&
+        dados.formaPagamento === "CONTA_FUNCIONARIO"
       ) {
         const dataVencimento = new Date();
         dataVencimento.setMonth(dataVencimento.getMonth() + 1); // Vence no próximo mês
@@ -232,7 +322,7 @@ export async function POST(req: NextRequest) {
           [
             `Consumo cantina - Venda #${vendaId}`,
             valorLiquido,
-            dataVencimento.toISOString().split('T')[0],
+            dataVencimento.toISOString().split("T")[0],
             dados.compradorId,
             `venda_${vendaId}`,
             user.id,
@@ -240,20 +330,20 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      await query('COMMIT');
+      await query("COMMIT");
 
       return NextResponse.json({
         ok: true,
         vendaId,
         valorTotal: valorLiquido,
-        message: 'Venda realizada com sucesso!',
+        message: "Venda realizada com sucesso!",
       });
     } catch (error) {
-      await query('ROLLBACK');
+      await query("ROLLBACK");
       throw error;
     }
   } catch (error) {
-    console.error('POST /api/pdv/vendas', error);
-    return NextResponse.json({ error: 'server_error' }, { status: 500 });
+    console.error("POST /api/pdv/vendas", error);
+    return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 }

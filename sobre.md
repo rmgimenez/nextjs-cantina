@@ -222,7 +222,7 @@ Endpoints `/api/funcionarios` (busca código, nome ou cargo) e `/api/funcionario
 
 - Registrar retiradas de dinheiro
 - Registrar entradas de dinheiro
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
 
 ### Módulo de Saldo e Pacotes
 
@@ -231,20 +231,26 @@ Endpoints `/api/funcionarios` (busca código, nome ou cargo) e `/api/funcionario
 - Consultar saldo atual
 - Histórico de movimentações
 - Recarga de saldo
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
+
+Implementado endpoints `/api/alunos/saldo` (GET saldo + últimos movimentos e POST recarga via procedure `cant_sp_credita_saldo_aluno`) e `/api/alunos/saldo/mov` (histórico paginado). Tela em `/dashboard/alunos/saldo` permite buscar RA, visualizar saldo, efetuar recarga e listar histórico.
 
 **RF-019** - Pacotes de alimentação
 
 - Criação de pacotes (ex: lanche + almoço por 1 mês)
 - Venda de pacotes para responsáveis
 - Controle de utilização dos pacotes
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
+
+Criados endpoints `/api/pacotes/tipos` (CRUD básico de tipos), `/api/pacotes/compra` (compra usando procedure `cant_sp_compra_pacote`), `/api/pacotes/aluno` (listar pacotes do aluno com usos do dia) e `/api/pacotes/utilizar` (consumo manual). Tela `/dashboard/alunos/pacotes` para gestão (tipos, compra e utilização). Integração com PDV para pagamento via pacote.
 
 **RF-020** - Verificação de pacotes ativos
 
 - Consultar se aluno possui pacote válido
 - Validar tipo de refeição do pacote
-- Status: 🔴 Pendente
+- Status: ✅ Concluído
+
+Validação adicionada no fluxo de venda (`/api/pdv/vendas`) quando formaPagamento = `PACOTE`: verifica existência de pacote ativo, validade, usos restantes e limite diário antes de registrar a venda e insere utilização em `cant_pacote_utilizacao`.
 
 ### Módulo de Restrições e Observações
 

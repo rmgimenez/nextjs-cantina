@@ -1,10 +1,11 @@
-import { COOKIE_NAME, verifySessionToken } from '@/lib/auth';
-import { query } from '@/lib/db';
-import { NextRequest, NextResponse } from 'next/server';
+import { COOKIE_NAME, verifySessionToken } from "@/lib/auth";
+import { query } from "@/lib/db";
+import { NextRequest, NextResponse } from "next/server";
 
 async function ensureAuth(req: NextRequest) {
   const token =
-    req.cookies.get(COOKIE_NAME)?.value || req.headers.get('authorization')?.replace('Bearer ', '');
+    req.cookies.get(COOKIE_NAME)?.value ||
+    req.headers.get("authorization")?.replace("Bearer ", "");
   if (!token) return null;
   const payload = await verifySessionToken(token);
   return payload as any;
@@ -13,8 +14,8 @@ async function ensureAuth(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const user = await ensureAuth(req);
-    if (!user || !['ADMIN', 'ATENDENTE'].includes(user.tipo)) {
-      return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    if (!user || !["ADMIN", "ATENDENTE"].includes(user.tipo)) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
     // Buscar status do caixa atual
@@ -66,30 +67,39 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('GET /api/pdv/caixa', error);
-    return NextResponse.json({ error: 'server_error' }, { status: 500 });
+    console.error("GET /api/pdv/caixa", error);
+    return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
     const user = await ensureAuth(req);
-    if (!user || !['ADMIN', 'ATENDENTE'].includes(user.tipo)) {
-      return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    if (!user || !["ADMIN", "ATENDENTE"].includes(user.tipo)) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
     }
 
-    const { acao, valorInicial, valorFechamento } = await req.json();
+    const { acao, valorInicial, valorFechamento, valor, justificativa } =
+      await req.json();
 
-    if (acao === 'abrir') {
+    if (acao === "abrir") {
       // Verificar se já existe caixa aberto
-      const caixaAberto = await query('SELECT id FROM cant_caixa WHERE status = "ABERTO"');
+      const caixaAberto = await query(
+        'SELECT id FROM cant_caixa WHERE status = "ABERTO"'
+      );
 
       if (caixaAberto.length > 0) {
-        return NextResponse.json({ error: 'Já existe um caixa aberto' }, { status: 400 });
+        return NextResponse.json(
+          { error: "Já existe um caixa aberto" },
+          { status: 400 }
+        );
       }
 
       if (valorInicial < 0) {
-        return NextResponse.json({ error: 'Valor inicial não pode ser negativo' }, { status: 400 });
+        return NextResponse.json(
+          { error: "Valor inicial não pode ser negativo" },
+          { status: 400 }
+        );
       }
 
       // Abrir novo caixa
@@ -104,9 +114,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         ok: true,
         caixaId: result.insertId,
-        message: 'Caixa aberto com sucesso!',
+        message: "Caixa aberto com sucesso!",
       });
-    } else if (acao === 'fechar') {
+    } else if (acao === "fechar") {
       // Buscar caixa aberto
       const caixaAberto = await query(`
         SELECT 
@@ -121,7 +131,10 @@ export async function POST(req: NextRequest) {
       `);
 
       if (caixaAberto.length === 0) {
-        return NextResponse.json({ error: 'Não há caixa aberto para fechar' }, { status: 400 });
+        return NextResponse.json(
+          { error: "Não há caixa aberto para fechar" },
+          { status: 400 }
+        );
       }
 
       const caixa = caixaAberto[0];
@@ -154,13 +167,89 @@ export async function POST(req: NextRequest) {
         valorCalculado,
         valorInformado: parseFloat(valorFechamento),
         diferenca,
-        message: 'Caixa fechado com sucesso!',
+        message: "Caixa fechado com sucesso!",
+      });
+    } else if (acao === "sangria" || acao === "reforco") {
+      // Validar campos
+      if (typeof valor !== "number" || valor <= 0) {
+        return NextResponse.json(
+          { error: "Valor deve ser maior que zero" },
+          { status: 400 }
+        );
+      }
+      if (
+        !justificativa ||
+        typeof justificativa !== "string" ||
+        justificativa.trim().length < 3
+      ) {
+        return NextResponse.json(
+          { error: "Justificativa obrigatória" },
+          { status: 400 }
+        );
+      }
+
+      // Obter caixa aberto e totais atuais
+      const caixaAberto = await query(`
+        SELECT 
+          c.id, c.valor_inicial,
+          COALESCE(SUM(CASE WHEN cm.tipo = 'VENDA' THEN cm.valor ELSE 0 END), 0) as total_vendas,
+          COALESCE(SUM(CASE WHEN cm.tipo = 'SANGRIA' THEN cm.valor ELSE 0 END), 0) as total_sangrias,
+          COALESCE(SUM(CASE WHEN cm.tipo = 'REFORCO' THEN cm.valor ELSE 0 END), 0) as total_reforcos
+        FROM cant_caixa c
+        LEFT JOIN cant_caixa_mov cm ON cm.caixa_id = c.id
+        WHERE c.status = 'ABERTO'
+        GROUP BY c.id
+        ORDER BY c.data_abertura DESC
+        LIMIT 1
+      `);
+
+      if (caixaAberto.length === 0) {
+        return NextResponse.json(
+          { error: "Não há caixa aberto" },
+          { status: 400 }
+        );
+      }
+
+      const caixa = caixaAberto[0];
+      const valorCalculadoAtual =
+        parseFloat(caixa.valor_inicial) +
+        parseFloat(caixa.total_vendas) +
+        parseFloat(caixa.total_reforcos) -
+        parseFloat(caixa.total_sangrias);
+
+      if (acao === "sangria" && valor > valorCalculadoAtual) {
+        return NextResponse.json(
+          { error: "Valor de sangria excede o disponível em caixa" },
+          { status: 400 }
+        );
+      }
+
+      // Inserir movimentação
+      const tipoMov = acao === "sangria" ? "SANGRIA" : "REFORCO";
+      await query(
+        `INSERT INTO cant_caixa_mov (caixa_id, tipo, valor, descricao, referencia, usuario_id)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          caixa.id,
+          tipoMov,
+          valor,
+          justificativa.trim(),
+          `${tipoMov === "SANGRIA" ? "SANG" : "REF"}-${Date.now()}`,
+          user.id,
+        ]
+      );
+
+      return NextResponse.json({
+        ok: true,
+        message: `Movimentação de ${
+          tipoMov === "SANGRIA" ? "sangria" : "reforço"
+        } registrada`,
       });
     } else {
-      return NextResponse.json({ error: 'Ação inválida' }, { status: 400 });
+      return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
     }
   } catch (error) {
-    console.error('POST /api/pdv/caixa', error);
-    return NextResponse.json({ error: 'server_error' }, { status: 500 });
+    console.error("POST /api/pdv/caixa", error);
+    return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 }
