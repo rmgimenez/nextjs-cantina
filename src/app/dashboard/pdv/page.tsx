@@ -212,10 +212,19 @@ export default function PDVPage() {
       const data = await response.json();
 
       if (data.ok) {
+        // Proteção: nem sempre o backend retorna `valorTotal` (evita toFixed em undefined)
+        const valorTotal = typeof data.valorTotal === 'number' ? data.valorTotal : undefined;
+        const vendaId = data.vendaId !== undefined ? data.vendaId : '---';
+
+        // Log para depuração caso backend não retorne campos esperados
+        if (data.vendaId === undefined || valorTotal === undefined) {
+          console.warn('Resposta inesperada ao finalizar venda:', data);
+        }
+
         alert(
-          `Venda realizada com sucesso!\nVenda #${
-            data.vendaId
-          }\nTotal: R$ ${data.valorTotal.toFixed(2)}`
+          `Venda realizada com sucesso!\nVenda #${vendaId}\nTotal: R$ ${
+            valorTotal !== undefined ? valorTotal.toFixed(2) : '---'
+          }`
         );
 
         // Limpar carrinho e cliente

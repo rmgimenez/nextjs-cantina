@@ -1,11 +1,10 @@
-import { COOKIE_NAME, verifySessionToken } from "@/lib/auth";
-import { query } from "@/lib/db";
-import { NextRequest, NextResponse } from "next/server";
+import { COOKIE_NAME, verifySessionToken } from '@/lib/auth';
+import { query } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
 
 async function ensureAuth(req: NextRequest) {
   const token =
-    req.cookies.get(COOKIE_NAME)?.value ||
-    req.headers.get("authorization")?.replace("Bearer ", "");
+    req.cookies.get(COOKIE_NAME)?.value || req.headers.get('authorization')?.replace('Bearer ', '');
   if (!token) return null;
   const payload = await verifySessionToken(token);
   return payload as any;
@@ -18,14 +17,9 @@ interface ItemVenda {
 }
 
 interface DadosVenda {
-  tipoComprador: "ALUNO" | "FUNCIONARIO_ESCOLA" | "AVULSA";
+  tipoComprador: 'ALUNO' | 'FUNCIONARIO_ESCOLA' | 'AVULSA';
   compradorId?: number; // RA do aluno ou código do funcionário
-  formaPagamento:
-    | "DINHEIRO"
-    | "CARTAO"
-    | "SALDO_ALUNO"
-    | "CONTA_FUNCIONARIO"
-    | "PACOTE";
+  formaPagamento: 'DINHEIRO' | 'CARTAO' | 'SALDO_ALUNO' | 'CONTA_FUNCIONARIO' | 'PACOTE';
   itens: ItemVenda[];
   observacao?: string;
 }
@@ -33,33 +27,24 @@ interface DadosVenda {
 export async function POST(req: NextRequest) {
   try {
     const user = await ensureAuth(req);
-    if (!user || !["ADMIN", "ATENDENTE"].includes(user.tipo)) {
-      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    if (!user || !['ADMIN', 'ATENDENTE'].includes(user.tipo)) {
+      return NextResponse.json({ error: 'forbidden' }, { status: 403 });
     }
 
     const dados: DadosVenda = await req.json();
 
     // Validações mínimas antes de delegar à procedure
     if (!dados.itens || dados.itens.length === 0) {
-      return NextResponse.json({ error: "Carrinho vazio" }, { status: 400 });
+      return NextResponse.json({ error: 'Carrinho vazio' }, { status: 400 });
+    }
+    if (!['ALUNO', 'FUNCIONARIO_ESCOLA', 'AVULSA'].includes(dados.tipoComprador)) {
+      return NextResponse.json({ error: 'Tipo de comprador inválido' }, { status: 400 });
     }
     if (
-      !["ALUNO", "FUNCIONARIO_ESCOLA", "AVULSA"].includes(dados.tipoComprador)
-    ) {
-      return NextResponse.json(
-        { error: "Tipo de comprador inválido" },
-        { status: 400 }
-      );
-    }
-    if (
-      (dados.tipoComprador === "ALUNO" ||
-        dados.tipoComprador === "FUNCIONARIO_ESCOLA") &&
+      (dados.tipoComprador === 'ALUNO' || dados.tipoComprador === 'FUNCIONARIO_ESCOLA') &&
       !dados.compradorId
     ) {
-      return NextResponse.json(
-        { error: "ID do comprador é obrigatório" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'ID do comprador é obrigatório' }, { status: 400 });
     }
 
     // Verificar se existe caixa aberto
@@ -70,7 +55,7 @@ export async function POST(req: NextRequest) {
     if (caixaAberto.length === 0) {
       return NextResponse.json(
         {
-          error: "Não há caixa aberto. Abra o caixa antes de realizar vendas.",
+          error: 'Não há caixa aberto. Abra o caixa antes de realizar vendas.',
         },
         { status: 400 }
       );
@@ -80,7 +65,7 @@ export async function POST(req: NextRequest) {
 
     // Selecionar pacote válido se necessário (a procedure validará novamente)
     let pacoteId: number | null = null;
-    if (dados.tipoComprador === "ALUNO" && dados.formaPagamento === "PACOTE") {
+    if (dados.tipoComprador === 'ALUNO' && dados.formaPagamento === 'PACOTE') {
       const pacotes = await query<any[]>(
         `SELECT pa.id
            FROM cant_pacote_aluno pa
@@ -89,10 +74,7 @@ export async function POST(req: NextRequest) {
         [dados.compradorId]
       );
       if (!pacotes.length) {
-        return NextResponse.json(
-          { error: "Nenhum pacote ativo disponível" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'Nenhum pacote ativo disponível' }, { status: 400 });
       }
       pacoteId = pacotes[0].id;
     }
@@ -102,62 +84,69 @@ export async function POST(req: NextRequest) {
       dados.itens
         .map(
           (i) =>
-            `${i.produtoId},${Number(i.quantidade).toString()},${Number(
-              i.precoUnitario
-            ).toFixed(2)}`
+            `${i.produtoId},${Number(i.quantidade).toString()},${Number(i.precoUnitario).toFixed(
+              2
+            )}`
         )
-        .join(";") + ";";
+        .join(';') + ';';
 
     try {
-      const rows: any = await query(
-        "CALL cant_sp_realiza_venda(?,?,?,?,?,?,?,?,?,?)",
-        [
-          user.id,
-          caixaId,
-          dados.tipoComprador,
-          dados.tipoComprador === "ALUNO" ? dados.compradorId : null,
-          dados.tipoComprador === "FUNCIONARIO_ESCOLA"
-            ? dados.compradorId
-            : null,
-          dados.formaPagamento,
-          pacoteId,
-          0, // desconto (placeholder)
-          dados.observacao || null,
-          itensFmt,
-        ]
-      );
+      const rows: any = await query('CALL cant_sp_realiza_venda(?,?,?,?,?,?,?,?,?,?)', [
+        user.id,
+        caixaId,
+        dados.tipoComprador,
+        dados.tipoComprador === 'ALUNO' ? dados.compradorId : null,
+        dados.tipoComprador === 'FUNCIONARIO_ESCOLA' ? dados.compradorId : null,
+        dados.formaPagamento,
+        pacoteId,
+        0, // desconto (placeholder)
+        dados.observacao || null,
+        itensFmt,
+      ]);
 
-      // mysql2 retorna: [ [ resultRow ], otherMeta ] – nosso helper devolve primeiro recordset
-      const resultRow = Array.isArray(rows) ? rows[0] : rows;
-      const vendaId = resultRow?.venda_id;
-      const valorTotal = resultRow?.valor_liquido;
+      // Normalizar resultado de procedures: dependendo do driver/versão podemos
+      // receber arrays aninhados ([ [ {row} ], meta ]) ou diretamente um array de rows.
+      let resultRow: any = undefined;
+      if (Array.isArray(rows)) {
+        // Se o primeiro elemento também for array (recordset), extraímos a primeira linha
+        if (Array.isArray(rows[0])) {
+          resultRow = rows[0][0];
+        } else {
+          resultRow = rows[0];
+        }
+      } else {
+        resultRow = rows;
+      }
+
+      const vendaId = resultRow?.venda_id ?? undefined;
+      const valorTotal = resultRow?.valor_liquido ?? undefined;
 
       return NextResponse.json({
         ok: true,
         vendaId,
         valorTotal,
-        message: "Venda realizada com sucesso!",
+        message: 'Venda realizada com sucesso!',
       });
     } catch (err: any) {
       // Erros sinalizados pela procedure usam SQLSTATE '45000'
-      const msg = err?.message || "Erro ao processar venda";
+      const msg = err?.message || 'Erro ao processar venda';
       // Heurística: se for erro de validação de negócio retornar 400
       if (
-        msg.includes("Saldo") ||
-        msg.includes("Pacote") ||
-        msg.includes("Estoque") ||
-        msg.includes("Produto") ||
-        msg.includes("Tipo") ||
-        msg.includes("Aluno") ||
-        msg.includes("Funcionário")
+        msg.includes('Saldo') ||
+        msg.includes('Pacote') ||
+        msg.includes('Estoque') ||
+        msg.includes('Produto') ||
+        msg.includes('Tipo') ||
+        msg.includes('Aluno') ||
+        msg.includes('Funcionário')
       ) {
         return NextResponse.json({ error: msg }, { status: 400 });
       }
-      console.error("Erro procedure cant_sp_realiza_venda", err);
-      return NextResponse.json({ error: "server_error" }, { status: 500 });
+      console.error('Erro procedure cant_sp_realiza_venda', err);
+      return NextResponse.json({ error: 'server_error' }, { status: 500 });
     }
   } catch (error) {
-    console.error("POST /api/pdv/vendas", error);
-    return NextResponse.json({ error: "server_error" }, { status: 500 });
+    console.error('POST /api/pdv/vendas', error);
+    return NextResponse.json({ error: 'server_error' }, { status: 500 });
   }
 }
