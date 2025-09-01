@@ -25,6 +25,7 @@ export default function SaldoAlunoPage() {
       ra: number;
       nome: string;
       fotoUrl: string;
+      saldo?: number | null;
     }[]
   >([]);
   const [movimentos, setMovimentos] = useState<Movimento[]>([]);
@@ -89,7 +90,23 @@ export default function SaldoAlunoPage() {
       const res = await fetch(`/api/alunos?q=${encodeURIComponent(term)}`);
       if (res.ok) {
         const data = await res.json();
-        setSearchResults(data.alunos || []);
+        const alunos = data.alunos || [];
+        // Para cada aluno, buscar saldo e anexar ao objeto (Promise.all)
+        const alunosComSaldo = await Promise.all(
+          alunos.map(async (a: any) => {
+            try {
+              const r = await fetch(`/api/alunos/saldo?ra=${a.ra}`);
+              if (r.ok) {
+                const d = await r.json();
+                return { ...a, saldo: toNumber(d.saldo) };
+              }
+            } catch (err) {
+              // ignore
+            }
+            return { ...a, saldo: null };
+          })
+        );
+        setSearchResults(alunosComSaldo);
       }
     } finally {
       setLoading(false);
@@ -171,11 +188,18 @@ export default function SaldoAlunoPage() {
               }}
             />
             {saldo !== null && (
-              <div className='ms-auto'>
-                <span className='text-muted me-2'>Saldo Atual:</span>
-                <strong className={saldo < 0 ? 'text-danger' : 'text-success'}>
-                  R$ {saldo.toFixed(2)}
-                </strong>
+              <div className='ms-auto text-end'>
+                <div className='text-muted small'>Saldo Atual:</div>
+                <div>
+                  <span
+                    className={
+                      'badge py-2 px-3 fw-semibold ' + (saldo < 0 ? 'bg-danger' : 'bg-success')
+                    }
+                    style={{ fontSize: 14 }}
+                  >
+                    R$ {saldo.toFixed(2)}
+                  </span>
+                </div>
               </div>
             )}
           </div>
@@ -203,8 +227,15 @@ export default function SaldoAlunoPage() {
               {saldo !== null && (
                 <div className='text-end d-none d-md-block'>
                   <div className='text-muted small'>Saldo</div>
-                  <div className={'fw-bold ' + (saldo < 0 ? 'text-danger' : 'text-success')}>
-                    R$ {saldo.toFixed(2)}
+                  <div>
+                    <span
+                      className={
+                        'badge py-2 px-3 fw-semibold ' + (saldo < 0 ? 'bg-danger' : 'bg-success')
+                      }
+                      style={{ fontSize: 14 }}
+                    >
+                      R$ {saldo.toFixed(2)}
+                    </span>
                   </div>
                 </div>
               )}
@@ -241,7 +272,25 @@ export default function SaldoAlunoPage() {
                       <div className='fw-semibold'>{a.nome}</div>
                       <div className='small text-muted'>RA: {a.ra}</div>
                     </div>
-                    <div className='text-end small text-primary'>Selecionar</div>
+                    <div className='d-flex flex-column align-items-end'>
+                      <span
+                        className={
+                          'badge py-2 px-3 fw-semibold ' +
+                          (typeof a.saldo === 'number' && a.saldo < 0 ? 'bg-danger' : 'bg-success')
+                        }
+                        style={{ fontSize: 13 }}
+                      >
+                        {typeof a.saldo === 'number' ? `R$ ${a.saldo.toFixed(2)}` : 'R$ 0.00'}
+                      </span>
+                      {/* usar span com classes de botão para alto contraste sem adicionar elemento <button> aninhado */}
+                      <span
+                        className='btn btn-primary btn-sm mt-1'
+                        style={{ fontSize: 12, lineHeight: '1' }}
+                        title={`Selecionar ${a.nome}`}
+                      >
+                        Selecionar
+                      </span>
+                    </div>
                   </button>
                 ))}
               </div>
