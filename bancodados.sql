@@ -1543,7 +1543,10 @@ INSERT IGNORE INTO `cant_estoque_mov` (`produto_id`, `tipo_mov`, `quantidade`, `
 -- fim - script sistema cantina
 
 -- ALTER TABLE incremental (caso já exista sem a coluna estoque_minimo)
-ALTER TABLE cant_produtos ADD COLUMN IF NOT EXISTS `estoque_minimo` DECIMAL(12,3) NULL DEFAULT 0.000 COMMENT 'Quantidade mínima para alerta de baixo estoque';
+-- A coluna `estoque_minimo` já está definida na criação da tabela `cant_produtos`.
+-- Em algumas versões do MySQL a sintaxe "ADD COLUMN IF NOT EXISTS" não é suportada.
+-- Para evitar erro de sintaxe, mantemos a instrução comentada abaixo; descomente se seu servidor suportar ou execute manualmente a alteração.
+-- ALTER TABLE cant_produtos ADD COLUMN IF NOT EXISTS `estoque_minimo` DECIMAL(12,3) NULL DEFAULT 0.000 COMMENT 'Quantidade mínima para alerta de baixo estoque';
 
 -- =====================================================================
 -- INÍCIO - INTEGRAÇÕES / AJUSTES ADICIONAIS RF-029, RF-030, RF-031 (2025-08-31)
@@ -1646,6 +1649,9 @@ BEGIN
   DECLARE v_usos_rest INT; DECLARE v_usos_dia INT; DECLARE v_max_usos_dia INT; DECLARE v_dummy INT;
   DECLARE v_venda_id BIGINT;
   DECLARE v_tipo_id BIGINT;
+  DECLARE v_count INT;
+  DECLARE v_index INT;
+  DECLARE v_msg VARCHAR(255);
 
   -- Pré-validações básicas
   IF p_tipo_comprador NOT IN ('ALUNO','FUNCIONARIO_ESCOLA','AVULSA') THEN
@@ -1666,7 +1672,7 @@ BEGIN
   TRUNCATE tmp_venda_itens;
 
   -- Parse de itens
-  WHILE p_itens IS NOT NULL AND LENGTH(p_itens) > 0 DO
+  parse_loop: WHILE p_itens IS NOT NULL AND LENGTH(p_itens) > 0 DO
     SET v_pos = INSTR(p_itens,';');
     IF v_pos = 0 THEN
       SET v_line = p_itens; SET p_itens='';
@@ -1675,7 +1681,7 @@ BEGIN
       SET p_itens = SUBSTRING(p_itens,v_pos+1);
     END IF;
     IF v_line IS NULL OR TRIM(v_line) = '' THEN
-      ITERATE;
+      ITERATE parse_loop;
     END IF;
     SET v_prod = CAST(SUBSTRING_INDEX(v_line,',',1) AS UNSIGNED);
     SET v_qtd = CAST(SUBSTRING_INDEX(SUBSTRING_INDEX(v_line,',',2),',',-1) AS DECIMAL(12,3));
@@ -1692,14 +1698,11 @@ BEGIN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Carrinho vazio';
   END IF;
 
-  -- Validações por item
-  DECLARE cur CURSOR FOR SELECT produto_id, quantidade, preco_unit FROM tmp_venda_itens;
-  DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_dummy = 1;
-  SET v_dummy = 0;
-  OPEN cur;
-  read_loop: LOOP
-    FETCH cur INTO v_prod, v_qtd, v_preco;
-    IF v_dummy = 1 THEN LEAVE read_loop; END IF;
+  -- Validações por item (loop indexado sobre tabela temporária)
+  SELECT COUNT(*) INTO v_count FROM tmp_venda_itens;
+  SET v_index = 0;
+  WHILE v_index < v_count DO
+    SELECT produto_id, quantidade, preco_unit INTO v_prod, v_qtd, v_preco FROM tmp_venda_itens LIMIT v_index,1;
     -- Tipo do produto
     SELECT tipo_id INTO v_tipo_id FROM cant_produtos WHERE id = v_prod LIMIT 1;
     IF v_tipo_id IS NULL THEN
@@ -1708,20 +1711,23 @@ BEGIN
     -- Restrição de aluno
     IF p_tipo_comprador='ALUNO' THEN
       IF cant_fn_aluno_restrito_produto(p_aluno_ra, v_prod)=1 THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT=CONCAT('Produto restrito para aluno (prod ',v_prod,')');
+        SET v_msg = CONCAT('Produto restrito para aluno (prod ',v_prod,')');
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_msg;
       END IF;
       IF cant_fn_aluno_restrito_tipo(p_aluno_ra, v_tipo_id)=1 THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT=CONCAT('Tipo de produto restrito para aluno (prod ',v_prod,')');
+        SET v_msg = CONCAT('Tipo de produto restrito para aluno (prod ',v_prod,')');
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_msg;
       END IF;
     END IF;
     -- Estoque
     IF cant_fn_estoque_saldo(v_prod) < v_qtd THEN
-      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT=CONCAT('Estoque insuficiente para produto ',v_prod);
+      SET v_msg = CONCAT('Estoque insuficiente para produto ',v_prod);
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_msg;
     END IF;
     -- Acumula valor
     SET v_valor_bruto = v_valor_bruto + (v_qtd * v_preco);
-  END LOOP;
-  CLOSE cur;
+    SET v_index = v_index + 1;
+  END WHILE;
 
   -- Validação saldo aluno
   IF p_forma_pag='SALDO_ALUNO' AND p_tipo_comprador='ALUNO' THEN
@@ -1756,15 +1762,17 @@ BEGIN
           p_forma_pag, v_valor_bruto, IFNULL(p_desconto,0), v_valor_bruto - IFNULL(p_desconto,0), p_observacao);
   SET v_venda_id = LAST_INSERT_ID();
 
-  -- Itens + saída de estoque
-  SET v_dummy = 0; OPEN cur; read_loop2: LOOP
-    FETCH cur INTO v_prod, v_qtd, v_preco;
-    IF v_dummy = 1 THEN LEAVE read_loop2; END IF;
+  -- Itens + saída de estoque (loop indexado)
+  SELECT COUNT(*) INTO v_count FROM tmp_venda_itens;
+  SET v_index = 0;
+  WHILE v_index < v_count DO
+    SELECT produto_id, quantidade, preco_unit INTO v_prod, v_qtd, v_preco FROM tmp_venda_itens LIMIT v_index,1;
     INSERT INTO cant_venda_item (venda_id, produto_id, quantidade, preco_unitario, valor_total)
     VALUES (v_venda_id, v_prod, v_qtd, v_preco, v_qtd * v_preco);
     INSERT INTO cant_estoque_mov (produto_id, tipo_mov, quantidade, referencia, usuario_id)
     VALUES (v_prod, 'SAIDA_VENDA', v_qtd, CONCAT('VENDA#', v_venda_id), p_usuario_id);
-  END LOOP; CLOSE cur;
+    SET v_index = v_index + 1;
+  END WHILE;
 
   -- Pagamento caixa
   IF p_forma_pag IN ('DINHEIRO','CARTAO') THEN
