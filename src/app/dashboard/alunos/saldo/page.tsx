@@ -17,8 +17,16 @@ interface Movimento {
 
 export default function SaldoAlunoPage() {
   const [ra, setRa] = useState('');
+  const [nome, setNome] = useState('');
   const [saldo, setSaldo] = useState<number | null>(null);
   const [ultimos, setUltimos] = useState<Movimento[]>([]);
+  const [searchResults, setSearchResults] = useState<
+    {
+      ra: number;
+      nome: string;
+      fotoUrl: string;
+    }[]
+  >([]);
   const [movimentos, setMovimentos] = useState<Movimento[]>([]);
   const [loading, setLoading] = useState(false);
   const [valorRecarga, setValorRecarga] = useState('');
@@ -39,11 +47,11 @@ export default function SaldoAlunoPage() {
     return Number.isNaN(n) ? 0 : n;
   };
 
-  async function carregarSaldo() {
-    if (!ra) return;
+  async function carregarSaldoForRa(targetRa: string | number) {
+    if (!targetRa) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/alunos/saldo?ra=${ra}`);
+      const res = await fetch(`/api/alunos/saldo?ra=${targetRa}`);
       if (res.ok) {
         const data = await res.json();
         setSaldo(toNumber(data.saldo));
@@ -55,7 +63,7 @@ export default function SaldoAlunoPage() {
         );
       }
       // Carregar info do aluno (nome/foto)
-      const resAluno = await fetch(`/api/alunos?q=${ra}`);
+      const resAluno = await fetch(`/api/alunos?q=${targetRa}`);
       if (resAluno.ok) {
         const dataAluno = await resAluno.json();
         if (dataAluno.alunos && dataAluno.alunos.length > 0) {
@@ -63,6 +71,25 @@ export default function SaldoAlunoPage() {
         } else {
           setAlunoInfo(null);
         }
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function carregarSaldo() {
+    if (!ra) return;
+    await carregarSaldoForRa(ra);
+  }
+
+  async function buscarAlunos(term: string) {
+    if (!term) return setSearchResults([]);
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/alunos?q=${encodeURIComponent(term)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSearchResults(data.alunos || []);
       }
     } finally {
       setLoading(false);
@@ -113,10 +140,36 @@ export default function SaldoAlunoPage() {
             <div style={{ minWidth: 160 }}>
               <Input label='RA' value={ra} onChange={(e) => setRa(e.target.value)} />
             </div>
-            <Button variant='primary' icon={<FiSearch />} onClick={carregarSaldo} loading={loading}>
+            <div style={{ minWidth: 260 }}>
+              <Input
+                label='Nome'
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                placeholder='Pesquisar por nome (ex: Maria)'
+              />
+            </div>
+            <Button
+              variant='primary'
+              icon={<FiSearch />}
+              onClick={async () => {
+                // Prioriza RA quando preenchido; caso contrário, busca por nome
+                if (ra) {
+                  await carregarSaldo();
+                } else if (nome) {
+                  await buscarAlunos(nome);
+                }
+              }}
+              loading={loading}
+            >
               Buscar
             </Button>
-            <Button variant='outline' icon={<FiRefreshCw />} onClick={carregarSaldo} />
+            <Button
+              variant='outline'
+              icon={<FiRefreshCw />}
+              onClick={() => {
+                if (ra) carregarSaldo();
+              }}
+            />
             {saldo !== null && (
               <div className='ms-auto'>
                 <span className='text-muted me-2'>Saldo Atual:</span>
@@ -155,6 +208,43 @@ export default function SaldoAlunoPage() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+          {/* Lista de resultados ao buscar por nome */}
+          {searchResults.length > 0 && (
+            <div className='mt-3'>
+              <div className='fw-semibold mb-2'>Resultados</div>
+              <div className='list-group'>
+                {searchResults.map((a) => (
+                  <button
+                    key={a.ra}
+                    type='button'
+                    className='list-group-item list-group-item-action d-flex align-items-center'
+                    onClick={async () => {
+                      setSearchResults([]);
+                      setRa(String(a.ra));
+                      setAlunoInfo(a);
+                      await carregarSaldoForRa(a.ra);
+                    }}
+                  >
+                    <img
+                      src={a.fotoUrl}
+                      alt={a.nome}
+                      style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6 }}
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src =
+                          'https://via.placeholder.com/40x40?text=Aluno';
+                      }}
+                      className='me-2'
+                    />
+                    <div className='flex-grow-1 text-start'>
+                      <div className='fw-semibold'>{a.nome}</div>
+                      <div className='small text-muted'>RA: {a.ra}</div>
+                    </div>
+                    <div className='text-end small text-primary'>Selecionar</div>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
