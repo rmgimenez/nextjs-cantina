@@ -1,9 +1,9 @@
-"use client";
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { FiRefreshCw, FiSearch, FiPlus } from "react-icons/fi";
+'use client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { useState } from 'react';
+import { FiPlus, FiRefreshCw, FiSearch } from 'react-icons/fi';
 
 interface Movimento {
   id: number;
@@ -16,19 +16,28 @@ interface Movimento {
 }
 
 export default function SaldoAlunoPage() {
-  const [ra, setRa] = useState("");
+  const [ra, setRa] = useState('');
   const [saldo, setSaldo] = useState<number | null>(null);
   const [ultimos, setUltimos] = useState<Movimento[]>([]);
   const [movimentos, setMovimentos] = useState<Movimento[]>([]);
   const [loading, setLoading] = useState(false);
-  const [valorRecarga, setValorRecarga] = useState("");
-  const [observacao, setObservacao] = useState("");
+  const [valorRecarga, setValorRecarga] = useState('');
+  const [observacao, setObservacao] = useState('');
   const [showMovimentos, setShowMovimentos] = useState(false);
   const [alunoInfo, setAlunoInfo] = useState<{
     ra: number;
     nome: string;
     fotoUrl: string;
   } | null>(null);
+
+  // Normaliza valores numéricos recebidos da API (pode vir como string)
+  const toNumber = (v: any) => {
+    if (v === null || v === undefined) return 0;
+    if (typeof v === 'number') return v;
+    const s = String(v).replace('.', '.').replace(',', '.');
+    const n = Number(s);
+    return Number.isNaN(n) ? 0 : n;
+  };
 
   async function carregarSaldo() {
     if (!ra) return;
@@ -37,8 +46,13 @@ export default function SaldoAlunoPage() {
       const res = await fetch(`/api/alunos/saldo?ra=${ra}`);
       if (res.ok) {
         const data = await res.json();
-        setSaldo(data.saldo);
-        setUltimos(data.ultimos || []);
+        setSaldo(toNumber(data.saldo));
+        setUltimos(
+          (data.ultimos || []).map((m: any) => ({
+            ...m,
+            valor: toNumber(m.valor),
+          }))
+        );
       }
       // Carregar info do aluno (nome/foto)
       const resAluno = await fetch(`/api/alunos?q=${ra}`);
@@ -61,7 +75,12 @@ export default function SaldoAlunoPage() {
     const res = await fetch(`/api/alunos/saldo/mov?ra=${ra}&limit=200`);
     if (res.ok) {
       const data = await res.json();
-      setMovimentos(data.movimentos || []);
+      setMovimentos(
+        (data.movimentos || []).map((m: any) => ({
+          ...m,
+          valor: toNumber(m.valor),
+        }))
+      );
     }
   }
 
@@ -70,85 +89,68 @@ export default function SaldoAlunoPage() {
     if (!ra || !valorRecarga) return;
     const valor = parseFloat(valorRecarga);
     if (!valor || valor <= 0) return;
-    const res = await fetch("/api/alunos/saldo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch('/api/alunos/saldo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ra, valor, observacao }),
     });
     if (res.ok) {
-      setValorRecarga("");
-      setObservacao("");
+      setValorRecarga('');
+      setObservacao('');
       carregarSaldo();
     }
   }
 
   return (
-    <div className="space-y-4">
-      <h4 className="fw-bold">Saldo e Recargas de Aluno</h4>
+    <div className='space-y-4'>
+      <h4 className='fw-bold'>Saldo e Recargas de Aluno</h4>
       <Card>
         <CardHeader>
           <CardTitle>Buscar Aluno</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="d-flex gap-2 flex-wrap align-items-end">
+          <div className='d-flex gap-2 flex-wrap align-items-end'>
             <div style={{ minWidth: 160 }}>
-              <Input
-                label="RA"
-                value={ra}
-                onChange={(e) => setRa(e.target.value)}
-              />
+              <Input label='RA' value={ra} onChange={(e) => setRa(e.target.value)} />
             </div>
-            <Button
-              variant="primary"
-              icon={<FiSearch />}
-              onClick={carregarSaldo}
-              loading={loading}
-            >
+            <Button variant='primary' icon={<FiSearch />} onClick={carregarSaldo} loading={loading}>
               Buscar
             </Button>
-            <Button
-              variant="outline"
-              icon={<FiRefreshCw />}
-              onClick={carregarSaldo}
-            />
+            <Button variant='outline' icon={<FiRefreshCw />} onClick={carregarSaldo} />
             {saldo !== null && (
-              <div className="ms-auto">
-                <span className="text-muted me-2">Saldo Atual:</span>
-                <strong className={saldo < 0 ? "text-danger" : "text-success"}>
+              <div className='ms-auto'>
+                <span className='text-muted me-2'>Saldo Atual:</span>
+                <strong className={saldo < 0 ? 'text-danger' : 'text-success'}>
                   R$ {saldo.toFixed(2)}
                 </strong>
               </div>
             )}
           </div>
           {alunoInfo && (
-            <div className="d-flex align-items-center gap-3 mt-3 border rounded p-2 bg-light">
+            <div className='d-flex align-items-center gap-3 mt-3 border rounded p-2 bg-light'>
               <img
                 src={alunoInfo.fotoUrl}
                 alt={alunoInfo.nome}
                 style={{
                   width: 72,
                   height: 72,
-                  objectFit: "cover",
+                  objectFit: 'cover',
                   borderRadius: 8,
-                  border: "1px solid #ddd",
+                  border: '1px solid #ddd',
                 }}
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src =
-                    "https://via.placeholder.com/72x72?text=Aluno";
+                    'https://via.placeholder.com/72x72?text=Aluno';
                 }}
               />
-              <div className="flex-grow-1">
-                <div className="fw-semibold">{alunoInfo.nome}</div>
-                <div className="text-muted small">RA: {alunoInfo.ra}</div>
+              <div className='flex-grow-1'>
+                <div className='fw-semibold'>{alunoInfo.nome}</div>
+                <div className='text-muted small'>RA: {alunoInfo.ra}</div>
               </div>
               {saldo !== null && (
-                <div className="text-end d-none d-md-block">
-                  <div className="text-muted small">Saldo</div>
-                  <div
-                    className={
-                      "fw-bold " + (saldo < 0 ? "text-danger" : "text-success")
-                    }
-                  >
+                <div className='text-end d-none d-md-block'>
+                  <div className='text-muted small'>Saldo</div>
+                  <div className={'fw-bold ' + (saldo < 0 ? 'text-danger' : 'text-success')}>
                     R$ {saldo.toFixed(2)}
                   </div>
                 </div>
@@ -159,44 +161,44 @@ export default function SaldoAlunoPage() {
       </Card>
 
       {saldo !== null && (
-        <div className="row g-3">
-          <div className="col-md-4">
+        <div className='row g-3'>
+          <div className='col-md-4'>
             <Card>
               <CardHeader>
                 <CardTitle>Recarga de Saldo</CardTitle>
               </CardHeader>
               <CardContent>
-                <form onSubmit={recarregar} className="vstack gap-2">
+                <form onSubmit={recarregar} className='vstack gap-2'>
                   <Input
-                    type="number"
-                    step="0.01"
-                    label="Valor (R$)"
+                    type='number'
+                    step='0.01'
+                    label='Valor (R$)'
                     value={valorRecarga}
                     onChange={(e) => setValorRecarga(e.target.value)}
                     required
                   />
-                  <label className="form-label">Observação</label>
+                  <label className='form-label'>Observação</label>
                   <textarea
-                    className="form-control"
+                    className='form-control'
                     value={observacao}
                     onChange={(e) => setObservacao(e.target.value)}
                     rows={2}
                   />
-                  <Button type="submit" variant="success" icon={<FiPlus />}>
+                  <Button type='submit' variant='success' icon={<FiPlus />}>
                     Creditar
                   </Button>
                 </form>
               </CardContent>
             </Card>
           </div>
-          <div className="col-md-8">
+          <div className='col-md-8'>
             <Card>
               <CardHeader>
                 <CardTitle>Últimos Movimentos</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="table-responsive">
-                  <table className="table table-sm">
+                <div className='table-responsive'>
+                  <table className='table table-sm'>
                     <thead>
                       <tr>
                         <th>Data</th>
@@ -213,18 +215,14 @@ export default function SaldoAlunoPage() {
                           <td>
                             <span
                               className={
-                                "badge " +
-                                (m.tipo === "CREDITO"
-                                  ? "bg-success"
-                                  : "bg-danger")
+                                'badge ' + (m.tipo === 'CREDITO' ? 'bg-success' : 'bg-danger')
                               }
                             >
                               {m.tipo}
                             </span>
                           </td>
                           <td>
-                            {m.tipo === "DEBITO" ? "-" : ""}R${" "}
-                            {m.valor.toFixed(2)}
+                            {m.tipo === 'DEBITO' ? '-' : ''}R$ {m.valor.toFixed(2)}
                           </td>
                           <td>{m.origem}</td>
                           <td>{m.referencia}</td>
@@ -232,7 +230,7 @@ export default function SaldoAlunoPage() {
                       ))}
                       {ultimos.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="text-center text-muted">
+                          <td colSpan={5} className='text-center text-muted'>
                             Sem movimentos
                           </td>
                         </tr>
@@ -241,10 +239,10 @@ export default function SaldoAlunoPage() {
                   </table>
                 </div>
                 <Button
-                  variant="outline"
-                  size="small"
+                  variant='outline'
+                  size='small'
                   onClick={carregarMovimentos}
-                  className="mt-2"
+                  className='mt-2'
                 >
                   Ver histórico completo
                 </Button>
@@ -260,9 +258,9 @@ export default function SaldoAlunoPage() {
             <CardTitle>Histórico Completo</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="table-responsive" style={{ maxHeight: 400 }}>
-              <table className="table table-sm table-hover">
-                <thead className="table-light">
+            <div className='table-responsive' style={{ maxHeight: 400 }}>
+              <table className='table table-sm table-hover'>
+                <thead className='table-light'>
                   <tr>
                     <th>Data</th>
                     <th>Tipo</th>
@@ -277,21 +275,17 @@ export default function SaldoAlunoPage() {
                     <tr key={m.id}>
                       <td>{new Date(m.created_at).toLocaleString()}</td>
                       <td>{m.tipo}</td>
-                      <td
-                        className={
-                          m.tipo === "DEBITO" ? "text-danger" : "text-success"
-                        }
-                      >
-                        {m.tipo === "DEBITO" ? "-" : ""}R$ {m.valor.toFixed(2)}
+                      <td className={m.tipo === 'DEBITO' ? 'text-danger' : 'text-success'}>
+                        {m.tipo === 'DEBITO' ? '-' : ''}R$ {m.valor.toFixed(2)}
                       </td>
                       <td>{m.origem}</td>
                       <td>{m.referencia}</td>
-                      <td className="small">{m.observacao}</td>
+                      <td className='small'>{m.observacao}</td>
                     </tr>
                   ))}
                   {movimentos.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="text-center text-muted">
+                      <td colSpan={6} className='text-center text-muted'>
                         Sem registros
                       </td>
                     </tr>

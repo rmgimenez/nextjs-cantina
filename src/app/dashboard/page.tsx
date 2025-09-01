@@ -1,6 +1,6 @@
 'use client';
 
-import DashboardLayout from '@/components/layout/dashboard-layout';
+// import DashboardLayout from '@/components/layout/dashboard-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
 import {
@@ -131,20 +131,28 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <DashboardLayout title='Dashboard' subtitle='Carregando...'>
+      <>
+        <div className='bg-white border-bottom px-3 py-3'>
+          <h1 className='h4 mb-1 text-dark'>Dashboard</h1>
+          <p className='text-muted mb-0'>Carregando...</p>
+        </div>
         <div className='flex items-center justify-center h-64'>
           <div className='text-center'>
             <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
             <p className='text-gray-600'>Carregando dados do dashboard...</p>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   if (error || !data) {
     return (
-      <DashboardLayout title='Dashboard' subtitle='Erro ao carregar dados'>
+      <>
+        <div className='bg-white border-bottom px-3 py-3'>
+          <h1 className='h4 mb-1 text-dark'>Dashboard</h1>
+          <p className='text-muted mb-0'>Erro ao carregar dados</p>
+        </div>
         <div className='flex items-center justify-center h-64'>
           <div className='text-center'>
             <FiAlertCircle className='w-12 h-12 text-red-500 mx-auto mb-4' />
@@ -157,12 +165,17 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
-      </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout title='Dashboard' subtitle='Visão geral das operações da cantina'>
+    <>
+      <div className='bg-white border-bottom px-3 py-3'>
+        <h1 className='h4 mb-1 text-dark'>Dashboard</h1>
+        <p className='text-muted mb-0'>Visão geral das operações da cantina</p>
+      </div>
+
       <div className='space-y-6'>
         {/* Estatísticas - usar grid do Bootstrap para responsividade consistente */}
         <div className='row g-3 mb-4'>
@@ -356,6 +369,6 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

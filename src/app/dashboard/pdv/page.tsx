@@ -1,6 +1,6 @@
 'use client';
 
-import DashboardLayout from '@/components/layout/dashboard-layout';
+// import DashboardLayout from '@/components/layout/dashboard-layout';
 import { useEffect, useState } from 'react';
 import { FiRefreshCw, FiSearch } from 'react-icons/fi';
 
@@ -259,7 +259,12 @@ export default function PDVPage() {
   }, [buscaProduto, filtroCategoria]);
 
   return (
-    <DashboardLayout title='PDV - Ponto de Venda' subtitle='Sistema de vendas da cantina'>
+    <>
+      <div className='bg-white border-bottom px-3 py-3'>
+        <h1 className='h4 mb-1 text-dark'>PDV - Ponto de Venda</h1>
+        <p className='text-muted mb-0'>Sistema de vendas da cantina</p>
+      </div>
+
       <div className='pb-3'>
         {/* Barra superior de status do caixa */}
         <div className='mb-4'>
@@ -353,6 +358,6 @@ export default function PDVPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </>
   );
 }

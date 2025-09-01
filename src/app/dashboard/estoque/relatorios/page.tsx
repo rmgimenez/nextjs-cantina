@@ -1,8 +1,8 @@
-"use client";
-import DashboardLayout from "@/components/layout/dashboard-layout";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { FiRefreshCw } from "react-icons/fi";
+'use client';
+// import DashboardLayout from "@/components/layout/dashboard-layout";
+import { Button } from '@/components/ui/button';
+import { useEffect, useState } from 'react';
+import { FiRefreshCw } from 'react-icons/fi';
 
 interface ProdutoSaldo {
   id: number;
@@ -51,15 +51,17 @@ export default function RelatoriosEstoquePage() {
   }, []);
 
   return (
-    <DashboardLayout
-      title="Relatórios de Estoque"
-      subtitle="Análises operacionais do estoque"
-    >
-      <div className="d-flex gap-2 align-items-end mb-3 flex-wrap">
+    <>
+      <div className='bg-white border-bottom px-3 py-3'>
+        <h1 className='h4 mb-1 text-dark'>Relatórios de Estoque</h1>
+        <p className='text-muted mb-0'>Análises operacionais do estoque</p>
+      </div>
+
+      <div className='d-flex gap-2 align-items-end mb-3 flex-wrap'>
         <div style={{ maxWidth: 160 }}>
-          <label className="form-label mb-1">Dias Ranking</label>
+          <label className='form-label mb-1'>Dias Ranking</label>
           <select
-            className="form-select"
+            className='form-select'
             value={diasTop}
             onChange={(e) => setDiasTop(Number(e.target.value))}
           >
@@ -69,46 +71,41 @@ export default function RelatoriosEstoquePage() {
             <option value={60}>60 dias</option>
           </select>
         </div>
-        <Button
-          variant="outline"
-          icon={<FiRefreshCw />}
-          loading={loading}
-          onClick={carregar}
-        >
+        <Button variant='outline' icon={<FiRefreshCw />} loading={loading} onClick={carregar}>
           Atualizar
         </Button>
       </div>
 
       {dados && (
-        <div className="row g-3 mb-4">
-          <div className="col-sm-6 col-md-3">
-            <div className="card">
-              <div className="card-body">
-                <p className="text-muted mb-1">Produtos</p>
+        <div className='row g-3 mb-4'>
+          <div className='col-sm-6 col-md-3'>
+            <div className='card'>
+              <div className='card-body'>
+                <p className='text-muted mb-1'>Produtos</p>
                 <h5>{dados.resumo.totalProdutos}</h5>
               </div>
             </div>
           </div>
-          <div className="col-sm-6 col-md-3">
-            <div className="card">
-              <div className="card-body">
-                <p className="text-muted mb-1">Sem Estoque</p>
+          <div className='col-sm-6 col-md-3'>
+            <div className='card'>
+              <div className='card-body'>
+                <p className='text-muted mb-1'>Sem Estoque</p>
                 <h5>{dados.resumo.outOfStock}</h5>
               </div>
             </div>
           </div>
-          <div className="col-sm-6 col-md-3">
-            <div className="card">
-              <div className="card-body">
-                <p className="text-muted mb-1">Baixo Estoque</p>
+          <div className='col-sm-6 col-md-3'>
+            <div className='card'>
+              <div className='card-body'>
+                <p className='text-muted mb-1'>Baixo Estoque</p>
                 <h5>{dados.resumo.lowStock}</h5>
               </div>
             </div>
           </div>
-          <div className="col-sm-6 col-md-3">
-            <div className="card">
-              <div className="card-body">
-                <p className="text-muted mb-1">Ranking (Top)</p>
+          <div className='col-sm-6 col-md-3'>
+            <div className='card'>
+              <div className='card-body'>
+                <p className='text-muted mb-1'>Ranking (Top)</p>
                 <h5>{dados.produtosMaisVendidos.length}</h5>
               </div>
             </div>
@@ -116,13 +113,13 @@ export default function RelatoriosEstoquePage() {
         </div>
       )}
 
-      <div className="row g-4">
-        <div className="col-lg-6">
-          <div className="card h-100">
-            <div className="card-header">Produtos em Falta</div>
-            <div className="card-body p-0">
-              <div className="table-responsive">
-                <table className="table table-sm mb-0">
+      <div className='row g-4'>
+        <div className='col-lg-6'>
+          <div className='card h-100'>
+            <div className='card-header'>Produtos em Falta</div>
+            <div className='card-body p-0'>
+              <div className='table-responsive'>
+                <table className='table table-sm mb-0'>
                   <thead>
                     <tr>
                       <th>Produto</th>
@@ -135,12 +132,12 @@ export default function RelatoriosEstoquePage() {
                       <tr key={p.id}>
                         <td>{p.nome}</td>
                         <td>{p.saldo}</td>
-                        <td>{p.estoque_minimo ?? "-"}</td>
+                        <td>{p.estoque_minimo ?? '-'}</td>
                       </tr>
                     ))}
                     {dados?.outOfStock?.length === 0 && (
                       <tr>
-                        <td colSpan={3} className="text-center text-muted py-3">
+                        <td colSpan={3} className='text-center text-muted py-3'>
                           Nenhum
                         </td>
                       </tr>
@@ -151,12 +148,12 @@ export default function RelatoriosEstoquePage() {
             </div>
           </div>
         </div>
-        <div className="col-lg-6">
-          <div className="card h-100">
-            <div className="card-header">Produtos com Baixo Estoque</div>
-            <div className="card-body p-0">
-              <div className="table-responsive">
-                <table className="table table-sm mb-0">
+        <div className='col-lg-6'>
+          <div className='card h-100'>
+            <div className='card-header'>Produtos com Baixo Estoque</div>
+            <div className='card-body p-0'>
+              <div className='table-responsive'>
+                <table className='table table-sm mb-0'>
                   <thead>
                     <tr>
                       <th>Produto</th>
@@ -166,15 +163,15 @@ export default function RelatoriosEstoquePage() {
                   </thead>
                   <tbody>
                     {dados?.lowStock?.map((p: ProdutoSaldo) => (
-                      <tr key={p.id} className="table-warning">
+                      <tr key={p.id} className='table-warning'>
                         <td>{p.nome}</td>
                         <td>{p.saldo}</td>
-                        <td>{p.estoque_minimo ?? "-"}</td>
+                        <td>{p.estoque_minimo ?? '-'}</td>
                       </tr>
                     ))}
                     {dados?.lowStock?.length === 0 && (
                       <tr>
-                        <td colSpan={3} className="text-center text-muted py-3">
+                        <td colSpan={3} className='text-center text-muted py-3'>
                           Nenhum
                         </td>
                       </tr>
@@ -185,12 +182,12 @@ export default function RelatoriosEstoquePage() {
             </div>
           </div>
         </div>
-        <div className="col-xl-6">
-          <div className="card h-100">
-            <div className="card-header">Movimentações Recentes</div>
-            <div className="card-body p-0">
-              <div className="table-responsive">
-                <table className="table table-sm mb-0">
+        <div className='col-xl-6'>
+          <div className='card h-100'>
+            <div className='card-header'>Movimentações Recentes</div>
+            <div className='card-body p-0'>
+              <div className='table-responsive'>
+                <table className='table table-sm mb-0'>
                   <thead>
                     <tr>
                       <th>Data</th>
@@ -203,18 +200,16 @@ export default function RelatoriosEstoquePage() {
                   <tbody>
                     {dados?.movimentacoesRecentes?.map((m: Mov) => (
                       <tr key={m.id}>
-                        <td>
-                          {new Date(m.created_at).toLocaleString("pt-BR")}
-                        </td>
+                        <td>{new Date(m.created_at).toLocaleString('pt-BR')}</td>
                         <td>{m.produto_nome}</td>
                         <td>{m.tipo_mov}</td>
                         <td>{m.quantidade}</td>
-                        <td>{m.referencia || "-"}</td>
+                        <td>{m.referencia || '-'}</td>
                       </tr>
                     ))}
                     {dados?.movimentacoesRecentes?.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="text-center text-muted py-3">
+                        <td colSpan={5} className='text-center text-muted py-3'>
                           Nenhuma
                         </td>
                       </tr>
@@ -225,14 +220,12 @@ export default function RelatoriosEstoquePage() {
             </div>
           </div>
         </div>
-        <div className="col-xl-6">
-          <div className="card h-100">
-            <div className="card-header">
-              Produtos Mais Vendidos (últimos {diasTop} dias)
-            </div>
-            <div className="card-body p-0">
-              <div className="table-responsive">
-                <table className="table table-sm mb-0">
+        <div className='col-xl-6'>
+          <div className='card h-100'>
+            <div className='card-header'>Produtos Mais Vendidos (últimos {diasTop} dias)</div>
+            <div className='card-body p-0'>
+              <div className='table-responsive'>
+                <table className='table table-sm mb-0'>
                   <thead>
                     <tr>
                       <th>Produto</th>
@@ -250,7 +243,7 @@ export default function RelatoriosEstoquePage() {
                     ))}
                     {dados?.produtosMaisVendidos?.length === 0 && (
                       <tr>
-                        <td colSpan={3} className="text-center text-muted py-3">
+                        <td colSpan={3} className='text-center text-muted py-3'>
                           Nenhum
                         </td>
                       </tr>
@@ -262,6 +255,6 @@ export default function RelatoriosEstoquePage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

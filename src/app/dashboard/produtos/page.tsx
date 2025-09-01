@@ -1,4 +1,4 @@
-import DashboardLayout from '@/components/layout/dashboard-layout';
+// import DashboardLayout from '@/components/layout/dashboard-layout';
 import ProdutosClient from './produtos-client';
 
 async function fetchProdutos() {
@@ -30,8 +30,13 @@ async function fetchTipos() {
 export default async function ProdutosPage() {
   const [produtos, tipos] = await Promise.all([fetchProdutos(), fetchTipos()]);
   return (
-    <DashboardLayout title='Produtos' subtitle='Gerenciamento de produtos da cantina'>
+    <>
+      <div className='bg-white border-bottom px-3 py-3'>
+        <h1 className='h4 mb-1 text-dark'>Produtos</h1>
+        <p className='text-muted mb-0'>Gerenciamento de produtos da cantina</p>
+      </div>
+
       <ProdutosClient initialProdutos={produtos} initialTipos={tipos} />
-    </DashboardLayout>
+    </>
   );
 }

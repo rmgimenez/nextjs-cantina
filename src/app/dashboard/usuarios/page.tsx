@@ -4,14 +4,16 @@ export const metadata = {
   title: 'Usuários - Dashboard',
 };
 
-import DashboardLayout from '@/components/layout/dashboard-layout';
-
 export default function Page() {
   return (
-    <DashboardLayout title='Usuários' subtitle='Gerenciar usuários do sistema'>
+    <>
+      <div className='bg-white border-bottom px-3 py-3'>
+        <h1 className='h4 mb-1 text-dark'>Usuários</h1>
+        <p className='text-muted mb-0'>Gerenciar usuários do sistema</p>
+      </div>
       <div>
         <UsuariosClient />
       </div>
-    </DashboardLayout>
+    </>
   );
 }
