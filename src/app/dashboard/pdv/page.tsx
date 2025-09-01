@@ -120,35 +120,70 @@ export default function PDVPage() {
     }
   };
 
+  // Validação de restrição via backend
+  const validarRestricao = async (alunoId: number, produtoId: number) => {
+    try {
+      const res = await fetch(
+        `/api/alunos/restricoes/valida?aluno_ra=${alunoId}&produtoId=${produtoId}`
+      );
+      if (!res.ok) return { blocked: false, reasons: [] };
+      const data = await res.json();
+      return data;
+    } catch (err) {
+      console.error('Erro ao validar restrição', err);
+      return { blocked: false, reasons: [] };
+    }
+  };
+
   // Adicionar produto ao carrinho
-  const adicionarAoCarrinho = (produto: Produto) => {
+  const adicionarAoCarrinho = async (produto: Produto) => {
     if (!statusCaixa.caixaAberto) {
       alert('Abra o caixa antes de realizar vendas');
       return;
     }
 
-    const itemExistente = carrinho.find((item) => item.id === produto.id);
+    const adicionarAoCarrinhoProceed = (p: Produto) => {
+      const itemExistente = carrinho.find((item) => item.id === p.id);
 
-    if (itemExistente) {
-      if (itemExistente.quantidade >= produto.estoque) {
-        alert('Quantidade solicitada excede o estoque disponível');
+      if (itemExistente) {
+        if (itemExistente.quantidade >= (p.estoque ?? 0)) {
+          alert('Quantidade solicitada excede o estoque disponível');
+          return;
+        }
+        setCarrinho(
+          carrinho.map((item) =>
+            item.id === p.id ? { ...item, quantidade: item.quantidade + 1 } : item
+          )
+        );
+      } else {
+        const novoItem: ItemCarrinho = {
+          id: p.id,
+          nome: p.nome,
+          preco: p.preco,
+          quantidade: 1,
+          categoria: p.categoria,
+        };
+        setCarrinho([...carrinho, novoItem]);
+      }
+    };
+
+    // Se cliente selecionado é aluno, validar restrição
+    if (clienteSelecionado && clienteSelecionado.tipo === 'aluno') {
+      const data = await validarRestricao(clienteSelecionado.id, produto.id);
+      if (data && data.blocked) {
+        const motivos = (data.reasons || []).map((r: any) => r.motivo || r.type || '').join('; ');
+        alert(`Venda bloqueada: ${motivos}`);
+        console.warn('Tentativa de venda bloqueada', {
+          aluno_ra: clienteSelecionado.id,
+          produtoId: produto.id,
+          reasons: data.reasons,
+        });
         return;
       }
-      setCarrinho(
-        carrinho.map((item) =>
-          item.id === produto.id ? { ...item, quantidade: item.quantidade + 1 } : item
-        )
-      );
-    } else {
-      const novoItem: ItemCarrinho = {
-        id: produto.id,
-        nome: produto.nome,
-        preco: produto.preco,
-        quantidade: 1,
-        categoria: produto.categoria,
-      };
-      setCarrinho([...carrinho, novoItem]);
     }
+
+    // inserir no carrinho
+    adicionarAoCarrinhoProceed(produto);
   };
 
   // Atualizar quantidade no carrinho
@@ -201,7 +236,7 @@ export default function PDVPage() {
           quantidade: item.quantidade,
           precoUnitario: item.preco,
         })),
-      };
+      } as any;
 
       const response = await fetch('/api/pdv/vendas', {
         method: 'POST',
@@ -212,11 +247,9 @@ export default function PDVPage() {
       const data = await response.json();
 
       if (data.ok) {
-        // Proteção: nem sempre o backend retorna `valorTotal` (evita toFixed em undefined)
         const valorTotal = typeof data.valorTotal === 'number' ? data.valorTotal : undefined;
         const vendaId = data.vendaId !== undefined ? data.vendaId : '---';
 
-        // Log para depuração caso backend não retorne campos esperados
         if (data.vendaId === undefined || valorTotal === undefined) {
           console.warn('Resposta inesperada ao finalizar venda:', data);
         }
@@ -227,11 +260,9 @@ export default function PDVPage() {
           }`
         );
 
-        // Limpar carrinho e cliente
         setCarrinho([]);
         setClienteSelecionado(null);
 
-        // Recarregar produtos e status do caixa
         buscarProdutos(buscaProduto, filtroCategoria);
         carregarStatusCaixa();
       } else {

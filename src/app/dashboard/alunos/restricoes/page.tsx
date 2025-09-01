@@ -9,7 +9,8 @@ interface Restricao {
   id: number;
   aluno_ra: string;
   tipo: 'PRODUTO' | 'TIPO' | 'GERAL';
-  referencia: string | null; // código do produto ou tipo quando aplicável
+  referencia: string | null; // id do produto ou id do tipo quando aplicável
+  referencia_text?: string | null; // texto amigável para exibição
   motivo: string;
   ativo: number;
 }
@@ -39,7 +40,21 @@ export default function RestricoesPage() {
   async function criar(e: React.FormEvent) {
     e.preventDefault();
     if (!ra || !novo) return;
-    const payload = { ...novo, aluno_ra: ra };
+    const payload = { ...novo, aluno_ra: ra } as any;
+    // se estiver editando (tem id) usar PUT
+    if (novo.id) {
+      const res = await fetch('/api/alunos/restricoes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        setNovo(null);
+        buscar();
+      }
+      return;
+    }
+
     const res = await fetch('/api/alunos/restricoes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -100,11 +115,73 @@ export default function RestricoesPage() {
                 <option value='PRODUTO'>Produto</option>
                 <option value='TIPO'>Tipo de Produto</option>
               </select>
-              <Input
-                label='Referência (opcional: código produto / tipo)'
-                value={novo.referencia ?? ''}
-                onChange={(e) => setNovo({ ...novo, referencia: e.target.value })}
-              />
+              {/* Referência: mostra campo condicional para PRODUTO ou TIPO */}
+              {novo.tipo === 'PRODUTO' && (
+                <div>
+                  <label className='form-label'>Produto (pesquisar por nome ou código)</label>
+                  <div className='d-flex gap-2'>
+                    <Input
+                      value={novo.referencia_text ?? ''}
+                      onChange={(e) => setNovo({ ...novo, referencia_text: e.target.value })}
+                      placeholder='Digite e pressione Buscar'
+                    />
+                    <Button
+                      variant='outline'
+                      onClick={async () => {
+                        const q = novo.referencia_text || '';
+                        const res = await fetch(`/api/produtos?q=${encodeURIComponent(q)}`);
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        const p = data.produtos && data.produtos[0];
+                        if (p) {
+                          setNovo({
+                            ...novo,
+                            referencia: String(p.id),
+                            referencia_text: `${p.id} - ${p.nome}`,
+                          });
+                        }
+                      }}
+                    >
+                      Buscar
+                    </Button>
+                  </div>
+                  <small className='text-muted'>
+                    Ao encontrar, pressione Buscar para selecionar o primeiro resultado.
+                  </small>
+                </div>
+              )}
+
+              {novo.tipo === 'TIPO' && (
+                <div>
+                  <label className='form-label'>Tipo de Produto (pesquisar)</label>
+                  <div className='d-flex gap-2'>
+                    <Input
+                      value={novo.referencia_text ?? ''}
+                      onChange={(e) => setNovo({ ...novo, referencia_text: e.target.value })}
+                      placeholder='Digite e pressione Buscar'
+                    />
+                    <Button
+                      variant='outline'
+                      onClick={async () => {
+                        const q = novo.referencia_text || '';
+                        const res = await fetch(`/api/produtos/tipos?q=${encodeURIComponent(q)}`);
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        const t = data.tipos && data.tipos[0];
+                        if (t) {
+                          setNovo({
+                            ...novo,
+                            referencia: String(t.id),
+                            referencia_text: `${t.id} - ${t.descricao}`,
+                          });
+                        }
+                      }}
+                    >
+                      Buscar
+                    </Button>
+                  </div>
+                </div>
+              )}
               <label className='form-label'>Motivo</label>
               <textarea
                 className='form-control'
@@ -145,7 +222,7 @@ export default function RestricoesPage() {
                 {restricoes.map((r) => (
                   <tr key={r.id} className={r.ativo ? '' : 'text-muted'}>
                     <td>{r.tipo}</td>
-                    <td>{r.referencia ?? '-'}</td>
+                    <td>{r.referencia_text ?? r.referencia ?? '-'}</td>
                     <td className='small'>{r.motivo}</td>
                     <td>
                       <span className={'badge ' + (r.ativo ? 'bg-success' : 'bg-secondary')}>
@@ -157,7 +234,20 @@ export default function RestricoesPage() {
                         size='small'
                         variant='outline'
                         icon={<FiEdit />}
-                        onClick={() => alert('Editar não implementado no stub')}
+                        onClick={() => {
+                          // popular o formulário para edição
+                          setNovo({
+                            id: r.id,
+                            aluno_ra: r.aluno_ra,
+                            tipo: r.tipo as any,
+                            referencia: r.referencia ?? null,
+                            referencia_text:
+                              r.referencia_text ?? (r.referencia ? String(r.referencia) : ''),
+                            motivo: r.motivo,
+                            ativo: r.ativo,
+                          });
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
                       />
                       <Button
                         size='small'
