@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    let resultado: any = { clientes: [] };
+    const resultado: any = { clientes: [] };
 
     // Buscar alunos
     if (!tipo || tipo === 'aluno') {

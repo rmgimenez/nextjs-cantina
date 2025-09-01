@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
 
-    let whereConditions: string[] = [];
-    let params: any[] = [];
+    const whereConditions: string[] = [];
+    const params: any[] = [];
 
     if (status && ['PENDENTE', 'RECEBIDO', 'ATRASADO', 'CANCELADO'].includes(status)) {
       whereConditions.push('status = ?');

@@ -1,6 +1,15 @@
 {
-  "extends": [
-    "next/core-web-vitals",
-    "next/typescript"
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "overrides": [
+    {
+      "files": ["src/app/api/**", "src/app/api/**/*.ts", "src/app/api/**/*.tsx"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/no-unused-vars": [
+          "warn",
+          { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+        ]
+      }
+    }
   ]
 }

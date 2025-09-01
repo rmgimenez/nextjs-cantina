@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 
-  const payload = verifySessionToken(token);
+  const payload = await verifySessionToken(token);
   console.log('Token verification result:', payload ? 'valid' : 'invalid');
 
   if (!payload) {

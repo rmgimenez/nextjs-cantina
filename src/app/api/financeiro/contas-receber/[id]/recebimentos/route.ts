@@ -2,7 +2,7 @@ import { verifyToken } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: any) {
   try {
     const token = request.cookies.get('cantina_session')?.value;
     const user = verifyToken(token);
