@@ -1,0 +1,12 @@
+{
+  "chat.mcp.serverSampling": {
+    "nextjs-cantina/.vscode/mcp.json: mysql": {
+      "allowedModels": [
+        "copilot/gpt-4.1",
+        "copilot/claude-sonnet-4",
+        "copilot/gpt-5",
+        "copilot/gpt-5-mini"
+      ]
+    }
+  }
+}
