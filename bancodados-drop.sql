@@ -38,6 +38,10 @@ DROP TRIGGER IF EXISTS `trg_cant_venda_ai_func_conta`;
 DROP TRIGGER IF EXISTS `trg_cant_pacote_utilizacao_ai`;
 DROP TRIGGER IF EXISTS `trig_conta_pagar_after_pagamento`;
 DROP TRIGGER IF EXISTS `trig_conta_receber_after_recebimento`;
+DROP TRIGGER IF EXISTS trig_conta_pagar_after_pagamento_update;
+DROP TRIGGER IF EXISTS trig_conta_pagar_after_pagamento_delete;
+DROP TRIGGER IF EXISTS trig_conta_pagar_after_update_conta;
+
 
 /* =====================================================================
 	3) VIEWS

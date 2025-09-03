@@ -100,6 +100,28 @@ export async function DELETE(request: NextRequest, { params }: any) {
 
     const { id, pagamento_id } = await params;
 
+    // Verifica se a coluna data_pagamento existe na tabela (ajuda a diagnosticar discrepâncias de schema)
+    try {
+      const [colCheck] = await query(
+        `SELECT COUNT(*) as cnt FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'cant_conta_pagar_pagamento' AND COLUMN_NAME = 'data_pagamento'`
+      );
+      if (colCheck?.cnt === 0) {
+        console.error(
+          'Schema mismatch: coluna data_pagamento não encontrada em cant_conta_pagar_pagamento'
+        );
+        return NextResponse.json(
+          {
+            error:
+              "Schema incompatível: coluna 'data_pagamento' ausente em cant_conta_pagar_pagamento. Aplique as migrations do módulo financeiro.",
+          },
+          { status: 500 }
+        );
+      }
+    } catch (schemaErr) {
+      console.error('Erro ao verificar schema da tabela cant_conta_pagar_pagamento', schemaErr);
+      // Não bloqueia a operação principal — prossegue para tentarmos excluir e capturar erro real
+    }
+
     // Verifica se o pagamento pertence à conta especificada
     const [pagamento] = await query(
       `
@@ -114,12 +136,23 @@ export async function DELETE(request: NextRequest, { params }: any) {
     }
 
     // Exclui o pagamento
-    await query(
-      `
-      DELETE FROM cant_conta_pagar_pagamento WHERE id = ? AND conta_pagar_id = ?
-    `,
-      [pagamento_id, id]
-    );
+    try {
+      await query(
+        `
+        DELETE FROM cant_conta_pagar_pagamento WHERE id = ? AND conta_pagar_id = ?
+      `,
+        [pagamento_id, id]
+      );
+    } catch (dbErr: unknown) {
+      // Tipagem segura: dbErr pode ser qualquer coisa, então verificamos se possui sqlMessage
+      const dbErrMsg =
+        dbErr && typeof dbErr === 'object' && dbErr !== null && 'sqlMessage' in dbErr
+          ? (dbErr as any).sqlMessage
+          : String(dbErr);
+
+      console.error('Erro ao executar DELETE em cant_conta_pagar_pagamento:', dbErrMsg);
+      return NextResponse.json({ error: dbErrMsg || 'Erro ao excluir pagamento' }, { status: 500 });
+    }
 
     return NextResponse.json({
       message: 'Pagamento excluído com sucesso',

@@ -169,15 +169,34 @@ export default function ContasPagarPage() {
 
   const handleEditarConta = (conta: ContaPagar) => {
     setContaSelecionada(conta);
+    // tenta obter categoria_id diretamente; se não existir, tenta casar pelo nome
+    const rawCategoriaId = (conta as any).categoria_id ?? null;
+    let categoriaId = '';
+    if (rawCategoriaId) {
+      categoriaId = String(rawCategoriaId);
+    } else if (conta.categoria_nome) {
+      const cat = categorias.find((c) => c.nome === conta.categoria_nome);
+      categoriaId = cat ? String(cat.id) : '';
+    }
+
+    const formatDate = (d?: string) => {
+      if (!d) return '';
+      try {
+        return new Date(d).toISOString().split('T')[0];
+      } catch (e) {
+        return '';
+      }
+    };
+
     setEditData({
-      categoria_id: conta.categoria_nome || '',
+      categoria_id: categoriaId,
       descricao: conta.descricao,
       fornecedor: conta.fornecedor || '',
       numero_documento: conta.numero_documento || '',
       valor_original: conta.valor_original.toString(),
-      data_emissao: conta.data_emissao,
-      data_vencimento: conta.data_vencimento,
-      observacoes: '',
+      data_emissao: formatDate(conta.data_emissao),
+      data_vencimento: formatDate(conta.data_vencimento),
+      observacoes: (conta as any).observacoes || '',
       parcelas: '',
       data_primeira_parcela: '',
     });
@@ -245,6 +264,37 @@ export default function ContasPagarPage() {
       observacoes: pagamento.observacoes || '',
     });
     setShowModalEditarPagamento(true);
+  };
+
+  const handleExcluirPagamento = async (pagamento: Pagamento) => {
+    if (!contaSelecionada) return;
+    if (!confirm('Tem certeza que deseja excluir este pagamento?')) return;
+    try {
+      const response = await fetch(
+        `/api/financeiro/contas-pagar/${contaSelecionada.id}/pagamentos/${pagamento.id}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+        }
+      );
+      if (response.ok) {
+        // recarrega pagamentos da conta
+        const res = await fetch(`/api/financeiro/contas-pagar/${contaSelecionada.id}/pagamentos`, {
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setPagamentos(data);
+        }
+        carregarContas();
+      } else {
+        const errorData = await response.json();
+        alert(`Erro ao excluir pagamento: ${errorData.error || 'Erro desconhecido'}`);
+      }
+    } catch (error) {
+      console.error('Erro ao excluir pagamento:', error);
+      alert('Erro ao excluir pagamento');
+    }
   };
 
   const handleNovaConta = () => {
@@ -359,22 +409,43 @@ export default function ContasPagarPage() {
   const handleSubmitEditarPagamento = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pagamentoSelecionado) return;
+    if (!contaSelecionada) {
+      alert('Conta não selecionada. Reabra a lista de pagamentos e tente novamente.');
+      return;
+    }
 
     try {
-      const response = await fetch(`/api/financeiro/pagamentos/${pagamentoSelecionado.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(editPagamentoData),
-      });
+      const response = await fetch(
+        `/api/financeiro/contas-pagar/${contaSelecionada.id}/pagamentos/${pagamentoSelecionado.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(editPagamentoData),
+        }
+      );
       if (response.ok) {
         setShowModalEditarPagamento(false);
         setPagamentoSelecionado(null);
+        // recarrega pagamentos caso modal de pagamentos esteja aberto
+        if (showModalPagamentos && contaSelecionada) {
+          const res = await fetch(
+            `/api/financeiro/contas-pagar/${contaSelecionada.id}/pagamentos`,
+            {
+              credentials: 'include',
+            }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            setPagamentos(data);
+          }
+        }
         carregarContas();
       } else {
-        alert('Erro ao editar pagamento');
+        const errorData = await response.json();
+        alert(`Erro ao editar pagamento: ${errorData.error || 'Erro desconhecido'}`);
       }
     } catch (error) {
       console.error('Erro ao editar pagamento:', error);
@@ -499,6 +570,8 @@ export default function ContasPagarPage() {
         onClose={handleCloseModal}
         conta={contaSelecionada}
         pagamentos={pagamentos}
+        onEditar={handleEditarPagamento}
+        onExcluir={handleExcluirPagamento}
       />
 
       <ModalEditarPagamento

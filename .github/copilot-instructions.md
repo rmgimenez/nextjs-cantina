@@ -43,3 +43,9 @@ Este projeto é um sistema de controle de cantina escolar, com frontend em Next.
 - Sempre consulte e atualize os requisitos funcionais.
 - Documente decisões arquiteturais relevantes no `sobre.md`.
 - Evite dependências desnecessárias e mantenha o projeto alinhado às tecnologias listadas.
+
+## Componentes
+
+Sempre separe os componentes em componentes menores para facilitar a manutenção.
+Não deixe componentes grandes e complexos em um único arquivo.
+Organize os componentes em pastas de acordo com sua funcionalidade.
