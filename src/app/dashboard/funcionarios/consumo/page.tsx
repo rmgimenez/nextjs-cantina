@@ -28,6 +28,12 @@ export default function ConsumoContaPage() {
   const [detalhes, setDetalhes] = useState<Detalhe[]>([]);
   const [totalPeriodo, setTotalPeriodo] = useState<number>(0);
   const [loading, setLoading] = useState(false);
+  // Modal de compras do funcionário
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalFuncionarioId, setModalFuncionarioId] = useState<number | null>(null);
+  const [modalFuncionarioNome, setModalFuncionarioNome] = useState<string>('');
+  const [modalCompras, setModalCompras] = useState<Detalhe[]>([]);
+  const [modalLoading, setModalLoading] = useState(false);
 
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -54,6 +60,39 @@ export default function ConsumoContaPage() {
   useEffect(() => {
     carregar(); /* eslint-disable-next-line */
   }, []);
+
+  const abrirModalCompras = async (id: number, nome: string) => {
+    try {
+      setModalFuncionarioId(id);
+      setModalFuncionarioNome(nome);
+      setModalLoading(true);
+      setModalCompras([]);
+
+      const qp = new URLSearchParams();
+      qp.set('inicio', inicio);
+      qp.set('fim', fim);
+      qp.set('funcionarioId', String(id));
+
+      const res = await fetch(`/api/relatorios/funcionarios/consumo?${qp.toString()}`);
+      if (!res.ok) throw new Error('Erro ao carregar compras do funcionário');
+      const j = await res.json();
+      // endpoint retorna { detalhes: [...], agregados: [...], totalPeriodo }
+      setModalCompras(j.detalhes || []);
+      setModalOpen(true);
+    } catch (err) {
+      console.error('Erro carregando compras do funcionário', err);
+      alert('Erro ao carregar compras do funcionário');
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  const fecharModal = () => {
+    setModalOpen(false);
+    setModalFuncionarioId(null);
+    setModalFuncionarioNome('');
+    setModalCompras([]);
+  };
 
   const gerarPdf = () => {
     try {
@@ -186,7 +225,15 @@ export default function ConsumoContaPage() {
                   {agregados.map((a) => (
                     <tr key={a.funcionario_id}>
                       <td>{a.funcionario_id}</td>
-                      <td>{a.funcionario_nome}</td>
+                      <td>
+                        <button
+                          type='button'
+                          className='btn btn-link p-0'
+                          onClick={() => abrirModalCompras(a.funcionario_id, a.funcionario_nome)}
+                        >
+                          {a.funcionario_nome}
+                        </button>
+                      </td>
                       <td className='text-end'>{fmt(Number(a.total))}</td>
                       <td className='text-end'>{a.qtde_vendas}</td>
                     </tr>
@@ -238,7 +285,14 @@ export default function ConsumoContaPage() {
                       <td>{new Date(d.created_at).toLocaleString()}</td>
                       <td>{d.id}</td>
                       <td>
-                        {d.funcionario_nome} ({d.funcionario_id})
+                        <button
+                          type='button'
+                          className='btn btn-link p-0'
+                          onClick={() => abrirModalCompras(d.funcionario_id, d.funcionario_nome)}
+                        >
+                          {d.funcionario_nome}
+                        </button>
+                        {` (${d.funcionario_id})`}
                       </td>
                       <td>{d.forma_pagamento}</td>
                       <td className='text-end'>{fmt(Number(d.valor_venda))}</td>
@@ -258,6 +312,70 @@ export default function ConsumoContaPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal de compras do funcionário */}
+      {modalOpen && (
+        <>
+          <div className='modal show d-block' tabIndex={-1} role='dialog' aria-modal='true'>
+            <div className='modal-dialog modal-lg' role='document'>
+              <div className='modal-content'>
+                <div className='modal-header'>
+                  <h5 className='modal-title'>Compras de {modalFuncionarioNome}</h5>
+                  <button
+                    type='button'
+                    className='btn-close'
+                    aria-label='Fechar'
+                    onClick={fecharModal}
+                  />
+                </div>
+                <div className='modal-body'>
+                  {modalLoading ? (
+                    <div>Carregando...</div>
+                  ) : (
+                    <div className='table-responsive'>
+                      <table className='table table-sm mb-0'>
+                        <thead>
+                          <tr>
+                            <th>Data</th>
+                            <th>ID Venda</th>
+                            <th>Forma</th>
+                            <th className='text-end'>Valor</th>
+                            <th className='text-end'>Itens</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {modalCompras.map((m) => (
+                            <tr key={m.id}>
+                              <td>{new Date(m.created_at).toLocaleString()}</td>
+                              <td>{m.id}</td>
+                              <td>{m.forma_pagamento}</td>
+                              <td className='text-end'>{fmt(Number(m.valor_venda))}</td>
+                              <td className='text-end'>{m.itens}</td>
+                            </tr>
+                          ))}
+                          {modalCompras.length === 0 && (
+                            <tr>
+                              <td colSpan={5} className='text-center text-muted'>
+                                Nenhuma compra encontrada para o período
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+                <div className='modal-footer'>
+                  <button className='btn btn-secondary' onClick={fecharModal}>
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className='modal-backdrop show' />
+        </>
+      )}
     </>
   );
 }
