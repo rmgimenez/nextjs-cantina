@@ -95,6 +95,17 @@ export async function POST(request: NextRequest, { params }: any) {
     }
 
     // Registra o pagamento usando a stored procedure
+    console.log('Registrar pagamento params:', {
+      conta_pagar_id: id,
+      parcela_id: parcela_id || null,
+      valorPagoNum,
+      valorDescontoNum,
+      valorJurosNum,
+      data_pagamento,
+      forma_pagamento,
+      observacoes: observacoes || null,
+      usuario_id: user.id,
+    });
     await query(
       `
       CALL cant_sp_registrar_pagamento_conta(?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -120,6 +131,10 @@ export async function POST(request: NextRequest, { params }: any) {
     );
   } catch (error) {
     console.error('Erro ao registrar pagamento:', error);
-    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
+    // Em ambiente de dev, devolver stack/message para ajudar debug
+    const msg = (error && (error as any).message) || 'Erro interno do servidor';
+    const stack = (error && (error as any).stack) || null;
+    console.error('Stack:', stack);
+    return NextResponse.json({ error: msg, stack }, { status: 500 });
   }
 }

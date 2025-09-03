@@ -78,7 +78,7 @@ export default function ContasPagarPage() {
     valor_desconto: '',
     valor_juros: '',
     data_pagamento: '',
-    forma_pagamento: '',
+    forma_pagamento: 'DINHEIRO',
     observacoes: '',
   });
   const [editPagamentoData, setEditPagamentoData] = useState<FormDataPagamento>({
@@ -230,7 +230,7 @@ export default function ContasPagarPage() {
       valor_desconto: '',
       valor_juros: '',
       data_pagamento: new Date().toISOString().split('T')[0],
-      forma_pagamento: '',
+      forma_pagamento: 'DINHEIRO',
       observacoes: '',
     });
     setShowModalPagamento(true);
