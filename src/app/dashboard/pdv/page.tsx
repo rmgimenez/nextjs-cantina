@@ -107,7 +107,11 @@ export default function PDVPage() {
       return;
     }
 
-    const adicionarAoCarrinhoProceed = (p: Produto) => {
+    const adicionarAoCarrinhoProceed = (
+      p: Produto,
+      precoSobrescrito?: number,
+      pesoInformado?: number
+    ) => {
       const itemExistente = carrinho.find((item) => item.id === p.id);
 
       if (itemExistente) {
@@ -124,9 +128,14 @@ export default function PDVPage() {
         const novoItem: ItemCarrinho = {
           id: p.id,
           nome: p.nome,
-          preco: p.preco,
+          // se foi passado precoSobrescrito (ex: produto por kg com valor informado), usa ele,
+          // caso contrário usa o preco padrão do produto
+          preco: typeof precoSobrescrito === 'number' ? precoSobrescrito : p.preco,
+          // para produtos por peso, mantemos quantidade 1 quando usuário informou o valor total
           quantidade: 1,
           categoria: p.categoria,
+          exigePeso: !!p.exigePeso,
+          peso: typeof pesoInformado === 'number' ? pesoInformado : undefined,
         };
         setCarrinho([...carrinho, novoItem]);
       }
@@ -148,7 +157,24 @@ export default function PDVPage() {
     }
 
     // inserir no carrinho
-    adicionarAoCarrinhoProceed(produto);
+    // Se o produto exige peso, solicitar ao usuário o valor a pagar (em reais)
+    if (produto.exigePeso) {
+      // Pedir valor total (ex: 15.00)
+      const raw = window.prompt(
+        `Produto por kg detectado: informe o valor total em R$ para "${produto.nome}" (ex: 15.00)`
+      );
+      if (raw === null) return; // usuário cancelou
+      const v = parseFloat(raw.replace(',', '.'));
+      if (Number.isNaN(v) || v <= 0) {
+        alert('Valor inválido');
+        return;
+      }
+
+      // Adiciona o item usando o valor informado como preço total
+      adicionarAoCarrinhoProceed(produto, v, undefined);
+    } else {
+      adicionarAoCarrinhoProceed(produto);
+    }
   };
 
   // Atualizar quantidade no carrinho

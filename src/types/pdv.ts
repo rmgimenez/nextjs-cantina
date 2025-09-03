@@ -14,6 +14,10 @@ export interface ItemCarrinho {
   preco: number;
   quantidade: number;
   categoria: string;
+  // Indica se este item foi inserido a partir de um produto que exige entrada de peso/valor
+  exigePeso?: boolean;
+  // opcional: peso em kg quando aplicável (pode ser undefined se o usuário informou o valor total)
+  peso?: number;
 }
 
 export interface Cliente {

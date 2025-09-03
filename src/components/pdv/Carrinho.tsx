@@ -7,6 +7,8 @@ interface ItemCarrinho {
   preco: number;
   quantidade: number;
   categoria: string;
+  exigePeso?: boolean;
+  peso?: number;
 }
 
 interface CarrinhoProps {
@@ -44,6 +46,9 @@ export default function Carrinho({ itens, onUpdateQuantidade, onRemoverItem }: C
                         <div className='d-flex justify-content-between'>
                           <strong className='text-truncate me-2 small'>{item.nome}</strong>
                           <span className='text-success small'>{formatarMoeda(item.preco)}</span>
+                          {item.exigePeso && (
+                            <small className='text-muted ms-2'>valor informado</small>
+                          )}
                         </div>
                         <div className='text-muted small'>{item.categoria}</div>
                       </div>
@@ -53,7 +58,7 @@ export default function Carrinho({ itens, onUpdateQuantidade, onRemoverItem }: C
                             onUpdateQuantidade(item.id, Math.max(0, item.quantidade - 1))
                           }
                           className='btn btn-outline-secondary btn-sm rounded-circle px-0'
-                          disabled={item.quantidade <= 1}
+                          disabled={item.quantidade <= 1 || item.exigePeso}
                         >
                           <FiMinus size={14} />
                         </button>
@@ -66,6 +71,7 @@ export default function Carrinho({ itens, onUpdateQuantidade, onRemoverItem }: C
                         <button
                           onClick={() => onUpdateQuantidade(item.id, item.quantidade + 1)}
                           className='btn btn-outline-secondary btn-sm rounded-circle px-0'
+                          disabled={item.exigePeso}
                         >
                           <FiPlus size={14} />
                         </button>

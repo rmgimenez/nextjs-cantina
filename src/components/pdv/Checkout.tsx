@@ -7,6 +7,8 @@ interface ItemCarrinho {
   nome: string;
   preco: number;
   quantidade: number;
+  exigePeso?: boolean;
+  peso?: number;
 }
 
 interface Cliente {
