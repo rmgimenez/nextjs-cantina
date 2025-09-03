@@ -1,5 +1,6 @@
 'use client';
 
+import { formatarData, formatarMoeda } from '@/lib/formatters';
 import { ContaReceber, Recebimento } from '../types';
 
 interface ModalRecebimentosProps {
@@ -20,17 +21,6 @@ export default function ModalRecebimentos({
   onExcluir,
 }: ModalRecebimentosProps) {
   if (!show || !conta) return null;
-
-  const formatarMoeda = (valor: number) => {
-    return valor.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    });
-  };
-
-  const formatarData = (data: string) => {
-    return new Date(data).toLocaleDateString('pt-BR');
-  };
 
   return (
     <div

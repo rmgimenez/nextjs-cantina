@@ -1,6 +1,7 @@
 'use client';
 
 import { Card } from '@/components/ui/card';
+import { formatarMoeda } from '@/lib/formatters';
 import { useEffect, useState } from 'react';
 
 interface DashboardFinanceiro {
@@ -60,13 +61,6 @@ export default function FinanceiroPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatarMoeda = (valor: number) => {
-    return valor.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    });
   };
 
   const formatarData = (data: string) => {

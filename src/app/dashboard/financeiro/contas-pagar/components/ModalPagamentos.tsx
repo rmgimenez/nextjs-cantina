@@ -1,5 +1,6 @@
 'use client';
 
+import { formatarData, formatarMoeda } from '@/lib/formatters';
 import { ContaPagar, Pagamento } from '../types';
 
 interface ModalPagamentosProps {
@@ -20,17 +21,6 @@ export default function ModalPagamentos({
   onExcluir,
 }: ModalPagamentosProps) {
   if (!show || !conta) return null;
-
-  const formatarMoeda = (valor: number) => {
-    return valor.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    });
-  };
-
-  const formatarData = (data: string) => {
-    return new Date(data).toLocaleDateString('pt-BR');
-  };
 
   return (
     <div

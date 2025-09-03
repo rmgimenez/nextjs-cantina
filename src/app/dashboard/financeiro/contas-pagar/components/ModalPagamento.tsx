@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { formatarMoeda } from '@/lib/formatters';
 import { ContaPagar, FormDataPagamento } from '../types';
 
 interface ModalPagamentoProps {
@@ -22,13 +23,6 @@ export default function ModalPagamento({
   onSubmit,
 }: ModalPagamentoProps) {
   if (!show || !conta) return null;
-
-  const formatarMoeda = (valor: number) => {
-    return valor.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    });
-  };
 
   return (
     <div

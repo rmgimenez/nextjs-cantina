@@ -1,5 +1,6 @@
 'use client';
 
+import { formatarData, formatarMoeda } from '@/lib/formatters';
 import { ContaReceber } from '../types';
 
 interface TabelaContasReceberProps {
@@ -17,17 +18,6 @@ export default function TabelaContasReceber({
   onReceber,
   onVerRecebimentos,
 }: TabelaContasReceberProps) {
-  const formatarMoeda = (valor: number) => {
-    return valor.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    });
-  };
-
-  const formatarData = (data: string) => {
-    return new Date(data).toLocaleDateString('pt-BR');
-  };
-
   const getSituacaoBadge = (situacao: string, status: string) => {
     if (status === 'RECEBIDO') return 'bg-success';
     if (status === 'CANCELADO') return 'bg-secondary';
