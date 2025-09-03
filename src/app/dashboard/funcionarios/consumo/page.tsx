@@ -55,13 +55,69 @@ export default function ConsumoContaPage() {
     carregar(); /* eslint-disable-next-line */
   }, []);
 
+  const gerarPdf = () => {
+    try {
+      // copia e ordena por nome do funcionário (alfabética)
+      const rows = [...agregados].sort((a, b) =>
+        String(a.funcionario_nome).localeCompare(String(b.funcionario_nome), 'pt-BR')
+      );
+
+      const titulo = `Relatório de Consumo por Funcionário (${inicio} a ${fim})`;
+      const style = `body{font-family:Arial,Helvetica,sans-serif;padding:20px}h2{margin-bottom:6px}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ddd;padding:8px}th{text-align:left;background:#f5f5f5}`;
+      let html = `<!doctype html><html><head><meta charset="utf-8"><title>${titulo}</title><style>${style}</style></head><body>`;
+      html += `<h2>${titulo}</h2>`;
+      html += `<p>Total período: <strong>${fmt(Number(totalPeriodo))}</strong></p>`;
+      html += `<table><thead><tr><th>Código</th><th>Funcionário</th><th style="text-align:right"># Vendas</th><th style="text-align:right">Total</th></tr></thead><tbody>`;
+      for (const r of rows) {
+        html += `<tr><td>${r.funcionario_id}</td><td>${
+          r.funcionario_nome
+        }</td><td style="text-align:right">${r.qtde_vendas}</td><td style="text-align:right">${fmt(
+          Number(r.total)
+        )}</td></tr>`;
+      }
+      html += `</tbody></table>`;
+      html += `<p style="margin-top:18px;font-size:0.9em;color:#666">Gerado em: ${new Date().toLocaleString()}</p>`;
+      html += `</body></html>`;
+
+      const w = window.open('', '_blank');
+      if (!w) {
+        alert('Não foi possível abrir nova janela. Verifique bloqueadores de pop-up.');
+        return;
+      }
+      w.document.write(html);
+      w.document.close();
+      w.focus();
+      // Delay curto para garantir renderização antes de print
+      setTimeout(() => {
+        w.print();
+      }, 250);
+    } catch (err) {
+      console.error('Erro ao gerar PDF', err);
+      alert('Erro ao gerar PDF');
+    }
+  };
+
   return (
     <>
       <div className='bg-white border-bottom px-3 py-3'>
-        <h1 className='h4 mb-1 text-dark'>Consumo marcado na conta (Funcionários)</h1>
-        <p className='text-muted mb-0'>
-          Relatório de todas as compras marcadas na conta dos funcionários
-        </p>
+        <div className='d-flex align-items-start justify-content-between'>
+          <div>
+            <h1 className='h4 mb-1 text-dark'>Consumo marcado na conta (Funcionários)</h1>
+            <p className='text-muted mb-0'>
+              Relatório de todas as compras marcadas na conta dos funcionários
+            </p>
+          </div>
+          <div className='ms-3'>
+            {/* Botão adicional sempre visível no cabeçalho para facilitar acesso */}
+            <button
+              className='btn btn-success btn-sm'
+              onClick={() => gerarPdf()}
+              title='Gerar relatório em PDF (abre janela de impressão)'
+            >
+              Gerar PDF
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className='card mb-3'>
@@ -97,6 +153,14 @@ export default function ConsumoContaPage() {
           <div className='col-auto d-flex gap-2'>
             <button className='btn btn-primary' disabled={loading} onClick={carregar}>
               {loading ? 'Carregando...' : 'Carregar'}
+            </button>
+            <button
+              className='btn btn-success'
+              disabled={loading}
+              onClick={() => gerarPdf()}
+              title='Gerar relatório em PDF (abre janela de impressão)'
+            >
+              Gerar PDF
             </button>
           </div>
         </div>
