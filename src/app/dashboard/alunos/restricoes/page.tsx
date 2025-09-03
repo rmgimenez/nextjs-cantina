@@ -1,7 +1,6 @@
 'use client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { useEffect, useState } from 'react';
 import { FiEdit, FiPlus, FiSearch, FiTrash2 } from 'react-icons/fi';
 
@@ -22,19 +21,58 @@ export default function RestricoesPage() {
   const [novo, setNovo] = useState<Partial<Restricao> | null>(null);
   const [produtoResultados, setProdutoResultados] = useState<any[]>([]);
   const [tipoResultados, setTipoResultados] = useState<any[]>([]);
+  const [alunoResultados, setAlunoResultados] = useState<any[]>([]);
   const [buscandoProduto, setBuscandoProduto] = useState(false);
   const [buscandoTipo, setBuscandoTipo] = useState(false);
+  const [buscandoAluno, setBuscandoAluno] = useState(false);
 
   async function buscar() {
     if (!ra) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/alunos/restricoes?ra=${encodeURIComponent(ra)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setRestricoes(data.restricoes || []);
+      const q = ra.trim();
+      // se for apenas números, tratamos como RA
+      if (/^\d+$/.test(q)) {
+        const res = await fetch(`/api/alunos/restricoes?ra=${encodeURIComponent(q)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setRestricoes(data.restricoes || []);
+          setAlunoResultados([]);
+        } else {
+          setRestricoes([]);
+        }
       } else {
-        setRestricoes([]);
+        // busca por nome: chamar endpoint /api/alunos?q=...
+        setBuscandoAluno(true);
+        try {
+          const resA = await fetch(`/api/alunos?q=${encodeURIComponent(q)}`);
+          if (!resA.ok) {
+            setAlunoResultados([]);
+            setRestricoes([]);
+            return;
+          }
+          const dataA = await resA.json();
+          const alunos = dataA.alunos || [];
+          setAlunoResultados(alunos);
+          // se veio apenas 1 resultado, buscar restricoes automaticamente
+          if (alunos.length === 1) {
+            const r = String(alunos[0].ra);
+            setRa(r);
+            const res = await fetch(`/api/alunos/restricoes?ra=${encodeURIComponent(r)}`);
+            if (res.ok) {
+              const data = await res.json();
+              setRestricoes(data.restricoes || []);
+              setAlunoResultados([]);
+            } else {
+              setRestricoes([]);
+            }
+          } else {
+            // limpar restrições até o usuário escolher
+            setRestricoes([]);
+          }
+        } finally {
+          setBuscandoAluno(false);
+        }
       }
     } finally {
       setLoading(false);
@@ -88,16 +126,71 @@ export default function RestricoesPage() {
           <CardTitle>Buscar por RA</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className='d-flex gap-2 align-items-end'>
-            <div style={{ minWidth: 160 }}>
-              <Input label='RA' value={ra} onChange={(e) => setRa(e.target.value)} />
+          <div className='row gx-2 gy-2 align-items-end'>
+            <div className='col-12 col-sm-6 col-md-3'>
+              <label htmlFor='ra-input' className='form-label mb-1'>
+                RA
+              </label>
+              <input
+                id='ra-input'
+                type='text'
+                className='form-control'
+                value={ra}
+                onChange={(e) => setRa(e.target.value)}
+                placeholder='Digite o RA'
+              />
+              {alunoResultados.length > 0 && (
+                <div
+                  className='border rounded bg-white mt-2 overflow-auto'
+                  style={{ maxHeight: 220 }}
+                >
+                  {alunoResultados.map((a: any) => (
+                    <button
+                      key={a.ra}
+                      type='button'
+                      className='w-100 text-start px-3 py-2 border-bottom bg-white'
+                      onClick={async () => {
+                        const r = String(a.ra);
+                        setRa(r);
+                        setAlunoResultados([]);
+                        setLoading(true);
+                        try {
+                          const res = await fetch(
+                            `/api/alunos/restricoes?ra=${encodeURIComponent(r)}`
+                          );
+                          if (!res.ok) {
+                            setRestricoes([]);
+                            return;
+                          }
+                          const data = await res.json();
+                          setRestricoes(data.restricoes || []);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                    >
+                      <div className='d-flex justify-content-between'>
+                        <div className='text-truncate'>{a.nome}</div>
+                        <small className='text-muted'>#{a.ra}</small>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            <Button variant='primary' icon={<FiSearch />} onClick={buscar} loading={loading}>
-              Buscar
-            </Button>
-            <Button variant='success' onClick={() => setNovo({ tipo: 'GERAL', motivo: '' })}>
-              <FiPlus /> Nova
-            </Button>
+
+            <div className='col-auto d-flex gap-2'>
+              <div className='d-flex align-items-end gap-2'>
+                <Button variant='primary' icon={<FiSearch />} onClick={buscar} loading={loading}>
+                  Buscar
+                </Button>
+                <Button variant='success' onClick={() => setNovo({ tipo: 'GERAL', motivo: '' })}>
+                  <FiPlus /> Nova
+                </Button>
+              </div>
+            </div>
+
+            <div className='col' />
           </div>
         </CardContent>
       </Card>
@@ -108,152 +201,165 @@ export default function RestricoesPage() {
             <CardTitle>Nova Restrição</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={criar} className='vstack gap-2'>
-              <label className='form-label'>Tipo</label>
-              <select
-                className='form-select'
-                value={novo.tipo}
-                onChange={(e) => setNovo({ ...novo, tipo: e.target.value as any })}
-              >
-                <option value='GERAL'>Geral</option>
-                <option value='PRODUTO'>Produto</option>
-                <option value='TIPO'>Tipo de Produto</option>
-              </select>
-              {/* Referência: mostra campo condicional para PRODUTO ou TIPO */}
-              {novo.tipo === 'PRODUTO' && (
-                <div>
-                  <label className='form-label'>Produto (pesquisar por nome ou código)</label>
-                  <div className='d-flex gap-2'>
-                    <Input
-                      value={novo.referencia_text ?? ''}
-                      onChange={(e) => {
-                        setNovo({ ...novo, referencia_text: e.target.value, referencia: null });
-                        setProdutoResultados([]);
-                      }}
-                      placeholder='Digite e pressione Buscar'
-                    />
-                    <Button
-                      variant='outline'
-                      onClick={async () => {
-                        const q = novo?.referencia_text || '';
-                        if (!q) return;
-                        setBuscandoProduto(true);
-                        try {
-                          const res = await fetch(`/api/produtos?q=${encodeURIComponent(q)}`);
-                          if (!res.ok) return;
-                          const data = await res.json();
-                          setProdutoResultados(data.produtos || []);
-                        } finally {
-                          setBuscandoProduto(false);
-                        }
-                      }}
-                    >
-                      Buscar
-                    </Button>
-                  </div>
-                  {produtoResultados.length > 0 && (
-                    <div
-                      className='border rounded bg-white mt-2 overflow-auto'
-                      style={{ maxHeight: 220 }}
-                    >
-                      {produtoResultados.map((p: any) => (
-                        <button
-                          key={p.id}
-                          type='button'
-                          className='w-100 text-start px-3 py-2 border-bottom bg-white'
-                          onClick={() => {
-                            setNovo({
-                              ...novo,
-                              referencia: String(p.id),
-                              referencia_text: `${p.id} - ${p.nome}`,
-                            });
-                            setProdutoResultados([]);
-                          }}
-                        >
-                          <div className='d-flex justify-content-between'>
-                            <div className='text-truncate'>{p.nome}</div>
-                            <small className='text-muted'>#{p.id}</small>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {buscandoProduto && <small className='text-muted'>Buscando...</small>}
-                  <small className='text-muted d-block mt-1'>
-                    Selecione o item desejado na lista.
-                  </small>
-                </div>
-              )}
+            <form onSubmit={criar} className='row g-3'>
+              <div className='col-12 col-md-4'>
+                <label className='form-label'>Tipo</label>
+                <select
+                  className='form-select'
+                  value={novo.tipo}
+                  onChange={(e) => setNovo({ ...novo, tipo: e.target.value as any })}
+                >
+                  <option value='GERAL'>Geral</option>
+                  <option value='PRODUTO'>Produto</option>
+                  <option value='TIPO'>Tipo de Produto</option>
+                </select>
+              </div>
 
-              {novo.tipo === 'TIPO' && (
-                <div>
-                  <label className='form-label'>Tipo de Produto (pesquisar)</label>
-                  <div className='d-flex gap-2'>
-                    <Input
-                      value={novo.referencia_text ?? ''}
-                      onChange={(e) => {
-                        setNovo({ ...novo, referencia_text: e.target.value, referencia: null });
-                        setTipoResultados([]);
-                      }}
-                      placeholder='Digite e pressione Buscar'
-                    />
-                    <Button
-                      variant='outline'
-                      onClick={async () => {
-                        const q = novo?.referencia_text || '';
-                        if (!q) return;
-                        setBuscandoTipo(true);
-                        try {
-                          const res = await fetch(`/api/produtos/tipos?q=${encodeURIComponent(q)}`);
-                          if (!res.ok) return;
-                          const data = await res.json();
-                          setTipoResultados(data.tipos || []);
-                        } finally {
-                          setBuscandoTipo(false);
-                        }
-                      }}
-                    >
-                      Buscar
-                    </Button>
-                  </div>
-                  {tipoResultados.length > 0 && (
-                    <div
-                      className='border rounded bg-white mt-2 overflow-auto'
-                      style={{ maxHeight: 220 }}
-                    >
-                      {tipoResultados.map((t: any) => (
-                        <button
-                          key={t.id}
-                          type='button'
-                          className='w-100 text-start px-3 py-2 border-bottom bg-white'
-                          onClick={() => {
-                            setNovo({
-                              ...novo,
-                              referencia: String(t.id),
-                              referencia_text: `${t.id} - ${t.descricao}`,
-                            });
-                            setTipoResultados([]);
-                          }}
-                        >
-                          <div className='d-flex justify-content-between'>
-                            <div className='text-truncate'>{t.descricao}</div>
-                            <small className='text-muted'>#{t.id}</small>
-                          </div>
-                        </button>
-                      ))}
+              <div className='col-12 col-md-8'>
+                {novo.tipo === 'PRODUTO' && (
+                  <div>
+                    <label className='form-label'>Produto (pesquisar por nome ou código)</label>
+                    <div className='input-group'>
+                      <input
+                        type='text'
+                        className='form-control'
+                        value={novo.referencia_text ?? ''}
+                        onChange={(e) => {
+                          setNovo({ ...novo, referencia_text: e.target.value, referencia: null });
+                          setProdutoResultados([]);
+                        }}
+                        placeholder='Digite para buscar'
+                      />
+                      <button
+                        type='button'
+                        className='btn btn-outline-secondary'
+                        onClick={async () => {
+                          const q = novo?.referencia_text || '';
+                          if (!q) return;
+                          setBuscandoProduto(true);
+                          try {
+                            const res = await fetch(`/api/produtos?q=${encodeURIComponent(q)}`);
+                            if (!res.ok) return;
+                            const data = await res.json();
+                            setProdutoResultados(data.produtos || []);
+                          } finally {
+                            setBuscandoProduto(false);
+                          }
+                        }}
+                      >
+                        Buscar
+                      </button>
                     </div>
-                  )}
-                  {buscandoTipo && <small className='text-muted'>Buscando...</small>}
-                </div>
-              )}
-              <label className='form-label'>Motivo</label>
-              <textarea
-                className='form-control'
-                value={novo.motivo ?? ''}
-                onChange={(e) => setNovo({ ...novo, motivo: e.target.value })}
-                rows={3}
-              />
-              <div className='d-flex gap-2'>
+                    {produtoResultados.length > 0 && (
+                      <div
+                        className='border rounded bg-white mt-2 overflow-auto'
+                        style={{ maxHeight: 220 }}
+                      >
+                        {produtoResultados.map((p: any) => (
+                          <button
+                            key={p.id}
+                            type='button'
+                            className='w-100 text-start px-3 py-2 border-bottom bg-white'
+                            onClick={() => {
+                              setNovo({
+                                ...novo,
+                                referencia: String(p.id),
+                                referencia_text: `${p.id} - ${p.nome}`,
+                              });
+                              setProdutoResultados([]);
+                            }}
+                          >
+                            <div className='d-flex justify-content-between'>
+                              <div className='text-truncate'>{p.nome}</div>
+                              <small className='text-muted'>#{p.id}</small>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {buscandoProduto && <small className='text-muted'>Buscando...</small>}
+                  </div>
+                )}
+
+                {novo.tipo === 'TIPO' && (
+                  <div>
+                    <label className='form-label'>Tipo de Produto (pesquisar)</label>
+                    <div className='input-group'>
+                      <input
+                        type='text'
+                        className='form-control'
+                        value={novo.referencia_text ?? ''}
+                        onChange={(e) => {
+                          setNovo({ ...novo, referencia_text: e.target.value, referencia: null });
+                          setTipoResultados([]);
+                        }}
+                        placeholder='Digite para buscar'
+                      />
+                      <button
+                        type='button'
+                        className='btn btn-outline-secondary'
+                        onClick={async () => {
+                          const q = novo?.referencia_text || '';
+                          if (!q) return;
+                          setBuscandoTipo(true);
+                          try {
+                            const res = await fetch(
+                              `/api/produtos/tipos?q=${encodeURIComponent(q)}`
+                            );
+                            if (!res.ok) return;
+                            const data = await res.json();
+                            setTipoResultados(data.tipos || []);
+                          } finally {
+                            setBuscandoTipo(false);
+                          }
+                        }}
+                      >
+                        Buscar
+                      </button>
+                    </div>
+                    {tipoResultados.length > 0 && (
+                      <div
+                        className='border rounded bg-white mt-2 overflow-auto'
+                        style={{ maxHeight: 220 }}
+                      >
+                        {tipoResultados.map((t: any) => (
+                          <button
+                            key={t.id}
+                            type='button'
+                            className='w-100 text-start px-3 py-2 border-bottom bg-white'
+                            onClick={() => {
+                              setNovo({
+                                ...novo,
+                                referencia: String(t.id),
+                                referencia_text: `${t.id} - ${t.descricao}`,
+                              });
+                              setTipoResultados([]);
+                            }}
+                          >
+                            <div className='d-flex justify-content-between'>
+                              <div className='text-truncate'>{t.descricao}</div>
+                              <small className='text-muted'>#{t.id}</small>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {buscandoTipo && <small className='text-muted'>Buscando...</small>}
+                  </div>
+                )}
+              </div>
+
+              <div className='col-12'>
+                <label className='form-label'>Motivo</label>
+                <textarea
+                  className='form-control'
+                  value={novo.motivo ?? ''}
+                  onChange={(e) => setNovo({ ...novo, motivo: e.target.value })}
+                  rows={3}
+                />
+              </div>
+
+              <div className='col-12 d-flex gap-2 justify-content-end'>
                 <Button type='submit' variant='primary'>
                   Salvar
                 </Button>
