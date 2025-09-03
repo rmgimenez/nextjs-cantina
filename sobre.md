@@ -329,9 +329,21 @@ Páginas:
 
 **RF-027** - Controle de contas a pagar
 
+Sistema de contas a pagar para a cantina.
+
+Quero poder registrar despesas, controlar vencimentos e marcar como pagas.
+
+Uma conta pode ter vários pagamentos associados.
+
+Um pagamento pode estar associado a apenas uma conta.
+
+Posso alterar os dados dos pagamentos e o sistema deve atualizar o saldo automaticamente.
+
 - Registro de despesas da cantina
 - Controle de vencimentos
 - Status: ✅ Concluído
+
+Implementação: Tabelas `cant_conta_pagar`, `cant_conta_pagar_parcela`, `cant_conta_pagar_pagamento` com agregados de valores (valor_pago, valor_juros, valor_desconto) e status automatizado. Views `cant_view_conta_pagar_resumo` e `cant_view_conta_pagar_parcela_resumo` alimentam o frontend. Procedures `cant_sp_registrar_pagamento_conta`, `cant_sp_gerar_parcelas_conta_pagar` e `cant_sp_recalcula_conta_pagar` centralizam lógica de geração de parcelas, registro e recomputação dos totais. Triggers pós INSERT/UPDATE/DELETE em pagamentos recalculam automaticamente saldos e status (PENDENTE, ATRASADO, PAGO). Página `/dashboard/financeiro/contas-pagar` com CRUD de contas, filtros, paginação, registro, edição e exclusão de pagamentos parciais, suportando múltiplos pagamentos por conta e ajuste retroativo dos agregados.
 
 **RF-028** - Controle de contas a receber
 

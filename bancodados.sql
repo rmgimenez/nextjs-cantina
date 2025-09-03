@@ -632,35 +632,12 @@ CREATE TABLE IF NOT EXISTS `cant_funcionario_fatura` (
   KEY `idx_cant_func_fatura_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-/* Contas a pagar */
-CREATE TABLE IF NOT EXISTS `cant_contas_pagar` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `descricao` VARCHAR(255) NOT NULL,
-  `valor` DECIMAL(12,2) NOT NULL,
-  `data_emissao` DATE NOT NULL,
-  `data_vencimento` DATE NOT NULL,
-  `data_pagamento` DATE NULL,
-  `status` ENUM('ABERTA','PAGA','CANCELADA') NOT NULL DEFAULT 'ABERTA',
-  `observacao` VARCHAR(255) NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_cant_contas_pagar_status` (`status`),
-  KEY `idx_cant_contas_pagar_venc` (`data_vencimento`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-/* Contas a receber */
-CREATE TABLE IF NOT EXISTS `cant_contas_receber` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `descricao` VARCHAR(255) NOT NULL,
-  `valor` DECIMAL(12,2) NOT NULL,
-  `data_emissao` DATE NOT NULL,
-  `data_vencimento` DATE NOT NULL,
-  `data_recebimento` DATE NULL,
-  `status` ENUM('ABERTA','RECEBIDA','CANCELADA') NOT NULL DEFAULT 'ABERTA',
-  `observacao` VARCHAR(255) NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_cant_contas_receber_status` (`status`),
-  KEY `idx_cant_contas_receber_venc` (`data_vencimento`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+-- REMOVED: obsolete simple 'cant_contas_pagar' / 'cant_contas_receber' tables
+-- These were an older, simplified version of the financeiro module. The
+-- canonical tables and full feature set are implemented below as
+-- `cant_conta_pagar`, `cant_conta_pagar_parcela`, `cant_conta_pagar_pagamento`,
+-- and their 'conta_receber' counterparts. Keeping both caused confusion
+-- and duplicate objects in the schema. (RF-027 consolidated implementation)
 
 -- fim - tabelas
 
@@ -1103,6 +1080,86 @@ FROM cant_conta_pagar cp
 LEFT JOIN cant_categoria_financeira cf ON cp.categoria_id = cf.id
 LEFT JOIN cant_usuarios uc ON cp.usuario_cadastro_id = uc.id
 LEFT JOIN cant_usuarios up ON cp.usuario_pagamento_id = up.id;
+
+/* =====================================================================
+   RF-027 (Contas a Pagar) - Complements
+   Adiciona procedure de recalculo e triggers automáticas se ainda não existirem.
+   ===================================================================== */
+
+-- Procedure de recalculo consolidado da conta a pagar
+DROP PROCEDURE IF EXISTS `cant_sp_recalcula_conta_pagar`;
+DELIMITER $$
+CREATE PROCEDURE `cant_sp_recalcula_conta_pagar`(IN p_conta_id BIGINT)
+BEGIN
+  DECLARE v_valor_original DECIMAL(12,2) DEFAULT 0.00;
+  DECLARE v_total_pago DECIMAL(12,2) DEFAULT 0.00;
+  DECLARE v_total_juros DECIMAL(12,2) DEFAULT 0.00;
+  DECLARE v_total_desconto DECIMAL(12,2) DEFAULT 0.00;
+  DECLARE v_status_atual VARCHAR(20);
+  DECLARE v_venc DATE;
+  DECLARE v_max_data DATE;
+  DECLARE v_usuario_pag BIGINT;
+
+  SELECT valor_original, valor_pago, valor_juros, valor_desconto, status, data_vencimento
+    INTO v_valor_original, v_total_pago, v_total_juros, v_total_desconto, v_status_atual, v_venc
+  FROM cant_conta_pagar WHERE id = p_conta_id FOR UPDATE;
+
+  -- Reagrega a partir do histórico (garante consistência)
+  SELECT COALESCE(SUM(valor_pago),0), COALESCE(SUM(valor_juros),0), COALESCE(SUM(valor_desconto),0), MAX(data_pagamento)
+    INTO v_total_pago, v_total_juros, v_total_desconto, v_max_data
+  FROM cant_conta_pagar_pagamento WHERE conta_pagar_id = p_conta_id;
+
+  SELECT usuario_id INTO v_usuario_pag
+  FROM cant_conta_pagar_pagamento WHERE conta_pagar_id = p_conta_id ORDER BY data_pagamento DESC LIMIT 1;
+
+  UPDATE cant_conta_pagar SET
+    valor_pago = v_total_pago,
+    valor_juros = v_total_juros,
+    valor_desconto = v_total_desconto,
+    data_pagamento = CASE WHEN (v_valor_original + v_total_juros - v_total_desconto - v_total_pago) <= 0 THEN v_max_data ELSE data_pagamento END,
+    usuario_pagamento_id = CASE WHEN (v_valor_original + v_total_juros - v_total_desconto - v_total_pago) <= 0 THEN v_usuario_pag ELSE usuario_pagamento_id END,
+    status = CASE 
+      WHEN v_status_atual = 'CANCELADO' THEN v_status_atual
+      WHEN (v_valor_original + v_total_juros - v_total_desconto - v_total_pago) <= 0 THEN 'PAGO'
+      WHEN CURDATE() > v_venc THEN 'ATRASADO'
+      ELSE 'PENDENTE'
+    END
+  WHERE id = p_conta_id;
+END $$
+DELIMITER ;
+
+-- Triggers sobre pagamentos para manter consistência (idempotentes - recriadas)
+DROP TRIGGER IF EXISTS `trg_cant_conta_pagar_pag_ai`;
+DELIMITER $$
+CREATE TRIGGER `trg_cant_conta_pagar_pag_ai`
+AFTER INSERT ON `cant_conta_pagar_pagamento`
+FOR EACH ROW
+BEGIN
+  CALL cant_sp_recalcula_conta_pagar(NEW.conta_pagar_id);
+END $$
+DELIMITER ;
+
+DROP TRIGGER IF EXISTS `trg_cant_conta_pagar_pag_au`;
+DELIMITER $$
+CREATE TRIGGER `trg_cant_conta_pagar_pag_au`
+AFTER UPDATE ON `cant_conta_pagar_pagamento`
+FOR EACH ROW
+BEGIN
+  CALL cant_sp_recalcula_conta_pagar(NEW.conta_pagar_id);
+END $$
+DELIMITER ;
+
+DROP TRIGGER IF EXISTS `trg_cant_conta_pagar_pag_ad`;
+DELIMITER $$
+CREATE TRIGGER `trg_cant_conta_pagar_pag_ad`
+AFTER DELETE ON `cant_conta_pagar_pagamento`
+FOR EACH ROW
+BEGIN
+  CALL cant_sp_recalcula_conta_pagar(OLD.conta_pagar_id);
+END $$
+DELIMITER ;
+
+-- Fim complementos RF-027
 
 -- View para resumo das contas a receber
 CREATE OR REPLACE VIEW `cant_view_conta_receber_resumo` AS

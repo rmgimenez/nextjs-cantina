@@ -98,8 +98,8 @@ DROP TABLE IF EXISTS `cant_conta_pagar`;
 DROP TABLE IF EXISTS `cant_categoria_financeira`;
 
 -- Módulo financeiro (versão anterior simples)
-DROP TABLE IF EXISTS `cant_contas_receber`;
-DROP TABLE IF EXISTS `cant_contas_pagar`;
+-- REMOVED: legacy plural-named tables `cant_contas_receber` / `cant_contas_pagar`
+-- These were superseded by the more complete `cant_conta_*` schema.
 
 -- Integração funcionários
 DROP TABLE IF EXISTS `cant_funcionario_conta_lanc`;
