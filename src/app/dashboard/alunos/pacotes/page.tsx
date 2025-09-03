@@ -1,9 +1,10 @@
-"use client";
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { FiPlus, FiSearch, FiRefreshCw, FiEdit } from "react-icons/fi";
+'use client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { formatarMoeda } from '@/lib/formatters';
+import { useEffect, useState } from 'react';
+import { FiEdit, FiPlus, FiRefreshCw, FiSearch } from 'react-icons/fi';
 
 interface PacoteTipo {
   id: number;
@@ -30,7 +31,7 @@ interface PacoteAluno {
 export default function PacotesPage() {
   const [tipos, setTipos] = useState<PacoteTipo[]>([]);
   const [pacotesAluno, setPacotesAluno] = useState<PacoteAluno[]>([]);
-  const [ra, setRa] = useState("");
+  const [ra, setRa] = useState('');
   const [loadingPacotes, setLoadingPacotes] = useState(false);
   const [formTipoOpen, setFormTipoOpen] = useState(false);
   const [formCompraOpen, setFormCompraOpen] = useState(false);
@@ -43,7 +44,7 @@ export default function PacotesPage() {
   } | null>(null);
 
   async function loadTipos() {
-    const res = await fetch("/api/pacotes/tipos");
+    const res = await fetch('/api/pacotes/tipos');
     if (res.ok) {
       const data = await res.json();
       setTipos(data.tipos || []);
@@ -82,17 +83,15 @@ export default function PacotesPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const payload = {
-      codigo: formData.get("codigo"),
-      descricao: formData.get("descricao"),
-      diasValidade: Number(formData.get("dias_validade")),
-      maxUsosDia: formData.get("max_usos_dia")
-        ? Number(formData.get("max_usos_dia"))
-        : null,
-      preco: Number(formData.get("preco")),
+      codigo: formData.get('codigo'),
+      descricao: formData.get('descricao'),
+      diasValidade: Number(formData.get('dias_validade')),
+      maxUsosDia: formData.get('max_usos_dia') ? Number(formData.get('max_usos_dia')) : null,
+      preco: Number(formData.get('preco')),
     };
-    const res = await fetch("/api/pacotes/tipos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch('/api/pacotes/tipos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     if (res.ok) {
@@ -107,17 +106,15 @@ export default function PacotesPage() {
     const formData = new FormData(e.currentTarget);
     const payload = {
       id: editTipo.id,
-      descricao: formData.get("descricao"),
-      diasValidade: Number(formData.get("dias_validade")),
-      maxUsosDia: formData.get("max_usos_dia")
-        ? Number(formData.get("max_usos_dia"))
-        : null,
-      preco: Number(formData.get("preco")),
-      ativo: formData.get("ativo") === "on" ? 1 : 0,
+      descricao: formData.get('descricao'),
+      diasValidade: Number(formData.get('dias_validade')),
+      maxUsosDia: formData.get('max_usos_dia') ? Number(formData.get('max_usos_dia')) : null,
+      preco: Number(formData.get('preco')),
+      ativo: formData.get('ativo') === 'on' ? 1 : 0,
     };
-    const res = await fetch("/api/pacotes/tipos", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch('/api/pacotes/tipos', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     if (res.ok) {
@@ -131,11 +128,11 @@ export default function PacotesPage() {
     e.preventDefault();
     if (!ra) return;
     const formData = new FormData(e.currentTarget);
-    const pacoteTipoId = formData.get("pacote_tipo_id");
-    const dataInicio = formData.get("data_inicio");
-    const res = await fetch("/api/pacotes/compra", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const pacoteTipoId = formData.get('pacote_tipo_id');
+    const dataInicio = formData.get('data_inicio');
+    const res = await fetch('/api/pacotes/compra', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ra, pacoteTipoId, dataInicio }),
     });
     if (res.ok) {
@@ -146,9 +143,9 @@ export default function PacotesPage() {
 
   async function utilizarPacote(id: number) {
     setPacoteUtilizando(id);
-    const res = await fetch("/api/pacotes/utilizar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch('/api/pacotes/utilizar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ pacoteAlunoId: id }),
     });
     setPacoteUtilizando(null);
@@ -156,84 +153,64 @@ export default function PacotesPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <h4 className="fw-bold">Pacotes de Alimentação</h4>
+    <div className='space-y-4'>
+      <h4 className='fw-bold'>Pacotes de Alimentação</h4>
       <Card>
         <CardHeader>
           <CardTitle>Gerenciar Pacotes</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="d-flex flex-wrap gap-2 align-items-end">
+          <div className='d-flex flex-wrap gap-2 align-items-end'>
             <div style={{ minWidth: 160 }}>
-              <Input
-                label="RA"
-                value={ra}
-                onChange={(e) => setRa(e.target.value)}
-              />
+              <Input label='RA' value={ra} onChange={(e) => setRa(e.target.value)} />
             </div>
-            <Button
-              variant="primary"
-              icon={<FiSearch />}
-              onClick={loadPacotesAluno}
-            >
+            <Button variant='primary' icon={<FiSearch />} onClick={loadPacotesAluno}>
               Buscar Pacotes
             </Button>
-            <Button
-              variant="outline"
-              icon={<FiRefreshCw />}
-              onClick={loadPacotesAluno}
-            />
-            <Button
-              variant="success"
-              icon={<FiPlus />}
-              onClick={() => setFormCompraOpen(true)}
-            >
+            <Button variant='outline' icon={<FiRefreshCw />} onClick={loadPacotesAluno} />
+            <Button variant='success' icon={<FiPlus />} onClick={() => setFormCompraOpen(true)}>
               Comprar Pacote
             </Button>
-            <Button
-              variant="secondary"
-              icon={<FiPlus />}
-              onClick={() => setFormTipoOpen(true)}
-            >
+            <Button variant='secondary' icon={<FiPlus />} onClick={() => setFormTipoOpen(true)}>
               Novo Tipo
             </Button>
           </div>
           {alunoInfo && (
-            <div className="d-flex align-items-center gap-3 mt-3 border rounded p-2 bg-light">
+            <div className='d-flex align-items-center gap-3 mt-3 border rounded p-2 bg-light'>
               <img
                 src={alunoInfo.fotoUrl}
                 alt={alunoInfo.nome}
                 style={{
                   width: 72,
                   height: 72,
-                  objectFit: "cover",
+                  objectFit: 'cover',
                   borderRadius: 8,
-                  border: "1px solid #ddd",
+                  border: '1px solid #ddd',
                 }}
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src =
-                    "https://via.placeholder.com/72x72?text=Aluno";
+                    'https://via.placeholder.com/72x72?text=Aluno';
                 }}
               />
-              <div className="flex-grow-1">
-                <div className="fw-semibold">{alunoInfo.nome}</div>
-                <div className="text-muted small">RA: {alunoInfo.ra}</div>
+              <div className='flex-grow-1'>
+                <div className='fw-semibold'>{alunoInfo.nome}</div>
+                <div className='text-muted small'>RA: {alunoInfo.ra}</div>
               </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      <div className="row g-3">
-        <div className="col-lg-5">
+      <div className='row g-3'>
+        <div className='col-lg-5'>
           <Card>
             <CardHeader>
               <CardTitle>Tipos de Pacote</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="table-responsive" style={{ maxHeight: 400 }}>
-                <table className="table table-sm align-middle">
-                  <thead className="table-light">
+              <div className='table-responsive' style={{ maxHeight: 400 }}>
+                <table className='table table-sm align-middle'>
+                  <thead className='table-light'>
                     <tr>
                       <th>Descrição</th>
                       <th>Dias</th>
@@ -244,15 +221,15 @@ export default function PacotesPage() {
                   </thead>
                   <tbody>
                     {tipos.map((t) => (
-                      <tr key={t.id} className={t.ativo ? "" : "text-muted"}>
+                      <tr key={t.id} className={t.ativo ? '' : 'text-muted'}>
                         <td>{t.descricao}</td>
                         <td>{t.dias_validade}</td>
-                        <td>{t.max_usos_dia ?? "-"}</td>
-                        <td>R$ {t.preco.toFixed(2)}</td>
+                        <td>{t.max_usos_dia ?? '-'}</td>
+                        <td>{formatarMoeda(t.preco)}</td>
                         <td>
                           <Button
-                            size="small"
-                            variant="outline"
+                            size='small'
+                            variant='outline'
                             icon={<FiEdit />}
                             onClick={() => {
                               setEditTipo(t);
@@ -264,7 +241,7 @@ export default function PacotesPage() {
                     ))}
                     {tipos.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="text-center text-muted">
+                        <td colSpan={5} className='text-center text-muted'>
                           Nenhum tipo
                         </td>
                       </tr>
@@ -275,19 +252,17 @@ export default function PacotesPage() {
             </CardContent>
           </Card>
         </div>
-        <div className="col-lg-7">
+        <div className='col-lg-7'>
           <Card>
             <CardHeader>
               <CardTitle>Pacotes do Aluno</CardTitle>
             </CardHeader>
             <CardContent>
-              {loadingPacotes && (
-                <div className="text-muted">Carregando...</div>
-              )}
+              {loadingPacotes && <div className='text-muted'>Carregando...</div>}
               {!loadingPacotes && (
-                <div className="table-responsive" style={{ maxHeight: 400 }}>
-                  <table className="table table-sm align-middle">
-                    <thead className="table-light">
+                <div className='table-responsive' style={{ maxHeight: 400 }}>
+                  <table className='table table-sm align-middle'>
+                    <thead className='table-light'>
                       <tr>
                         <th>Descrição</th>
                         <th>Período</th>
@@ -302,7 +277,7 @@ export default function PacotesPage() {
                         <tr key={p.id}>
                           <td>{p.descricao}</td>
                           <td>
-                            {new Date(p.data_inicio).toLocaleDateString()} -{" "}
+                            {new Date(p.data_inicio).toLocaleDateString()} -{' '}
                             {new Date(p.data_fim).toLocaleDateString()}
                           </td>
                           <td>
@@ -310,27 +285,27 @@ export default function PacotesPage() {
                           </td>
                           <td>
                             {p.usos_dia_hoje}
-                            {p.max_usos_dia ? `/${p.max_usos_dia}` : ""}
+                            {p.max_usos_dia ? `/${p.max_usos_dia}` : ''}
                           </td>
                           <td>
                             <span
                               className={
-                                "badge " +
-                                (p.status === "ATIVO"
-                                  ? "bg-success"
-                                  : p.status === "CONSUMIDO"
-                                  ? "bg-secondary"
-                                  : "bg-warning text-dark")
+                                'badge ' +
+                                (p.status === 'ATIVO'
+                                  ? 'bg-success'
+                                  : p.status === 'CONSUMIDO'
+                                  ? 'bg-secondary'
+                                  : 'bg-warning text-dark')
                               }
                             >
                               {p.status}
                             </span>
                           </td>
                           <td>
-                            {p.status === "ATIVO" && p.usos_restantes > 0 && (
+                            {p.status === 'ATIVO' && p.usos_restantes > 0 && (
                               <Button
-                                size="small"
-                                variant="primary"
+                                size='small'
+                                variant='primary'
                                 loading={pacoteUtilizando === p.id}
                                 onClick={() => utilizarPacote(p.id)}
                               >
@@ -342,7 +317,7 @@ export default function PacotesPage() {
                       ))}
                       {pacotesAluno.length === 0 && (
                         <tr>
-                          <td colSpan={6} className="text-center text-muted">
+                          <td colSpan={6} className='text-center text-muted'>
                             Nenhum pacote
                           </td>
                         </tr>
@@ -357,71 +332,71 @@ export default function PacotesPage() {
       </div>
 
       {formTipoOpen && (
-        <div className="modal d-block" tabIndex={-1} role="dialog">
-          <div className="modal-dialog">
-            <div className="modal-content">
+        <div className='modal d-block' tabIndex={-1} role='dialog'>
+          <div className='modal-dialog'>
+            <div className='modal-content'>
               <form onSubmit={editTipo ? atualizarTipo : salvarTipo}>
-                <div className="modal-header">
-                  <h5 className="modal-title">
-                    {editTipo ? "Editar Tipo de Pacote" : "Novo Tipo de Pacote"}
+                <div className='modal-header'>
+                  <h5 className='modal-title'>
+                    {editTipo ? 'Editar Tipo de Pacote' : 'Novo Tipo de Pacote'}
                   </h5>
                   <button
-                    type="button"
-                    className="btn-close"
+                    type='button'
+                    className='btn-close'
                     onClick={() => {
                       setFormTipoOpen(false);
                       setEditTipo(null);
                     }}
                   />
                 </div>
-                <div className="modal-body vstack gap-2">
-                  {!editTipo && <Input name="codigo" label="Código" required />}
+                <div className='modal-body vstack gap-2'>
+                  {!editTipo && <Input name='codigo' label='Código' required />}
                   <Input
-                    name="descricao"
-                    label="Descrição"
+                    name='descricao'
+                    label='Descrição'
                     required
                     defaultValue={editTipo?.descricao}
                   />
                   <Input
-                    type="number"
-                    name="dias_validade"
-                    label="Dias de Validade"
+                    type='number'
+                    name='dias_validade'
+                    label='Dias de Validade'
                     required
                     defaultValue={editTipo?.dias_validade}
                   />
                   <Input
-                    type="number"
-                    name="max_usos_dia"
-                    label="Máx usos/dia (opcional)"
-                    defaultValue={editTipo?.max_usos_dia ?? ""}
+                    type='number'
+                    name='max_usos_dia'
+                    label='Máx usos/dia (opcional)'
+                    defaultValue={editTipo?.max_usos_dia ?? ''}
                   />
                   <Input
-                    type="number"
-                    step="0.01"
-                    name="preco"
-                    label="Preço"
+                    type='number'
+                    step='0.01'
+                    name='preco'
+                    label='Preço'
                     required
                     defaultValue={editTipo?.preco}
                   />
                   {editTipo && (
-                    <div className="form-check">
+                    <div className='form-check'>
                       <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id="ativo"
-                        name="ativo"
+                        className='form-check-input'
+                        type='checkbox'
+                        id='ativo'
+                        name='ativo'
                         defaultChecked={editTipo.ativo === 1}
                       />
-                      <label className="form-check-label" htmlFor="ativo">
+                      <label className='form-check-label' htmlFor='ativo'>
                         Ativo
                       </label>
                     </div>
                   )}
                 </div>
-                <div className="modal-footer">
+                <div className='modal-footer'>
                   <Button
-                    type="button"
-                    variant="outline"
+                    type='button'
+                    variant='outline'
                     onClick={() => {
                       setFormTipoOpen(false);
                       setEditTipo(null);
@@ -429,7 +404,7 @@ export default function PacotesPage() {
                   >
                     Cancelar
                   </Button>
-                  <Button type="submit" variant="primary">
+                  <Button type='submit' variant='primary'>
                     Salvar
                   </Button>
                 </div>
@@ -440,27 +415,22 @@ export default function PacotesPage() {
       )}
 
       {formCompraOpen && (
-        <div className="modal d-block" tabIndex={-1} role="dialog">
-          <div className="modal-dialog">
-            <div className="modal-content">
+        <div className='modal d-block' tabIndex={-1} role='dialog'>
+          <div className='modal-dialog'>
+            <div className='modal-content'>
               <form onSubmit={comprarPacote}>
-                <div className="modal-header">
-                  <h5 className="modal-title">Comprar Pacote</h5>
+                <div className='modal-header'>
+                  <h5 className='modal-title'>Comprar Pacote</h5>
                   <button
-                    type="button"
-                    className="btn-close"
+                    type='button'
+                    className='btn-close'
                     onClick={() => setFormCompraOpen(false)}
                   />
                 </div>
-                <div className="modal-body vstack gap-2">
-                  <label className="form-label">Tipo de Pacote</label>
-                  <select
-                    name="pacote_tipo_id"
-                    className="form-select"
-                    required
-                    defaultValue=""
-                  >
-                    <option value="" disabled>
+                <div className='modal-body vstack gap-2'>
+                  <label className='form-label'>Tipo de Pacote</label>
+                  <select name='pacote_tipo_id' className='form-select' required defaultValue=''>
+                    <option value='' disabled>
                       Selecione...
                     </option>
                     {tipos
@@ -471,17 +441,13 @@ export default function PacotesPage() {
                         </option>
                       ))}
                   </select>
-                  <Input type="date" name="data_inicio" label="Data Início" />
+                  <Input type='date' name='data_inicio' label='Data Início' />
                 </div>
-                <div className="modal-footer">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setFormCompraOpen(false)}
-                  >
+                <div className='modal-footer'>
+                  <Button type='button' variant='outline' onClick={() => setFormCompraOpen(false)}>
                     Cancelar
                   </Button>
-                  <Button type="submit" variant="primary">
+                  <Button type='submit' variant='primary'>
                     Confirmar
                   </Button>
                 </div>

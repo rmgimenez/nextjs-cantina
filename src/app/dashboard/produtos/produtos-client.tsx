@@ -1,35 +1,27 @@
-"use client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+'use client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { formatarMoeda } from '@/lib/formatters';
+import { useCallback, useEffect, useMemo, useOptimistic, useState, useTransition } from 'react';
 import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useOptimistic,
-  useState,
-  useTransition,
-} from "react";
-import {
+  FiAlertTriangle,
+  FiCheckCircle,
+  FiChevronLeft,
+  FiChevronRight,
+  FiDollarSign,
   FiEdit,
-  FiFilter,
+  FiEye,
+  FiEyeOff,
+  FiInfo,
+  FiPackage,
   FiPlus,
   FiRefreshCw,
   FiSearch,
   FiTrash,
   FiTrendingDown,
-  FiChevronLeft,
-  FiChevronRight,
-  FiAlertTriangle,
-  FiCheckCircle,
   FiXCircle,
-  FiInfo,
-  FiPackage,
-  FiDollarSign,
-  FiTrendingUp,
-  FiEye,
-  FiEyeOff,
-} from "react-icons/fi";
+} from 'react-icons/fi';
 
 interface TipoProduto {
   id: number;
@@ -59,7 +51,7 @@ interface Props {
 
 interface ToastMessage {
   id: string;
-  type: "success" | "error" | "warning" | "info";
+  type: 'success' | 'error' | 'warning' | 'info';
   message: string;
 }
 
@@ -70,33 +62,30 @@ interface FormErrors {
 // Helper seguro para formatar preços
 function formatCurrency(value: any): string {
   const n = Number(value);
-  if (Number.isNaN(n)) return "0.00";
-  return n.toFixed(2);
+  if (Number.isNaN(n)) return 'R$ 0,00';
+  return formatarMoeda(n);
 }
 
 // Helper para formatar números
 function formatNumber(value: any): string {
   const n = Number(value);
-  if (Number.isNaN(n)) return "0";
-  return n.toLocaleString("pt-BR", {
+  if (Number.isNaN(n)) return '0';
+  return n.toLocaleString('pt-BR', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 3,
   });
 }
 
 type OptimisticAction =
-  | { type: "add-produto"; produto: Produto }
-  | { type: "update-produto"; id: number; patch: Partial<Produto> }
-  | { type: "delete-produto"; id: number }
-  | { type: "toggle-ativo"; id: number; ativo: number };
+  | { type: 'add-produto'; produto: Produto }
+  | { type: 'update-produto'; id: number; patch: Partial<Produto> }
+  | { type: 'delete-produto'; id: number }
+  | { type: 'toggle-ativo'; id: number; ativo: number };
 
-type SortField = "nome" | "tipo_descricao" | "preco_unitario" | "estoque_atual";
-type SortDirection = "asc" | "desc";
+type SortField = 'nome' | 'tipo_descricao' | 'preco_unitario' | 'estoque_atual';
+type SortDirection = 'asc' | 'desc';
 
-export default function ProdutosClient({
-  initialProdutos,
-  initialTipos,
-}: Props) {
+export default function ProdutosClient({ initialProdutos, initialTipos }: Props) {
   // Estados principais
   const [tipos, setTipos] = useState<TipoProduto[]>(initialTipos);
   const [produtos, setProdutos] = useState<Produto[]>(initialProdutos);
@@ -106,22 +95,20 @@ export default function ProdutosClient({
   const [showFormProduto, setShowFormProduto] = useState(false);
   const [showFormTipo, setShowFormTipo] = useState(false);
   const [showFormMov, setShowFormMov] = useState(false);
-  const [showConfirmDelete, setShowConfirmDelete] = useState<number | null>(
-    null
-  );
+  const [showConfirmDelete, setShowConfirmDelete] = useState<number | null>(null);
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
 
   // Estados de busca e filtros
-  const [search, setSearch] = useState("");
-  const [filtroTipo, setFiltroTipo] = useState<string>("");
-  const [filtroStatus, setFiltroStatus] = useState<string>("");
+  const [search, setSearch] = useState('');
+  const [filtroTipo, setFiltroTipo] = useState<string>('');
+  const [filtroStatus, setFiltroStatus] = useState<string>('');
   const [showFiltros, setShowFiltros] = useState(false);
 
   // Estados de paginação e ordenação
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  const [sortField, setSortField] = useState<SortField>("nome");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [sortField, setSortField] = useState<SortField>('nome');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   // Estados de formulário
   const [formErrors, setFormErrors] = useState<FormErrors>({});
@@ -130,39 +117,32 @@ export default function ProdutosClient({
   // Estados de notificações
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  const [optimisticProdutos, applyOptimistic] = useOptimistic<
-    Produto[],
-    OptimisticAction
-  >(produtos, (state, action) => {
-    switch (action.type) {
-      case "add-produto":
-        return [action.produto, ...state];
-      case "update-produto":
-        return state.map((p) =>
-          p.id === action.id ? { ...p, ...action.patch } : p
-        );
-      case "delete-produto":
-        return state.filter((p) => p.id !== action.id);
-      case "toggle-ativo":
-        return state.map((p) =>
-          p.id === action.id ? { ...p, ativo: action.ativo } : p
-        );
-      default:
-        return state;
+  const [optimisticProdutos, applyOptimistic] = useOptimistic<Produto[], OptimisticAction>(
+    produtos,
+    (state, action) => {
+      switch (action.type) {
+        case 'add-produto':
+          return [action.produto, ...state];
+        case 'update-produto':
+          return state.map((p) => (p.id === action.id ? { ...p, ...action.patch } : p));
+        case 'delete-produto':
+          return state.filter((p) => p.id !== action.id);
+        case 'toggle-ativo':
+          return state.map((p) => (p.id === action.id ? { ...p, ativo: action.ativo } : p));
+        default:
+          return state;
+      }
     }
-  });
+  );
 
   // Função para adicionar toast
-  const addToast = useCallback(
-    (type: ToastMessage["type"], message: string) => {
-      const id = Date.now().toString();
-      setToasts((prev) => [...prev, { id, type, message }]);
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-      }, 5000);
-    },
-    []
-  );
+  const addToast = useCallback((type: ToastMessage['type'], message: string) => {
+    const id = Date.now().toString();
+    setToasts((prev) => [...prev, { id, type, message }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 5000);
+  }, []);
 
   // Função para remover toast
   const removeToast = useCallback((id: string) => {
@@ -175,38 +155,36 @@ export default function ProdutosClient({
       const errors: FormErrors = {};
 
       if (isTipo) {
-        const descricao = formData.get("descricao")?.toString().trim();
-        const codigo = formData.get("codigo")?.toString().trim();
+        const descricao = formData.get('descricao')?.toString().trim();
+        const codigo = formData.get('codigo')?.toString().trim();
 
         if (!descricao || descricao.length < 2) {
-          errors.descricao = "Descrição deve ter pelo menos 2 caracteres";
+          errors.descricao = 'Descrição deve ter pelo menos 2 caracteres';
         }
         if (!codigo || codigo.length < 2) {
-          errors.codigo = "Código deve ter pelo menos 2 caracteres";
+          errors.codigo = 'Código deve ter pelo menos 2 caracteres';
         }
         if (
           codigo &&
           tipos.some(
-            (t) =>
-              t.codigo.toLowerCase() === codigo.toLowerCase() &&
-              t.id !== selectedProduto?.id
+            (t) => t.codigo.toLowerCase() === codigo.toLowerCase() && t.id !== selectedProduto?.id
           )
         ) {
-          errors.codigo = "Este código já está em uso";
+          errors.codigo = 'Este código já está em uso';
         }
       } else {
-        const nome = formData.get("nome")?.toString().trim();
-        const preco = Number(formData.get("preco"));
-        const tipoId = Number(formData.get("tipoId"));
+        const nome = formData.get('nome')?.toString().trim();
+        const preco = Number(formData.get('preco'));
+        const tipoId = Number(formData.get('tipoId'));
 
         if (!nome || nome.length < 2) {
-          errors.nome = "Nome deve ter pelo menos 2 caracteres";
+          errors.nome = 'Nome deve ter pelo menos 2 caracteres';
         }
         if (Number.isNaN(preco) || preco < 0) {
-          errors.preco = "Preço deve ser um valor positivo";
+          errors.preco = 'Preço deve ser um valor positivo';
         }
         if (!selectedProduto && !tipoId) {
-          errors.tipoId = "Tipo de produto é obrigatório";
+          errors.tipoId = 'Tipo de produto é obrigatório';
         }
       }
 
@@ -221,18 +199,17 @@ export default function ProdutosClient({
       const matchesSearch =
         !search ||
         p.nome.toLowerCase().includes(search.toLowerCase()) ||
-        (p.codigo_barra || "").includes(search) ||
+        (p.codigo_barra || '').includes(search) ||
         p.tipo_descricao.toLowerCase().includes(search.toLowerCase());
 
       const matchesTipo = !filtroTipo || p.tipo_descricao === filtroTipo;
 
       const matchesStatus =
         !filtroStatus ||
-        (filtroStatus === "ativo" && p.ativo === 1) ||
-        (filtroStatus === "inativo" && p.ativo === 0) ||
-        (filtroStatus === "baixo_estoque" &&
-          p.estoque_atual <= (p.estoque_minimo ?? 0)) ||
-        (filtroStatus === "sem_estoque" && p.estoque_atual === 0);
+        (filtroStatus === 'ativo' && p.ativo === 1) ||
+        (filtroStatus === 'inativo' && p.ativo === 0) ||
+        (filtroStatus === 'baixo_estoque' && p.estoque_atual <= (p.estoque_minimo ?? 0)) ||
+        (filtroStatus === 'sem_estoque' && p.estoque_atual === 0);
 
       return matchesSearch && matchesTipo && matchesStatus;
     });
@@ -242,25 +219,18 @@ export default function ProdutosClient({
       let aValue: any = a[sortField];
       let bValue: any = b[sortField];
 
-      if (typeof aValue === "string") {
+      if (typeof aValue === 'string') {
         aValue = aValue.toLowerCase();
         bValue = bValue.toLowerCase();
       }
 
-      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
-      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
 
     return filtered;
-  }, [
-    optimisticProdutos,
-    search,
-    filtroTipo,
-    filtroStatus,
-    sortField,
-    sortDirection,
-  ]);
+  }, [optimisticProdutos, search, filtroTipo, filtroStatus, sortField, sortDirection]);
 
   // Paginação
   const totalPages = Math.ceil(filteredAndSorted.length / itemsPerPage);
@@ -273,10 +243,10 @@ export default function ProdutosClient({
   const handleSort = useCallback(
     (field: SortField) => {
       if (sortField === field) {
-        setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+        setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
       } else {
         setSortField(field);
-        setSortDirection("asc");
+        setSortDirection('asc');
       }
       setCurrentPage(1);
     },
@@ -287,31 +257,31 @@ export default function ProdutosClient({
   const reloadProdutos = useCallback(async () => {
     startTransition(async () => {
       try {
-        const res = await fetch("/api/produtos");
+        const res = await fetch('/api/produtos');
         if (res.ok) {
           const data = await res.json();
           setProdutos(data.produtos);
-          addToast("success", "Produtos atualizados com sucesso");
+          addToast('success', 'Produtos atualizados com sucesso');
         } else {
-          addToast("error", "Erro ao carregar produtos");
+          addToast('error', 'Erro ao carregar produtos');
         }
       } catch (error) {
-        addToast("error", "Erro de conexão ao carregar produtos");
+        addToast('error', 'Erro de conexão ao carregar produtos');
       }
     });
   }, [addToast]);
 
   const reloadTipos = useCallback(async () => {
     try {
-      const res = await fetch("/api/produtos/tipos");
+      const res = await fetch('/api/produtos/tipos');
       if (res.ok) {
         const data = await res.json();
         setTipos(data.tipos);
       } else {
-        addToast("error", "Erro ao carregar tipos de produto");
+        addToast('error', 'Erro ao carregar tipos de produto');
       }
     } catch (error) {
-      addToast("error", "Erro de conexão ao carregar tipos");
+      addToast('error', 'Erro de conexão ao carregar tipos');
     }
   }, [addToast]);
 
@@ -334,26 +304,26 @@ export default function ProdutosClient({
     setIsSubmitting(true);
 
     try {
-      const descricao = form.get("descricao")?.toString().trim();
-      const codigo = form.get("codigo")?.toString().trim();
-      const exige_peso = form.get("exige_peso") === "on";
+      const descricao = form.get('descricao')?.toString().trim();
+      const codigo = form.get('codigo')?.toString().trim();
+      const exige_peso = form.get('exige_peso') === 'on';
 
-      const res = await fetch("/api/produtos/tipos", {
-        method: "POST",
+      const res = await fetch('/api/produtos/tipos', {
+        method: 'POST',
         body: JSON.stringify({ descricao, codigo, exigePeso: exige_peso }),
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
       });
 
       if (res.ok) {
         await reloadTipos();
         setShowFormTipo(false);
-        addToast("success", "Tipo de produto criado com sucesso");
+        addToast('success', 'Tipo de produto criado com sucesso');
       } else {
         const error = await res.json();
-        addToast("error", error.message || "Erro ao criar tipo de produto");
+        addToast('error', error.message || 'Erro ao criar tipo de produto');
       }
     } catch (error) {
-      addToast("error", "Erro de conexão ao criar tipo");
+      addToast('error', 'Erro de conexão ao criar tipo');
     } finally {
       setIsSubmitting(false);
     }
@@ -370,20 +340,17 @@ export default function ProdutosClient({
     setIsSubmitting(true);
 
     try {
-      const tipoId = Number(form.get("tipoId"));
-      const nome = form.get("nome")?.toString().trim() || "";
-      const precoUnitario = Number(form.get("preco"));
-      const codigoBarra =
-        form.get("codigo_barra")?.toString().trim() || undefined;
-      const estoqueMinimo = form.get("estoque_minimo")
-        ? Number(form.get("estoque_minimo"))
-        : 0;
+      const tipoId = Number(form.get('tipoId'));
+      const nome = form.get('nome')?.toString().trim() || '';
+      const precoUnitario = Number(form.get('preco'));
+      const codigoBarra = form.get('codigo_barra')?.toString().trim() || undefined;
+      const estoqueMinimo = form.get('estoque_minimo') ? Number(form.get('estoque_minimo')) : 0;
 
       const tempId = Date.now() * -1;
       const tipo = tipos.find((t) => t.id === tipoId)!;
 
       applyOptimistic({
-        type: "add-produto",
+        type: 'add-produto',
         produto: {
           id: tempId,
           nome,
@@ -391,16 +358,16 @@ export default function ProdutosClient({
           codigo_barra: codigoBarra,
           estoque_minimo: estoqueMinimo,
           ativo: 1,
-          descricao: "",
+          descricao: '',
           tipo_descricao: tipo.descricao,
           tipo_codigo: tipo.codigo,
           estoque_atual: 0,
         },
       });
 
-      const res = await fetch("/api/produtos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/produtos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tipoId,
           nome,
@@ -413,15 +380,15 @@ export default function ProdutosClient({
       if (res.ok) {
         await reloadProdutos();
         setShowFormProduto(false);
-        addToast("success", "Produto criado com sucesso");
+        addToast('success', 'Produto criado com sucesso');
       } else {
         await reloadProdutos(); // Reverte optimistic update
         const error = await res.json();
-        addToast("error", error.message || "Erro ao criar produto");
+        addToast('error', error.message || 'Erro ao criar produto');
       }
     } catch (error) {
       await reloadProdutos(); // Reverte optimistic update
-      addToast("error", "Erro de conexão ao criar produto");
+      addToast('error', 'Erro de conexão ao criar produto');
     } finally {
       setIsSubmitting(false);
     }
@@ -441,23 +408,22 @@ export default function ProdutosClient({
 
     try {
       const patch: any = {};
-      const nome = form.get("nome")?.toString().trim();
+      const nome = form.get('nome')?.toString().trim();
       if (nome) patch.nome = nome;
-      const preco = form.get("preco");
+      const preco = form.get('preco');
       if (preco) patch.preco_unitario = Number(preco);
-      const estoqueMinimo = form.get("estoque_minimo");
-      if (estoqueMinimo !== undefined)
-        patch.estoque_minimo = Number(estoqueMinimo);
+      const estoqueMinimo = form.get('estoque_minimo');
+      if (estoqueMinimo !== undefined) patch.estoque_minimo = Number(estoqueMinimo);
 
       applyOptimistic({
-        type: "update-produto",
+        type: 'update-produto',
         id: selectedProduto.id,
         patch,
       });
 
-      const res = await fetch("/api/produtos", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/produtos', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: selectedProduto.id, ...patch }),
       });
 
@@ -465,15 +431,15 @@ export default function ProdutosClient({
         await reloadProdutos();
         setSelectedProduto(null);
         setShowFormProduto(false);
-        addToast("success", "Produto atualizado com sucesso");
+        addToast('success', 'Produto atualizado com sucesso');
       } else {
         await reloadProdutos(); // Reverte optimistic update
         const error = await res.json();
-        addToast("error", error.message || "Erro ao atualizar produto");
+        addToast('error', error.message || 'Erro ao atualizar produto');
       }
     } catch (error) {
       await reloadProdutos(); // Reverte optimistic update
-      addToast("error", "Erro de conexão ao atualizar produto");
+      addToast('error', 'Erro de conexão ao atualizar produto');
     } finally {
       setIsSubmitting(false);
     }
@@ -482,126 +448,118 @@ export default function ProdutosClient({
   async function handleDeleteProduto(id: number) {
     setIsSubmitting(true);
     try {
-      applyOptimistic({ type: "delete-produto", id });
+      applyOptimistic({ type: 'delete-produto', id });
 
-      const res = await fetch("/api/produtos", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/produtos', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       });
 
       if (res.ok) {
         setShowConfirmDelete(null);
-        addToast("success", "Produto excluído com sucesso");
+        addToast('success', 'Produto excluído com sucesso');
       } else {
         await reloadProdutos(); // Reverte optimistic update
         const error = await res.json();
-        addToast("error", error.message || "Erro ao excluir produto");
+        addToast('error', error.message || 'Erro ao excluir produto');
       }
     } catch (error) {
       await reloadProdutos(); // Reverte optimistic update
-      addToast("error", "Erro de conexão ao excluir produto");
+      addToast('error', 'Erro de conexão ao excluir produto');
     } finally {
       setIsSubmitting(false);
     }
   }
 
   async function handleToggleAtivo(id: number, ativo: number) {
-    applyOptimistic({ type: "toggle-ativo", id, ativo });
+    applyOptimistic({ type: 'toggle-ativo', id, ativo });
 
     try {
-      const res = await fetch("/api/produtos", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/produtos', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, ativo }),
       });
 
       if (!res.ok) {
         await reloadProdutos(); // Reverte optimistic update
-        addToast("error", "Erro ao alterar status do produto");
+        addToast('error', 'Erro ao alterar status do produto');
       } else {
-        addToast(
-          "success",
-          `Produto ${ativo ? "ativado" : "desativado"} com sucesso`
-        );
+        addToast('success', `Produto ${ativo ? 'ativado' : 'desativado'} com sucesso`);
       }
     } catch (error) {
       await reloadProdutos(); // Reverte optimistic update
-      addToast("error", "Erro de conexão");
+      addToast('error', 'Erro de conexão');
     }
   }
 
   async function handleMovimentacao(form: FormData) {
-    const produtoId = Number(form.get("produtoId"));
-    const tipoMov = form.get("tipo_mov")?.toString();
-    const quantidade = Number(form.get("quantidade"));
-    const observacao = form.get("observacao")?.toString().trim();
+    const produtoId = Number(form.get('produtoId'));
+    const tipoMov = form.get('tipo_mov')?.toString();
+    const quantidade = Number(form.get('quantidade'));
+    const observacao = form.get('observacao')?.toString().trim();
 
     if (!produtoId || !tipoMov || !quantidade) {
-      addToast("warning", "Preencha todos os campos obrigatórios");
+      addToast('warning', 'Preencha todos os campos obrigatórios');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const mult = ["ENTRADA", "AJUSTE_POSITIVO"].includes(tipoMov) ? 1 : -1;
+      const mult = ['ENTRADA', 'AJUSTE_POSITIVO'].includes(tipoMov) ? 1 : -1;
       applyOptimistic({
-        type: "update-produto",
+        type: 'update-produto',
         id: produtoId,
         patch: {
           estoque_atual:
-            (optimisticProdutos.find((p) => p.id === produtoId)
-              ?.estoque_atual || 0) +
+            (optimisticProdutos.find((p) => p.id === produtoId)?.estoque_atual || 0) +
             mult * quantidade,
         },
       });
 
-      const res = await fetch("/api/estoque/movimentacoes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/estoque/movimentacoes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ produtoId, tipoMov, quantidade, observacao }),
       });
 
       if (res.ok) {
         await reloadProdutos();
         setShowFormMov(false);
-        addToast("success", "Movimentação registrada com sucesso");
+        addToast('success', 'Movimentação registrada com sucesso');
       } else {
         await reloadProdutos(); // Reverte optimistic update
         const error = await res.json();
-        addToast("error", error.message || "Erro ao registrar movimentação");
+        addToast('error', error.message || 'Erro ao registrar movimentação');
       }
     } catch (error) {
       await reloadProdutos(); // Reverte optimistic update
-      addToast("error", "Erro de conexão ao registrar movimentação");
+      addToast('error', 'Erro de conexão ao registrar movimentação');
     } finally {
       setIsSubmitting(false);
     }
   }
 
   // Função para obter badge de status
-  function getStatusBadge(
-    stock: number,
-    estoqueMinimo?: number,
-    ativo?: number
-  ) {
+  function getStatusBadge(stock: number, estoqueMinimo?: number, ativo?: number) {
     if (ativo === 0) {
-      return <span className="badge bg-secondary">Inativo</span>;
+      return <span className='badge bg-secondary'>Inativo</span>;
     }
     if (stock === 0) {
-      return <span className="badge bg-danger">Sem Estoque</span>;
+      return <span className='badge bg-danger'>Sem Estoque</span>;
     }
     if (stock <= (estoqueMinimo ?? 0)) {
-      return <span className="badge bg-warning text-dark">Baixo</span>;
+      return <span className='badge bg-warning text-dark'>Baixo</span>;
     }
-    return <span className="badge bg-success">OK</span>;
+    return <span className='badge bg-success'>OK</span>;
   }
 
   // Função para obter ícone de ordenação
   function getSortIcon(field: SortField) {
     if (sortField !== field) return null;
-    return sortDirection === "asc" ? "↑" : "↓";
+    return sortDirection === 'asc' ? '↑' : '↓';
   }
 
   // Atalhos de teclado
@@ -609,19 +567,19 @@ export default function ProdutosClient({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
         switch (e.key) {
-          case "n":
+          case 'n':
             e.preventDefault();
             if (!showFormProduto && !showFormTipo && !showFormMov) {
               setShowFormProduto(true);
             }
             break;
-          case "t":
+          case 't':
             e.preventDefault();
             if (!showFormProduto && !showFormTipo && !showFormMov) {
               setShowFormTipo(true);
             }
             break;
-          case "r":
+          case 'r':
             e.preventDefault();
             reloadProdutos();
             break;
@@ -629,41 +587,39 @@ export default function ProdutosClient({
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, [showFormProduto, showFormTipo, showFormMov, reloadProdutos]);
 
   return (
-    <div className="space-y-4">
+    <div className='space-y-4'>
       {/* Toast Notifications */}
-      <div className="position-fixed top-0 end-0 p-3" style={{ zIndex: 1050 }}>
+      <div className='position-fixed top-0 end-0 p-3' style={{ zIndex: 1050 }}>
         {toasts.map((toast) => (
           <div
             key={toast.id}
             className={`toast show align-items-center text-white bg-${
-              toast.type === "error"
-                ? "danger"
-                : toast.type === "warning"
-                ? "warning"
-                : toast.type === "success"
-                ? "success"
-                : "info"
+              toast.type === 'error'
+                ? 'danger'
+                : toast.type === 'warning'
+                ? 'warning'
+                : toast.type === 'success'
+                ? 'success'
+                : 'info'
             } border-0`}
-            role="alert"
+            role='alert'
           >
-            <div className="d-flex">
-              <div className="toast-body">
-                {toast.type === "success" && <FiCheckCircle className="me-2" />}
-                {toast.type === "error" && <FiXCircle className="me-2" />}
-                {toast.type === "warning" && (
-                  <FiAlertTriangle className="me-2" />
-                )}
-                {toast.type === "info" && <FiInfo className="me-2" />}
+            <div className='d-flex'>
+              <div className='toast-body'>
+                {toast.type === 'success' && <FiCheckCircle className='me-2' />}
+                {toast.type === 'error' && <FiXCircle className='me-2' />}
+                {toast.type === 'warning' && <FiAlertTriangle className='me-2' />}
+                {toast.type === 'info' && <FiInfo className='me-2' />}
                 {toast.message}
               </div>
               <button
-                type="button"
-                className="btn-close btn-close-white me-2 m-auto"
+                type='button'
+                className='btn-close btn-close-white me-2 m-auto'
                 onClick={() => removeToast(toast.id)}
               />
             </div>
@@ -672,11 +628,11 @@ export default function ProdutosClient({
       </div>
 
       {/* Header com ações */}
-      <div className="d-flex flex-wrap gap-2 align-items-center justify-content-between">
-        <div className="d-flex flex-wrap gap-2 align-items-center flex-grow-1">
+      <div className='d-flex flex-wrap gap-2 align-items-center justify-content-between'>
+        <div className='d-flex flex-wrap gap-2 align-items-center flex-grow-1'>
           <div style={{ minWidth: 250 }}>
             <Input
-              placeholder="Buscar produtos..."
+              placeholder='Buscar produtos...'
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -686,44 +642,40 @@ export default function ProdutosClient({
             />
           </div>
           <Button
-            variant="outline"
+            variant='outline'
             icon={showFiltros ? <FiEyeOff /> : <FiEye />}
             onClick={() => setShowFiltros(!showFiltros)}
           >
-            {showFiltros ? "Ocultar" : "Mostrar"} Filtros
+            {showFiltros ? 'Ocultar' : 'Mostrar'} Filtros
           </Button>
         </div>
 
-        <div className="d-flex flex-wrap gap-2 align-items-center">
+        <div className='d-flex flex-wrap gap-2 align-items-center'>
           <Button
-            variant="secondary"
+            variant='secondary'
             icon={<FiPlus />}
             onClick={() => setShowFormTipo(true)}
-            title="Novo Tipo (Ctrl+T)"
+            title='Novo Tipo (Ctrl+T)'
           >
             Novo Tipo
           </Button>
           <Button
-            variant="primary"
+            variant='primary'
             icon={<FiPlus />}
             onClick={() => setShowFormProduto(true)}
-            title="Novo Produto (Ctrl+N)"
+            title='Novo Produto (Ctrl+N)'
           >
             Novo Produto
           </Button>
-          <Button
-            variant="success"
-            icon={<FiTrendingDown />}
-            onClick={() => setShowFormMov(true)}
-          >
+          <Button variant='success' icon={<FiTrendingDown />} onClick={() => setShowFormMov(true)}>
             Movimentação
           </Button>
           <Button
-            variant="outline"
+            variant='outline'
             icon={<FiRefreshCw />}
             loading={isPending}
             onClick={reloadProdutos}
-            title="Atualizar (Ctrl+R)"
+            title='Atualizar (Ctrl+R)'
           >
             Atualizar
           </Button>
@@ -733,19 +685,19 @@ export default function ProdutosClient({
       {/* Filtros avançados */}
       {showFiltros && (
         <Card>
-          <CardContent className="pt-3">
-            <div className="row g-3">
-              <div className="col-md-4">
-                <label className="form-label">Tipo de Produto</label>
+          <CardContent className='pt-3'>
+            <div className='row g-3'>
+              <div className='col-md-4'>
+                <label className='form-label'>Tipo de Produto</label>
                 <select
-                  className="form-select"
+                  className='form-select'
                   value={filtroTipo}
                   onChange={(e) => {
                     setFiltroTipo(e.target.value);
                     setCurrentPage(1);
                   }}
                 >
-                  <option value="">Todos os tipos</option>
+                  <option value=''>Todos os tipos</option>
                   {tipos.map((t) => (
                     <option key={t.id} value={t.descricao}>
                       {t.descricao}
@@ -753,30 +705,30 @@ export default function ProdutosClient({
                   ))}
                 </select>
               </div>
-              <div className="col-md-4">
-                <label className="form-label">Status</label>
+              <div className='col-md-4'>
+                <label className='form-label'>Status</label>
                 <select
-                  className="form-select"
+                  className='form-select'
                   value={filtroStatus}
                   onChange={(e) => {
                     setFiltroStatus(e.target.value);
                     setCurrentPage(1);
                   }}
                 >
-                  <option value="">Todos os status</option>
-                  <option value="ativo">Ativo</option>
-                  <option value="inativo">Inativo</option>
-                  <option value="baixo_estoque">Baixo Estoque</option>
-                  <option value="sem_estoque">Sem Estoque</option>
+                  <option value=''>Todos os status</option>
+                  <option value='ativo'>Ativo</option>
+                  <option value='inativo'>Inativo</option>
+                  <option value='baixo_estoque'>Baixo Estoque</option>
+                  <option value='sem_estoque'>Sem Estoque</option>
                 </select>
               </div>
-              <div className="col-md-4 d-flex align-items-end">
+              <div className='col-md-4 d-flex align-items-end'>
                 <Button
-                  variant="outline"
+                  variant='outline'
                   onClick={() => {
-                    setSearch("");
-                    setFiltroTipo("");
-                    setFiltroStatus("");
+                    setSearch('');
+                    setFiltroTipo('');
+                    setFiltroStatus('');
                     setCurrentPage(1);
                   }}
                 >
@@ -789,49 +741,30 @@ export default function ProdutosClient({
       )}
 
       {/* Cards de estatísticas */}
-      <div className="row g-3">
-        <div className="col-sm-6 col-md-3">
+      <div className='row g-3'>
+        <div className='col-sm-6 col-md-3'>
           <Card>
-            <CardContent className="pt-3">
-              <div className="d-flex align-items-center">
-                <FiPackage className="text-primary me-2" size={24} />
+            <CardContent className='pt-3'>
+              <div className='d-flex align-items-center'>
+                <FiPackage className='text-primary me-2' size={24} />
                 <div>
-                  <p className="text-muted mb-1 small">Total de Produtos</p>
-                  <h5 className="mb-0">{filteredAndSorted.length}</h5>
+                  <p className='text-muted mb-1 small'>Total de Produtos</p>
+                  <h5 className='mb-0'>{filteredAndSorted.length}</h5>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-        <div className="col-sm-6 col-md-3">
+        <div className='col-sm-6 col-md-3'>
           <Card>
-            <CardContent className="pt-3">
-              <div className="d-flex align-items-center">
-                <FiTrendingDown className="text-warning me-2" size={24} />
+            <CardContent className='pt-3'>
+              <div className='d-flex align-items-center'>
+                <FiTrendingDown className='text-warning me-2' size={24} />
                 <div>
-                  <p className="text-muted mb-1 small">Baixo Estoque</p>
-                  <h5 className="mb-0">
+                  <p className='text-muted mb-1 small'>Baixo Estoque</p>
+                  <h5 className='mb-0'>
                     {
-                      filteredAndSorted.filter(
-                        (p) => p.estoque_atual <= (p.estoque_minimo ?? 0)
-                      ).length
-                    }
-                  </h5>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        <div className="col-sm-6 col-md-3">
-          <Card>
-            <CardContent className="pt-3">
-              <div className="d-flex align-items-center">
-                <FiXCircle className="text-danger me-2" size={24} />
-                <div>
-                  <p className="text-muted mb-1 small">Sem Estoque</p>
-                  <h5 className="mb-0">
-                    {
-                      filteredAndSorted.filter((p) => p.estoque_atual === 0)
+                      filteredAndSorted.filter((p) => p.estoque_atual <= (p.estoque_minimo ?? 0))
                         .length
                     }
                   </h5>
@@ -840,20 +773,33 @@ export default function ProdutosClient({
             </CardContent>
           </Card>
         </div>
-        <div className="col-sm-6 col-md-3">
+        <div className='col-sm-6 col-md-3'>
           <Card>
-            <CardContent className="pt-3">
-              <div className="d-flex align-items-center">
-                <FiDollarSign className="text-success me-2" size={24} />
+            <CardContent className='pt-3'>
+              <div className='d-flex align-items-center'>
+                <FiXCircle className='text-danger me-2' size={24} />
                 <div>
-                  <p className="text-muted mb-1 small">Valor Total</p>
-                  <h5 className="mb-0">
-                    R${" "}
+                  <p className='text-muted mb-1 small'>Sem Estoque</p>
+                  <h5 className='mb-0'>
+                    {filteredAndSorted.filter((p) => p.estoque_atual === 0).length}
+                  </h5>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <div className='col-sm-6 col-md-3'>
+          <Card>
+            <CardContent className='pt-3'>
+              <div className='d-flex align-items-center'>
+                <FiDollarSign className='text-success me-2' size={24} />
+                <div>
+                  <p className='text-muted mb-1 small'>Valor Total</p>
+                  <h5 className='mb-0'>
+                    R${' '}
                     {formatCurrency(
                       filteredAndSorted.reduce(
-                        (acc, p) =>
-                          acc +
-                          Number(p.preco_unitario) * Number(p.estoque_atual),
+                        (acc, p) => acc + Number(p.preco_unitario) * Number(p.estoque_atual),
                         0
                       )
                     )}
@@ -868,121 +814,101 @@ export default function ProdutosClient({
       {/* Tabela de produtos */}
       <Card>
         <CardHeader>
-          <div className="d-flex justify-content-between align-items-center">
+          <div className='d-flex justify-content-between align-items-center'>
             <CardTitle>Produtos ({filteredAndSorted.length})</CardTitle>
-            <div className="text-muted small">
+            <div className='text-muted small'>
               Página {currentPage} de {totalPages}
             </div>
           </div>
         </CardHeader>
         <CardContent>
           {/* Desktop Table */}
-          <div className="d-none d-md-block">
-            <div className="table-responsive">
-              <table className="table table-hover align-middle">
-                <thead className="table-light">
+          <div className='d-none d-md-block'>
+            <div className='table-responsive'>
+              <table className='table table-hover align-middle'>
+                <thead className='table-light'>
                   <tr>
-                    <th
-                      style={{ cursor: "pointer" }}
-                      onClick={() => handleSort("nome")}
-                    >
-                      Produto {getSortIcon("nome")}
+                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('nome')}>
+                      Produto {getSortIcon('nome')}
+                    </th>
+                    <th style={{ cursor: 'pointer' }} onClick={() => handleSort('tipo_descricao')}>
+                      Tipo {getSortIcon('tipo_descricao')}
                     </th>
                     <th
-                      style={{ cursor: "pointer" }}
-                      onClick={() => handleSort("tipo_descricao")}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handleSort('preco_unitario')}
+                      className='text-end'
                     >
-                      Tipo {getSortIcon("tipo_descricao")}
+                      Preço {getSortIcon('preco_unitario')}
                     </th>
                     <th
-                      style={{ cursor: "pointer" }}
-                      onClick={() => handleSort("preco_unitario")}
-                      className="text-end"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handleSort('estoque_atual')}
+                      className='text-center'
                     >
-                      Preço {getSortIcon("preco_unitario")}
+                      Estoque {getSortIcon('estoque_atual')}
                     </th>
-                    <th
-                      style={{ cursor: "pointer" }}
-                      onClick={() => handleSort("estoque_atual")}
-                      className="text-center"
-                    >
-                      Estoque {getSortIcon("estoque_atual")}
-                    </th>
-                    <th className="text-center">Status</th>
-                    <th className="text-center" style={{ width: 180 }}>
+                    <th className='text-center'>Status</th>
+                    <th className='text-center' style={{ width: 180 }}>
                       Ações
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedProdutos.map((p) => (
-                    <tr key={p.id} className={p.id < 0 ? "opacity-50" : ""}>
+                    <tr key={p.id} className={p.id < 0 ? 'opacity-50' : ''}>
                       <td>
                         <div>
                           <strong>{p.nome}</strong>
                           {p.codigo_barra && (
-                            <div className="text-muted small">
-                              Cod: {p.codigo_barra}
-                            </div>
+                            <div className='text-muted small'>Cod: {p.codigo_barra}</div>
                           )}
                         </div>
                       </td>
                       <td>{p.tipo_descricao}</td>
-                      <td className="text-end">
-                        R$ {formatCurrency(p.preco_unitario)}
-                      </td>
-                      <td className="text-center">
+                      <td className='text-end'>R$ {formatCurrency(p.preco_unitario)}</td>
+                      <td className='text-center'>
                         <span
                           className={
-                            p.estoque_atual <= (p.estoque_minimo ?? 0)
-                              ? "text-danger fw-bold"
-                              : ""
+                            p.estoque_atual <= (p.estoque_minimo ?? 0) ? 'text-danger fw-bold' : ''
                           }
                         >
                           {formatNumber(p.estoque_atual)}
                         </span>
                         {p.estoque_minimo && p.estoque_minimo > 0 && (
-                          <div className="text-muted small">
+                          <div className='text-muted small'>
                             Mín: {formatNumber(p.estoque_minimo)}
                           </div>
                         )}
                       </td>
-                      <td className="text-center">
-                        {getStatusBadge(
-                          p.estoque_atual,
-                          p.estoque_minimo,
-                          p.ativo
-                        )}
+                      <td className='text-center'>
+                        {getStatusBadge(p.estoque_atual, p.estoque_minimo, p.ativo)}
                       </td>
-                      <td className="text-center">
-                        <div className="d-flex gap-1 justify-content-center">
+                      <td className='text-center'>
+                        <div className='d-flex gap-1 justify-content-center'>
                           <Button
-                            size="small"
-                            variant="outline"
+                            size='small'
+                            variant='outline'
                             icon={<FiEdit />}
                             onClick={() => {
                               setSelectedProduto(p);
                               setShowFormProduto(true);
                             }}
-                            title="Editar produto"
+                            title='Editar produto'
                           />
                           <Button
-                            size="small"
-                            variant={p.ativo ? "warning" : "success"}
+                            size='small'
+                            variant={p.ativo ? 'warning' : 'success'}
                             icon={p.ativo ? <FiEyeOff /> : <FiEye />}
-                            onClick={() =>
-                              handleToggleAtivo(p.id, p.ativo ? 0 : 1)
-                            }
-                            title={
-                              p.ativo ? "Desativar produto" : "Ativar produto"
-                            }
+                            onClick={() => handleToggleAtivo(p.id, p.ativo ? 0 : 1)}
+                            title={p.ativo ? 'Desativar produto' : 'Ativar produto'}
                           />
                           <Button
-                            size="small"
-                            variant="danger"
+                            size='small'
+                            variant='danger'
                             icon={<FiTrash />}
                             onClick={() => setShowConfirmDelete(p.id)}
-                            title="Excluir produto"
+                            title='Excluir produto'
                           />
                         </div>
                       </td>
@@ -990,8 +916,8 @@ export default function ProdutosClient({
                   ))}
                   {paginatedProdutos.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="text-center text-muted py-5">
-                        <FiPackage size={48} className="mb-3 opacity-50" />
+                      <td colSpan={6} className='text-center text-muted py-5'>
+                        <FiPackage size={48} className='mb-3 opacity-50' />
                         <div>Nenhum produto encontrado</div>
                         <small>Verifique os filtros aplicados</small>
                       </td>
@@ -1003,51 +929,47 @@ export default function ProdutosClient({
           </div>
 
           {/* Mobile Cards */}
-          <div className="d-md-none">
+          <div className='d-md-none'>
             {paginatedProdutos.map((p) => (
-              <Card key={p.id} className="mb-3">
-                <CardContent className="p-3">
-                  <div className="d-flex justify-content-between align-items-start mb-2">
-                    <div className="flex-grow-1">
-                      <h6 className="mb-1">{p.nome}</h6>
+              <Card key={p.id} className='mb-3'>
+                <CardContent className='p-3'>
+                  <div className='d-flex justify-content-between align-items-start mb-2'>
+                    <div className='flex-grow-1'>
+                      <h6 className='mb-1'>{p.nome}</h6>
                       {p.codigo_barra && (
-                        <small className="text-muted">
-                          Cod: {p.codigo_barra}
-                        </small>
+                        <small className='text-muted'>Cod: {p.codigo_barra}</small>
                       )}
                     </div>
                     {getStatusBadge(p.estoque_atual, p.estoque_minimo, p.ativo)}
                   </div>
-                  <div className="row g-2 mb-2">
-                    <div className="col-6">
-                      <small className="text-muted d-block">Tipo</small>
+                  <div className='row g-2 mb-2'>
+                    <div className='col-6'>
+                      <small className='text-muted d-block'>Tipo</small>
                       {p.tipo_descricao}
                     </div>
-                    <div className="col-6">
-                      <small className="text-muted d-block">Preço</small>
+                    <div className='col-6'>
+                      <small className='text-muted d-block'>Preço</small>
                       R$ {formatCurrency(p.preco_unitario)}
                     </div>
-                    <div className="col-6">
-                      <small className="text-muted d-block">Estoque</small>
+                    <div className='col-6'>
+                      <small className='text-muted d-block'>Estoque</small>
                       <span
                         className={
-                          p.estoque_atual <= (p.estoque_minimo ?? 0)
-                            ? "text-danger fw-bold"
-                            : ""
+                          p.estoque_atual <= (p.estoque_minimo ?? 0) ? 'text-danger fw-bold' : ''
                         }
                       >
                         {formatNumber(p.estoque_atual)}
                       </span>
                     </div>
-                    <div className="col-6">
-                      <small className="text-muted d-block">Mínimo</small>
+                    <div className='col-6'>
+                      <small className='text-muted d-block'>Mínimo</small>
                       {formatNumber(p.estoque_minimo || 0)}
                     </div>
                   </div>
-                  <div className="d-flex gap-1">
+                  <div className='d-flex gap-1'>
                     <Button
-                      size="small"
-                      variant="outline"
+                      size='small'
+                      variant='outline'
                       icon={<FiEdit />}
                       onClick={() => {
                         setSelectedProduto(p);
@@ -1057,14 +979,14 @@ export default function ProdutosClient({
                       Editar
                     </Button>
                     <Button
-                      size="small"
-                      variant={p.ativo ? "warning" : "success"}
+                      size='small'
+                      variant={p.ativo ? 'warning' : 'success'}
                       icon={p.ativo ? <FiEyeOff /> : <FiEye />}
                       onClick={() => handleToggleAtivo(p.id, p.ativo ? 0 : 1)}
                     />
                     <Button
-                      size="small"
-                      variant="danger"
+                      size='small'
+                      variant='danger'
                       icon={<FiTrash />}
                       onClick={() => setShowConfirmDelete(p.id)}
                     />
@@ -1073,8 +995,8 @@ export default function ProdutosClient({
               </Card>
             ))}
             {paginatedProdutos.length === 0 && (
-              <div className="text-center text-muted py-5">
-                <FiPackage size={48} className="mb-3 opacity-50" />
+              <div className='text-center text-muted py-5'>
+                <FiPackage size={48} className='mb-3 opacity-50' />
                 <div>Nenhum produto encontrado</div>
                 <small>Verifique os filtros aplicados</small>
               </div>
@@ -1083,28 +1005,27 @@ export default function ProdutosClient({
 
           {/* Paginação */}
           {totalPages > 1 && (
-            <div className="d-flex justify-content-between align-items-center mt-3">
-              <div className="text-muted small">
-                Mostrando {(currentPage - 1) * itemsPerPage + 1} a{" "}
-                {Math.min(currentPage * itemsPerPage, filteredAndSorted.length)}{" "}
-                de {filteredAndSorted.length} produtos
+            <div className='d-flex justify-content-between align-items-center mt-3'>
+              <div className='text-muted small'>
+                Mostrando {(currentPage - 1) * itemsPerPage + 1} a{' '}
+                {Math.min(currentPage * itemsPerPage, filteredAndSorted.length)} de{' '}
+                {filteredAndSorted.length} produtos
               </div>
-              <div className="d-flex gap-1">
+              <div className='d-flex gap-1'>
                 <Button
-                  size="small"
-                  variant="outline"
+                  size='small'
+                  variant='outline'
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(currentPage - 1)}
                   icon={<FiChevronLeft />}
                 />
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const pageNum =
-                    Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                  const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
                   return (
                     <Button
                       key={pageNum}
-                      size="small"
-                      variant={pageNum === currentPage ? "primary" : "outline"}
+                      size='small'
+                      variant={pageNum === currentPage ? 'primary' : 'outline'}
                       onClick={() => setCurrentPage(pageNum)}
                     >
                       {pageNum}
@@ -1112,8 +1033,8 @@ export default function ProdutosClient({
                   );
                 })}
                 <Button
-                  size="small"
-                  variant="outline"
+                  size='small'
+                  variant='outline'
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage(currentPage + 1)}
                   icon={<FiChevronRight />}
@@ -1126,54 +1047,49 @@ export default function ProdutosClient({
 
       {/* Modal Novo Tipo */}
       {showFormTipo && (
-        <div className="modal d-block" tabIndex={-1} role="dialog">
-          <div className="modal-dialog">
-            <div className="modal-content">
+        <div className='modal d-block' tabIndex={-1} role='dialog'>
+          <div className='modal-dialog'>
+            <div className='modal-content'>
               <form action={handleCreateTipo}>
-                <div className="modal-header">
-                  <h5 className="modal-title">Novo Tipo de Produto</h5>
+                <div className='modal-header'>
+                  <h5 className='modal-title'>Novo Tipo de Produto</h5>
                   <button
-                    type="button"
-                    className="btn-close"
+                    type='button'
+                    className='btn-close'
                     onClick={() => {
                       setShowFormTipo(false);
                       setFormErrors({});
                     }}
                   />
                 </div>
-                <div className="modal-body">
-                  <div className="mb-3">
+                <div className='modal-body'>
+                  <div className='mb-3'>
                     <Input
-                      name="descricao"
-                      label="Descrição"
+                      name='descricao'
+                      label='Descrição'
                       required
                       error={formErrors.descricao}
                     />
                   </div>
-                  <div className="mb-3">
-                    <Input
-                      name="codigo"
-                      label="Código"
-                      required
-                      error={formErrors.codigo}
-                    />
+                  <div className='mb-3'>
+                    <Input name='codigo' label='Código' required error={formErrors.codigo} />
                   </div>
-                  <div className="form-check">
+                  <div className='form-check'>
                     <input
-                      className="form-check-input"
-                      type="checkbox"
-                      id="exige_peso"
-                      name="exige_peso"
+                      className='form-check-input'
+                      type='checkbox'
+                      id='exige_peso'
+                      name='exige_peso'
                     />
-                    <label className="form-check-label" htmlFor="exige_peso">
+                    <label className='form-check-label' htmlFor='exige_peso'>
                       Exige peso (por kg)
                     </label>
                   </div>
                 </div>
-                <div className="modal-footer">
+                <div className='modal-footer'>
                   <Button
-                    type="button"
-                    variant="outline"
+                    type='button'
+                    variant='outline'
                     onClick={() => {
                       setShowFormTipo(false);
                       setFormErrors({});
@@ -1182,12 +1098,8 @@ export default function ProdutosClient({
                   >
                     Cancelar
                   </Button>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    loading={isSubmitting}
-                  >
-                    {isSubmitting ? "Salvando..." : "Salvar"}
+                  <Button type='submit' variant='primary' loading={isSubmitting}>
+                    {isSubmitting ? 'Salvando...' : 'Salvar'}
                   </Button>
                 </div>
               </form>
@@ -1198,21 +1110,17 @@ export default function ProdutosClient({
 
       {/* Modal Produto */}
       {showFormProduto && (
-        <div className="modal d-block" tabIndex={-1} role="dialog">
-          <div className="modal-dialog modal-lg">
-            <div className="modal-content">
-              <form
-                action={
-                  selectedProduto ? handleEditProduto : handleCreateProduto
-                }
-              >
-                <div className="modal-header">
-                  <h5 className="modal-title">
-                    {selectedProduto ? "Editar Produto" : "Novo Produto"}
+        <div className='modal d-block' tabIndex={-1} role='dialog'>
+          <div className='modal-dialog modal-lg'>
+            <div className='modal-content'>
+              <form action={selectedProduto ? handleEditProduto : handleCreateProduto}>
+                <div className='modal-header'>
+                  <h5 className='modal-title'>
+                    {selectedProduto ? 'Editar Produto' : 'Novo Produto'}
                   </h5>
                   <button
-                    type="button"
-                    className="btn-close"
+                    type='button'
+                    className='btn-close'
                     onClick={() => {
                       setShowFormProduto(false);
                       setSelectedProduto(null);
@@ -1220,37 +1128,32 @@ export default function ProdutosClient({
                     }}
                   />
                 </div>
-                <div className="modal-body row g-3">
-                  <div className="col-md-8">
+                <div className='modal-body row g-3'>
+                  <div className='col-md-8'>
                     <Input
-                      name="nome"
-                      label="Nome do Produto"
+                      name='nome'
+                      label='Nome do Produto'
                       defaultValue={selectedProduto?.nome}
                       required
                       error={formErrors.nome}
                     />
                   </div>
-                  <div className="col-md-4">
+                  <div className='col-md-4'>
                     <Input
-                      type="number"
-                      step="0.01"
-                      name="preco"
-                      label="Preço Unitário"
+                      type='number'
+                      step='0.01'
+                      name='preco'
+                      label='Preço Unitário'
                       defaultValue={selectedProduto?.preco_unitario}
                       required
                       error={formErrors.preco}
                     />
                   </div>
                   {!selectedProduto && (
-                    <div className="col-md-6">
-                      <label className="form-label">Tipo de Produto</label>
-                      <select
-                        name="tipoId"
-                        className="form-select"
-                        required
-                        defaultValue=""
-                      >
-                        <option value="" disabled>
+                    <div className='col-md-6'>
+                      <label className='form-label'>Tipo de Produto</label>
+                      <select name='tipoId' className='form-select' required defaultValue=''>
+                        <option value='' disabled>
                           Selecione um tipo...
                         </option>
                         {tipos.map((t) => (
@@ -1260,33 +1163,31 @@ export default function ProdutosClient({
                         ))}
                       </select>
                       {formErrors.tipoId && (
-                        <div className="text-danger small mt-1">
-                          {formErrors.tipoId}
-                        </div>
+                        <div className='text-danger small mt-1'>{formErrors.tipoId}</div>
                       )}
                     </div>
                   )}
-                  <div className="col-md-3">
+                  <div className='col-md-3'>
                     <Input
-                      type="number"
-                      step="0.001"
-                      name="estoque_minimo"
-                      label="Estoque Mínimo"
+                      type='number'
+                      step='0.001'
+                      name='estoque_minimo'
+                      label='Estoque Mínimo'
                       defaultValue={selectedProduto?.estoque_minimo}
                     />
                   </div>
-                  <div className="col-md-3">
+                  <div className='col-md-3'>
                     <Input
-                      name="codigo_barra"
-                      label="Código de Barras"
+                      name='codigo_barra'
+                      label='Código de Barras'
                       defaultValue={selectedProduto?.codigo_barra}
                     />
                   </div>
                 </div>
-                <div className="modal-footer">
+                <div className='modal-footer'>
                   <Button
-                    type="button"
-                    variant="outline"
+                    type='button'
+                    variant='outline'
                     onClick={() => {
                       setShowFormProduto(false);
                       setSelectedProduto(null);
@@ -1296,12 +1197,8 @@ export default function ProdutosClient({
                   >
                     Cancelar
                   </Button>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    loading={isSubmitting}
-                  >
-                    {isSubmitting ? "Salvando..." : "Salvar"}
+                  <Button type='submit' variant='primary' loading={isSubmitting}>
+                    {isSubmitting ? 'Salvando...' : 'Salvar'}
                   </Button>
                 </div>
               </form>
@@ -1312,28 +1209,23 @@ export default function ProdutosClient({
 
       {/* Modal Movimentação */}
       {showFormMov && (
-        <div className="modal d-block" tabIndex={-1} role="dialog">
-          <div className="modal-dialog">
-            <div className="modal-content">
+        <div className='modal d-block' tabIndex={-1} role='dialog'>
+          <div className='modal-dialog'>
+            <div className='modal-content'>
               <form action={handleMovimentacao}>
-                <div className="modal-header">
-                  <h5 className="modal-title">Movimentação de Estoque</h5>
+                <div className='modal-header'>
+                  <h5 className='modal-title'>Movimentação de Estoque</h5>
                   <button
-                    type="button"
-                    className="btn-close"
+                    type='button'
+                    className='btn-close'
                     onClick={() => setShowFormMov(false)}
                   />
                 </div>
-                <div className="modal-body">
-                  <div className="mb-3">
-                    <label className="form-label">Produto</label>
-                    <select
-                      name="produtoId"
-                      className="form-select"
-                      required
-                      defaultValue=""
-                    >
-                      <option value="" disabled>
+                <div className='modal-body'>
+                  <div className='mb-3'>
+                    <label className='form-label'>Produto</label>
+                    <select name='produtoId' className='form-select' required defaultValue=''>
+                      <option value='' disabled>
                         Selecione um produto...
                       </option>
                       {optimisticProdutos.map((p) => (
@@ -1343,54 +1235,45 @@ export default function ProdutosClient({
                       ))}
                     </select>
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label">Tipo de Movimentação</label>
-                    <select
-                      name="tipo_mov"
-                      className="form-select"
-                      required
-                      defaultValue="ENTRADA"
-                    >
-                      <option value="ENTRADA">Entrada de Estoque</option>
-                      <option value="SAIDA">Saída de Estoque</option>
-                      <option value="AJUSTE_POSITIVO">Ajuste Positivo</option>
-                      <option value="AJUSTE_NEGATIVO">Ajuste Negativo</option>
+                  <div className='mb-3'>
+                    <label className='form-label'>Tipo de Movimentação</label>
+                    <select name='tipo_mov' className='form-select' required defaultValue='ENTRADA'>
+                      <option value='ENTRADA'>Entrada de Estoque</option>
+                      <option value='SAIDA'>Saída de Estoque</option>
+                      <option value='AJUSTE_POSITIVO'>Ajuste Positivo</option>
+                      <option value='AJUSTE_NEGATIVO'>Ajuste Negativo</option>
                     </select>
                   </div>
-                  <div className="mb-3">
+                  <div className='mb-3'>
                     <Input
-                      type="number"
-                      step="0.001"
-                      name="quantidade"
-                      label="Quantidade"
+                      type='number'
+                      step='0.001'
+                      name='quantidade'
+                      label='Quantidade'
                       required
                     />
                   </div>
-                  <div className="mb-3">
-                    <label className="form-label">Observação (opcional)</label>
+                  <div className='mb-3'>
+                    <label className='form-label'>Observação (opcional)</label>
                     <textarea
-                      name="observacao"
-                      className="form-control"
+                      name='observacao'
+                      className='form-control'
                       rows={3}
-                      placeholder="Digite uma observação para esta movimentação..."
+                      placeholder='Digite uma observação para esta movimentação...'
                     />
                   </div>
                 </div>
-                <div className="modal-footer">
+                <div className='modal-footer'>
                   <Button
-                    type="button"
-                    variant="outline"
+                    type='button'
+                    variant='outline'
                     onClick={() => setShowFormMov(false)}
                     disabled={isSubmitting}
                   >
                     Cancelar
                   </Button>
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    loading={isSubmitting}
-                  >
-                    {isSubmitting ? "Registrando..." : "Registrar Movimentação"}
+                  <Button type='submit' variant='primary' loading={isSubmitting}>
+                    {isSubmitting ? 'Registrando...' : 'Registrar Movimentação'}
                   </Button>
                 </div>
               </form>
@@ -1401,38 +1284,38 @@ export default function ProdutosClient({
 
       {/* Modal Confirmação de Exclusão */}
       {showConfirmDelete && (
-        <div className="modal d-block" tabIndex={-1} role="dialog">
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Confirmar Exclusão</h5>
+        <div className='modal d-block' tabIndex={-1} role='dialog'>
+          <div className='modal-dialog'>
+            <div className='modal-content'>
+              <div className='modal-header'>
+                <h5 className='modal-title'>Confirmar Exclusão</h5>
                 <button
-                  type="button"
-                  className="btn-close"
+                  type='button'
+                  className='btn-close'
                   onClick={() => setShowConfirmDelete(null)}
                 />
               </div>
-              <div className="modal-body">
+              <div className='modal-body'>
                 <p>Tem certeza que deseja excluir este produto?</p>
-                <p className="text-muted small">
-                  Esta ação não pode ser desfeita. O produto será removido
-                  permanentemente do sistema.
+                <p className='text-muted small'>
+                  Esta ação não pode ser desfeita. O produto será removido permanentemente do
+                  sistema.
                 </p>
               </div>
-              <div className="modal-footer">
+              <div className='modal-footer'>
                 <Button
-                  variant="outline"
+                  variant='outline'
                   onClick={() => setShowConfirmDelete(null)}
                   disabled={isSubmitting}
                 >
                   Cancelar
                 </Button>
                 <Button
-                  variant="danger"
+                  variant='danger'
                   onClick={() => handleDeleteProduto(showConfirmDelete)}
                   loading={isSubmitting}
                 >
-                  {isSubmitting ? "Excluindo..." : "Excluir"}
+                  {isSubmitting ? 'Excluindo...' : 'Excluir'}
                 </Button>
               </div>
             </div>

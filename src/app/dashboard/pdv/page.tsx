@@ -1,6 +1,7 @@
 'use client';
 
 // import DashboardLayout from '@/components/layout/dashboard-layout';
+import { formatarMoeda } from '@/lib/formatters';
 import { useEffect, useState } from 'react';
 import { FiRefreshCw, FiSearch } from 'react-icons/fi';
 
@@ -255,8 +256,8 @@ export default function PDVPage() {
         }
 
         alert(
-          `Venda realizada com sucesso!\nVenda #${vendaId}\nTotal: R$ ${
-            valorTotal !== undefined ? valorTotal.toFixed(2) : '---'
+          `Venda realizada com sucesso!\nVenda #${vendaId}\nTotal: ${
+            valorTotal !== undefined ? formatarMoeda(valorTotal) : '---'
           }`
         );
 

@@ -1,3 +1,4 @@
+import { formatarMoeda } from '@/lib/formatters';
 import { FiMinus, FiPlus, FiTrash2 } from 'react-icons/fi';
 
 interface ItemCarrinho {
@@ -42,7 +43,7 @@ export default function Carrinho({ itens, onUpdateQuantidade, onRemoverItem }: C
                       <div className='flex-grow-1'>
                         <div className='d-flex justify-content-between'>
                           <strong className='text-truncate me-2 small'>{item.nome}</strong>
-                          <span className='text-success small'>R$ {item.preco.toFixed(2)}</span>
+                          <span className='text-success small'>{formatarMoeda(item.preco)}</span>
                         </div>
                         <div className='text-muted small'>{item.categoria}</div>
                       </div>
@@ -82,7 +83,7 @@ export default function Carrinho({ itens, onUpdateQuantidade, onRemoverItem }: C
             </div>
             <div className='mt-3 pt-2 border-top d-flex justify-content-between align-items-center'>
               <span className='fw-semibold'>Total</span>
-              <span className='fs-5 fw-bold text-success'>R$ {total.toFixed(2)}</span>
+              <span className='fs-5 fw-bold text-success'>{formatarMoeda(total)}</span>
             </div>
           </>
         )}

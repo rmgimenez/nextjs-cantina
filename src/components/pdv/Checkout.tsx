@@ -1,3 +1,4 @@
+import { formatarMoeda } from '@/lib/formatters';
 import React, { useState } from 'react';
 import { FiCheckCircle, FiCreditCard, FiDollarSign, FiLoader, FiUser } from 'react-icons/fi';
 
@@ -78,9 +79,9 @@ export default function Checkout({ itens, cliente, onFinalizarVenda, loading }: 
       const saldoAtual = cliente.saldo || 0;
       if (saldoAtual < total) {
         alert(
-          `Saldo insuficiente. Saldo atual: R$ ${saldoAtual.toFixed(
-            2
-          )}, Valor necessário: R$ ${total.toFixed(2)}`
+          `Saldo insuficiente. Saldo atual: ${formatarMoeda(
+            saldoAtual
+          )}, Valor necessário: ${formatarMoeda(total)}`
         );
         return;
       }
@@ -116,11 +117,11 @@ export default function Checkout({ itens, cliente, onFinalizarVenda, loading }: 
             <div className='p-2 rounded bg-light mb-3'>
               <div className='d-flex justify-content-between small mb-1'>
                 <span className='text-muted'>Itens ({itens.length})</span>
-                <span>R$ {total.toFixed(2)}</span>
+                <span>{formatarMoeda(total)}</span>
               </div>
               <div className='border-top pt-2 d-flex justify-content-between align-items-center fw-bold'>
                 <span>Total</span>
-                <span className='text-success'>R$ {total.toFixed(2)}</span>
+                <span className='text-success'>{formatarMoeda(total)}</span>
               </div>
             </div>
             <div className='mb-2'>
@@ -152,7 +153,7 @@ export default function Checkout({ itens, cliente, onFinalizarVenda, loading }: 
                         <span className='fw-semibold d-block'>{forma.nome}</span>
                         {forma.id === 'SALDO_ALUNO' && cliente?.tipo === 'aluno' && (
                           <span className='text-muted'>
-                            Saldo: R$ {(cliente.saldo || 0).toFixed(2)}
+                            Saldo: {formatarMoeda(cliente.saldo || 0)}
                           </span>
                         )}
                         {forma.requerCliente && !cliente && (
@@ -169,7 +170,7 @@ export default function Checkout({ itens, cliente, onFinalizarVenda, loading }: 
               cliente?.tipo === 'aluno' &&
               (cliente.saldo || 0) < total && (
                 <div className='alert alert-danger py-2 small'>
-                  Saldo insuficiente. Faltam R$ {(total - (cliente.saldo || 0)).toFixed(2)}
+                  Saldo insuficiente. Faltam {formatarMoeda(total - (cliente.saldo || 0))}
                 </div>
               )}
             <div className='d-grid mt-3'>

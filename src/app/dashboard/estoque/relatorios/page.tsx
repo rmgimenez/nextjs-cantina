@@ -1,6 +1,7 @@
 'use client';
 // import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Button } from '@/components/ui/button';
+import { formatarMoeda } from '@/lib/formatters';
 import { useEffect, useState } from 'react';
 import { FiRefreshCw } from 'react-icons/fi';
 
@@ -238,7 +239,7 @@ export default function RelatoriosEstoquePage() {
                       <tr key={r.id}>
                         <td>{r.nome}</td>
                         <td>{r.quantidade}</td>
-                        <td>R$ {Number(r.valor_total || 0).toFixed(2)}</td>
+                        <td>R$ {formatarMoeda(Number(r.valor_total || 0))}</td>
                       </tr>
                     ))}
                     {dados?.produtosMaisVendidos?.length === 0 && (

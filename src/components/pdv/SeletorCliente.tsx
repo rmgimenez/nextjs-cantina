@@ -1,3 +1,4 @@
+import { formatarMoeda } from '@/lib/formatters';
 import { useState } from 'react';
 import { FiSearch, FiUser, FiX } from 'react-icons/fi';
 
@@ -140,7 +141,7 @@ export default function SeletorCliente({
                                 cliente.saldo > 0 ? 'text-success' : 'text-danger'
                               }`}
                             >
-                              Saldo: R$ {cliente.saldo.toFixed(2)}
+                              Saldo: {formatarMoeda(cliente.saldo)}
                             </div>
                           )}
                         </div>
@@ -210,7 +211,7 @@ export default function SeletorCliente({
                           clienteSelecionado.saldo > 0 ? 'text-success' : 'text-danger'
                         }`}
                       >
-                        Saldo: R$ {clienteSelecionado.saldo.toFixed(2)}
+                        Saldo: {formatarMoeda(clienteSelecionado.saldo)}
                       </div>
                     )}
                     {clienteSelecionado.observacao && (
@@ -228,7 +229,7 @@ export default function SeletorCliente({
                     {clienteSelecionado.precoRefeicao !== undefined &&
                       clienteSelecionado.precoRefeicao > 0 && (
                         <div className='small text-primary fw-semibold'>
-                          Preço refeição: R$ {clienteSelecionado.precoRefeicao.toFixed(2)}
+                          Preço refeição: {formatarMoeda(clienteSelecionado.precoRefeicao)}
                         </div>
                       )}
                   </>

@@ -1,3 +1,4 @@
+import { formatarMoeda } from '@/lib/formatters';
 import { FiPackage, FiPlus } from 'react-icons/fi';
 
 interface Produto {
@@ -92,7 +93,7 @@ export default function GridProdutos({
                 </div>
                 <div className='d-flex justify-content-between align-items-center mb-2'>
                   <span className='fw-bold text-success'>
-                    R$ {produto.preco.toFixed(2)}
+                    {formatarMoeda(produto.preco)}
                     {produto.exigePeso && <small className='text-muted'>/kg</small>}
                   </span>
                 </div>

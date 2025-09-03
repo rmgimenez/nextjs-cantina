@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { formatarMoeda } from '@/lib/formatters';
 import { useState } from 'react';
 import { FiPlus, FiRefreshCw, FiSearch } from 'react-icons/fi';
 
@@ -197,7 +198,7 @@ export default function SaldoAlunoPage() {
                     }
                     style={{ fontSize: 14 }}
                   >
-                    R$ {saldo.toFixed(2)}
+                    {formatarMoeda(saldo)}
                   </span>
                 </div>
               </div>
@@ -234,7 +235,7 @@ export default function SaldoAlunoPage() {
                       }
                       style={{ fontSize: 14 }}
                     >
-                      R$ {saldo.toFixed(2)}
+                      {formatarMoeda(saldo)}
                     </span>
                   </div>
                 </div>
@@ -280,7 +281,7 @@ export default function SaldoAlunoPage() {
                         }
                         style={{ fontSize: 13 }}
                       >
-                        {typeof a.saldo === 'number' ? `R$ ${a.saldo.toFixed(2)}` : 'R$ 0.00'}
+                        {typeof a.saldo === 'number' ? formatarMoeda(a.saldo) : 'R$ 0,00'}
                       </span>
                       {/* usar span com classes de botão para alto contraste sem adicionar elemento <button> aninhado */}
                       <span
@@ -361,7 +362,8 @@ export default function SaldoAlunoPage() {
                             </span>
                           </td>
                           <td>
-                            {m.tipo === 'DEBITO' ? '-' : ''}R$ {m.valor.toFixed(2)}
+                            {m.tipo === 'DEBITO' ? '-' : ''}
+                            {formatarMoeda(m.valor)}
                           </td>
                           <td>{m.origem}</td>
                           <td>{m.referencia}</td>
@@ -415,7 +417,8 @@ export default function SaldoAlunoPage() {
                       <td>{new Date(m.created_at).toLocaleString()}</td>
                       <td>{m.tipo}</td>
                       <td className={m.tipo === 'DEBITO' ? 'text-danger' : 'text-success'}>
-                        {m.tipo === 'DEBITO' ? '-' : ''}R$ {m.valor.toFixed(2)}
+                        {m.tipo === 'DEBITO' ? '-' : ''}
+                        {formatarMoeda(m.valor)}
                       </td>
                       <td>{m.origem}</td>
                       <td>{m.referencia}</td>
