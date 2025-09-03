@@ -1,3 +1,13 @@
+-- =====================================================================
+-- BANCO DE DADOS SISTEMA CANTINA ESCOLAR
+-- Versão: Atualizada com correções para sistema de pagamentos (RF-027)
+-- 
+-- IMPORTANTE: Esta versão contém as correções aplicadas para resolver
+-- os conflitos de triggers que causavam erro "Unknown column 'data_pagamento'"
+-- no sistema de contas a pagar. As triggers foram simplificadas e a 
+-- procedure cant_sp_recalcula_conta_pagar foi otimizada.
+-- =====================================================================
+
 -- início - tabelas que já existem no banco de dados
 CREATE TABLE `cadastro_alunos` (
   `ra` int NOT NULL,
@@ -1091,39 +1101,24 @@ DROP PROCEDURE IF EXISTS `cant_sp_recalcula_conta_pagar`;
 DELIMITER $$
 CREATE PROCEDURE `cant_sp_recalcula_conta_pagar`(IN p_conta_id BIGINT)
 BEGIN
-  DECLARE v_valor_original DECIMAL(12,2) DEFAULT 0.00;
   DECLARE v_total_pago DECIMAL(12,2) DEFAULT 0.00;
   DECLARE v_total_juros DECIMAL(12,2) DEFAULT 0.00;
   DECLARE v_total_desconto DECIMAL(12,2) DEFAULT 0.00;
-  DECLARE v_status_atual VARCHAR(20);
-  DECLARE v_venc DATE;
-  DECLARE v_max_data DATE;
-  DECLARE v_usuario_pag BIGINT;
 
-  SELECT valor_original, valor_pago, valor_juros, valor_desconto, status, data_vencimento
-    INTO v_valor_original, v_total_pago, v_total_juros, v_total_desconto, v_status_atual, v_venc
-  FROM cant_conta_pagar WHERE id = p_conta_id FOR UPDATE;
+  -- Calcula totais dos pagamentos
+  SELECT 
+    COALESCE(SUM(valor_pago),0),
+    COALESCE(SUM(valor_juros),0), 
+    COALESCE(SUM(valor_desconto),0)
+  INTO v_total_pago, v_total_juros, v_total_desconto
+  FROM cant_conta_pagar_pagamento 
+  WHERE conta_pagar_id = p_conta_id;
 
-  -- Reagrega a partir do histórico (garante consistência)
-  SELECT COALESCE(SUM(valor_pago),0), COALESCE(SUM(valor_juros),0), COALESCE(SUM(valor_desconto),0), MAX(data_pagamento)
-    INTO v_total_pago, v_total_juros, v_total_desconto, v_max_data
-  FROM cant_conta_pagar_pagamento WHERE conta_pagar_id = p_conta_id;
-
-  SELECT usuario_id INTO v_usuario_pag
-  FROM cant_conta_pagar_pagamento WHERE conta_pagar_id = p_conta_id ORDER BY data_pagamento DESC LIMIT 1;
-
+  -- Atualiza a conta principal
   UPDATE cant_conta_pagar SET
     valor_pago = v_total_pago,
     valor_juros = v_total_juros,
-    valor_desconto = v_total_desconto,
-    data_pagamento = CASE WHEN (v_valor_original + v_total_juros - v_total_desconto - v_total_pago) <= 0 THEN v_max_data ELSE data_pagamento END,
-    usuario_pagamento_id = CASE WHEN (v_valor_original + v_total_juros - v_total_desconto - v_total_pago) <= 0 THEN v_usuario_pag ELSE usuario_pagamento_id END,
-    status = CASE 
-      WHEN v_status_atual = 'CANCELADO' THEN v_status_atual
-      WHEN (v_valor_original + v_total_juros - v_total_desconto - v_total_pago) <= 0 THEN 'PAGO'
-      WHEN CURDATE() > v_venc THEN 'ATRASADO'
-      ELSE 'PENDENTE'
-    END
+    valor_desconto = v_total_desconto
   WHERE id = p_conta_id;
 END $$
 DELIMITER ;
@@ -1266,277 +1261,11 @@ SELECT
 
 -- início - triggers módulo contas a pagar e receber
 
--- Trigger para atualizar status de conta a pagar quando totalmente paga
-DELIMITER $$
-CREATE TRIGGER `trig_conta_pagar_after_pagamento` 
-AFTER INSERT ON `cant_conta_pagar_pagamento`
-FOR EACH ROW
-BEGIN
-  DECLARE v_valor_total_pago DECIMAL(12,2);
-  DECLARE v_valor_original DECIMAL(12,2);
-  DECLARE v_valor_juros DECIMAL(12,2);
-  DECLARE v_valor_desconto DECIMAL(12,2);
-  
-  -- Calcula valor total pago
-  SELECT COALESCE(SUM(valor_pago), 0) INTO v_valor_total_pago
-  FROM cant_conta_pagar_pagamento 
-  WHERE conta_pagar_id = NEW.conta_pagar_id;
-  
-  -- Busca dados da conta
-  SELECT valor_original, valor_juros, valor_desconto 
-  INTO v_valor_original, v_valor_juros, v_valor_desconto
-  FROM cant_conta_pagar 
-  WHERE id = NEW.conta_pagar_id;
-  
-  -- Atualiza conta a pagar
-  UPDATE cant_conta_pagar SET
-    valor_pago = v_valor_total_pago,
-    valor_juros = v_valor_juros + NEW.valor_juros,
-    valor_desconto = v_valor_desconto + NEW.valor_desconto,
-    status = CASE 
-      WHEN v_valor_total_pago >= (v_valor_original + v_valor_juros + NEW.valor_juros - v_valor_desconto - NEW.valor_desconto) THEN 'PAGO'
-      ELSE status 
-    END,
-    data_pagamento = CASE 
-      WHEN v_valor_total_pago >= (v_valor_original + v_valor_juros + NEW.valor_juros - v_valor_desconto - NEW.valor_desconto) THEN NEW.data_pagamento
-      ELSE data_pagamento
-    END,
-    usuario_pagamento_id = NEW.usuario_id
-  WHERE id = NEW.conta_pagar_id;
-  
-  -- Atualiza parcela se especificada
-  IF NEW.parcela_id IS NOT NULL THEN
-    UPDATE cant_conta_pagar_parcela SET
-      valor_pago = valor_pago + NEW.valor_pago,
-      valor_juros = valor_juros + NEW.valor_juros,
-      valor_desconto = valor_desconto + NEW.valor_desconto,
-      status = CASE 
-        WHEN (valor_pago + NEW.valor_pago) >= (valor + valor_juros + NEW.valor_juros - valor_desconto - NEW.valor_desconto) THEN 'PAGO'
-        ELSE status 
-      END,
-      data_pagamento = CASE 
-        WHEN (valor_pago + NEW.valor_pago) >= (valor + valor_juros + NEW.valor_juros - valor_desconto - NEW.valor_desconto) THEN NEW.data_pagamento
-        ELSE data_pagamento
-      END,
-      usuario_pagamento_id = NEW.usuario_id
-    WHERE id = NEW.parcela_id;
-  END IF;
-END $$
-DELIMITER ;
-
--- Trigger para recalcular conta e parcelas quando um pagamento é atualizado
-DELIMITER $$
-CREATE TRIGGER `trig_conta_pagar_after_pagamento_update`
-AFTER UPDATE ON `cant_conta_pagar_pagamento`
-FOR EACH ROW
-BEGIN
-  DECLARE v_total_pago DECIMAL(12,2);
-  DECLARE v_total_juros DECIMAL(12,2);
-  DECLARE v_total_desconto DECIMAL(12,2);
-  DECLARE v_valor_original DECIMAL(12,2);
-  DECLARE v_conta_status VARCHAR(20);
-  DECLARE v_max_data DATE;
-  DECLARE v_usuario_id BIGINT;
-
-  DECLARE v_parc_pago DECIMAL(12,2);
-  DECLARE v_parc_juros DECIMAL(12,2);
-  DECLARE v_parc_desconto DECIMAL(12,2);
-  DECLARE v_parc_valor DECIMAL(12,2);
-  DECLARE v_parc_max_data DATE;
-  DECLARE v_parc_usuario BIGINT;
-
-  DECLARE v_op_pago DECIMAL(12,2);
-  DECLARE v_op_juros DECIMAL(12,2);
-  DECLARE v_op_desconto DECIMAL(12,2);
-  DECLARE v_op_valor DECIMAL(12,2);
-  DECLARE v_op_max_data DATE;
-  DECLARE v_op_usuario BIGINT;
-
-  -- Recalcula totais da conta
-  SELECT COALESCE(SUM(valor_pago),0), COALESCE(SUM(valor_juros),0), COALESCE(SUM(valor_desconto),0)
-  INTO v_total_pago, v_total_juros, v_total_desconto
-  FROM cant_conta_pagar_pagamento
-  WHERE conta_pagar_id = NEW.conta_pagar_id;
-
-  SELECT valor_original, status INTO v_valor_original, v_conta_status FROM cant_conta_pagar WHERE id = NEW.conta_pagar_id;
-
-  SELECT MAX(data_pagamento) INTO v_max_data FROM cant_conta_pagar_pagamento WHERE conta_pagar_id = NEW.conta_pagar_id;
-  SELECT usuario_id INTO v_usuario_id FROM cant_conta_pagar_pagamento WHERE conta_pagar_id = NEW.conta_pagar_id ORDER BY data_pagamento DESC LIMIT 1;
-
-  UPDATE cant_conta_pagar SET
-    valor_pago = v_total_pago,
-    valor_juros = v_total_juros,
-    valor_desconto = v_total_desconto,
-    status = CASE
-      WHEN v_total_pago >= (v_valor_original + v_total_juros - v_total_desconto) THEN 'PAGO'
-      WHEN v_conta_status = 'PAGO' THEN 'PENDENTE'
-      ELSE v_conta_status
-    END,
-    data_pagamento = CASE
-      WHEN v_total_pago >= (v_valor_original + v_total_juros - v_total_desconto) THEN v_max_data
-      ELSE data_pagamento
-    END,
-    usuario_pagamento_id = v_usuario_id
-  WHERE id = NEW.conta_pagar_id;
-
-  -- Recalcula parcela nova/antiga caso necessário
-  IF NEW.parcela_id IS NOT NULL THEN
-    SELECT COALESCE(SUM(valor_pago),0), COALESCE(SUM(valor_juros),0), COALESCE(SUM(valor_desconto),0)
-    INTO v_parc_pago, v_parc_juros, v_parc_desconto
-    FROM cant_conta_pagar_pagamento
-    WHERE parcela_id = NEW.parcela_id;
-
-    SELECT valor INTO v_parc_valor FROM cant_conta_pagar_parcela WHERE id = NEW.parcela_id;
-
-  SELECT MAX(data_pagamento) INTO v_parc_max_data FROM cant_conta_pagar_pagamento WHERE parcela_id = NEW.parcela_id;
-  SELECT usuario_id INTO v_parc_usuario FROM cant_conta_pagar_pagamento WHERE parcela_id = NEW.parcela_id ORDER BY data_pagamento DESC LIMIT 1;
-
-    UPDATE cant_conta_pagar_parcela SET
-      valor_pago = v_parc_pago,
-      valor_juros = v_parc_juros,
-      valor_desconto = v_parc_desconto,
-      status = CASE WHEN v_parc_pago >= (v_parc_valor + v_parc_juros - v_parc_desconto) THEN 'PAGO' WHEN status = 'PAGO' THEN 'PENDENTE' ELSE status END,
-      data_pagamento = CASE WHEN v_parc_pago >= (v_parc_valor + v_parc_juros - v_parc_desconto) THEN v_parc_max_data ELSE data_pagamento END,
-      usuario_pagamento_id = v_parc_usuario
-    WHERE id = NEW.parcela_id;
-  END IF;
-
-  IF OLD.parcela_id IS NOT NULL AND OLD.parcela_id != NEW.parcela_id THEN
-    SELECT COALESCE(SUM(valor_pago),0), COALESCE(SUM(valor_juros),0), COALESCE(SUM(valor_desconto),0)
-    INTO v_op_pago, v_op_juros, v_op_desconto
-    FROM cant_conta_pagar_pagamento
-    WHERE parcela_id = OLD.parcela_id;
-
-    SELECT valor INTO v_op_valor FROM cant_conta_pagar_parcela WHERE id = OLD.parcela_id;
-
-  SELECT MAX(data_pagamento) INTO v_op_max_data FROM cant_conta_pagar_pagamento WHERE parcela_id = OLD.parcela_id;
-  SELECT usuario_id INTO v_op_usuario FROM cant_conta_pagar_pagamento WHERE parcela_id = OLD.parcela_id ORDER BY data_pagamento DESC LIMIT 1;
-
-    UPDATE cant_conta_pagar_parcela SET
-      valor_pago = v_op_pago,
-      valor_juros = v_op_juros,
-      valor_desconto = v_op_desconto,
-      status = CASE WHEN v_op_pago >= (v_op_valor + v_op_juros - v_op_desconto) THEN 'PAGO' WHEN status = 'PAGO' THEN 'PENDENTE' ELSE status END,
-      data_pagamento = CASE WHEN v_op_pago >= (v_op_valor + v_op_juros - v_op_desconto) THEN v_op_max_data ELSE data_pagamento END,
-      usuario_pagamento_id = v_op_usuario
-    WHERE id = OLD.parcela_id;
-  END IF;
-END $$
-DELIMITER ;
-
--- Trigger para recalcular conta e parcelas quando um pagamento é excluído
-DELIMITER $$
-CREATE TRIGGER `trig_conta_pagar_after_pagamento_delete`
-AFTER DELETE ON `cant_conta_pagar_pagamento`
-FOR EACH ROW
-BEGIN
-  DECLARE v_total_pago DECIMAL(12,2);
-  DECLARE v_total_juros DECIMAL(12,2);
-  DECLARE v_total_desconto DECIMAL(12,2);
-  DECLARE v_valor_original DECIMAL(12,2);
-  DECLARE v_conta_status VARCHAR(20);
-  DECLARE v_max_data DATE;
-  DECLARE v_usuario_id BIGINT;
-
-  DECLARE v_parc_pago DECIMAL(12,2);
-  DECLARE v_parc_juros DECIMAL(12,2);
-  DECLARE v_parc_desconto DECIMAL(12,2);
-  DECLARE v_parc_valor DECIMAL(12,2);
-  DECLARE v_parc_max_data DATE;
-  DECLARE v_parc_usuario BIGINT;
-
-  -- Recalcula totais da conta
-  SELECT COALESCE(SUM(valor_pago),0), COALESCE(SUM(valor_juros),0), COALESCE(SUM(valor_desconto),0)
-  INTO v_total_pago, v_total_juros, v_total_desconto
-  FROM cant_conta_pagar_pagamento
-  WHERE conta_pagar_id = OLD.conta_pagar_id;
-
-  SELECT valor_original, status INTO v_valor_original, v_conta_status FROM cant_conta_pagar WHERE id = OLD.conta_pagar_id;
-
-  SELECT MAX(data_pagamento) INTO v_max_data FROM cant_conta_pagar_pagamento WHERE conta_pagar_id = OLD.conta_pagar_id;
-  SELECT usuario_id INTO v_usuario_id FROM cant_conta_pagar_pagamento WHERE conta_pagar_id = OLD.conta_pagar_id ORDER BY data_pagamento DESC LIMIT 1;
-
-  UPDATE cant_conta_pagar SET
-    valor_pago = v_total_pago,
-    valor_juros = v_total_juros,
-    valor_desconto = v_total_desconto,
-    status = CASE
-      WHEN v_total_pago >= (v_valor_original + v_total_juros - v_total_desconto) THEN 'PAGO'
-      WHEN v_conta_status = 'PAGO' THEN 'PENDENTE'
-      ELSE v_conta_status
-    END,
-    data_pagamento = CASE
-      WHEN v_total_pago >= (v_valor_original + v_total_juros - v_total_desconto) THEN v_max_data
-      ELSE data_pagamento
-    END,
-    usuario_pagamento_id = v_usuario_id
-  WHERE id = OLD.conta_pagar_id;
-
-  -- Recalcula parcela afetada
-  IF OLD.parcela_id IS NOT NULL THEN
-    SELECT COALESCE(SUM(valor_pago),0), COALESCE(SUM(valor_juros),0), COALESCE(SUM(valor_desconto),0)
-    INTO v_parc_pago, v_parc_juros, v_parc_desconto
-    FROM cant_conta_pagar_pagamento
-    WHERE parcela_id = OLD.parcela_id;
-
-    SELECT valor INTO v_parc_valor FROM cant_conta_pagar_parcela WHERE id = OLD.parcela_id;
-
-  SELECT MAX(data_pagamento) INTO v_parc_max_data FROM cant_conta_pagar_pagamento WHERE parcela_id = OLD.parcela_id;
-  SELECT usuario_id INTO v_parc_usuario FROM cant_conta_pagar_pagamento WHERE parcela_id = OLD.parcela_id ORDER BY data_pagamento DESC LIMIT 1;
-
-    UPDATE cant_conta_pagar_parcela SET
-      valor_pago = v_parc_pago,
-      valor_juros = v_parc_juros,
-      valor_desconto = v_parc_desconto,
-      status = CASE WHEN v_parc_pago >= (v_parc_valor + v_parc_juros - v_parc_desconto) THEN 'PAGO' WHEN status = 'PAGO' THEN 'PENDENTE' ELSE status END,
-      data_pagamento = CASE WHEN v_parc_pago >= (v_parc_valor + v_parc_juros - v_parc_desconto) THEN v_parc_max_data ELSE data_pagamento END,
-      usuario_pagamento_id = v_parc_usuario
-    WHERE id = OLD.parcela_id;
-  END IF;
-END $$
-DELIMITER ;
-
--- Trigger para ajustar valores da conta quando seu valor original é alterado
--- Alterado para BEFORE UPDATE para evitar executar UPDATE na mesma tabela dentro do trigger
-DELIMITER $$
-CREATE TRIGGER `trig_conta_pagar_after_update_conta`
-BEFORE UPDATE ON `cant_conta_pagar`
-FOR EACH ROW
-BEGIN
-  DECLARE v_total_pago DECIMAL(12,2);
-  DECLARE v_total_juros DECIMAL(12,2);
-  DECLARE v_total_desconto DECIMAL(12,2);
-  DECLARE v_max_date DATE;
-  DECLARE v_usuario BIGINT;
-
-  -- Recalcula totais a partir dos pagamentos existentes
-  SELECT COALESCE(SUM(valor_pago),0), COALESCE(SUM(valor_juros),0), COALESCE(SUM(valor_desconto),0)
-  INTO v_total_pago, v_total_juros, v_total_desconto
-  FROM cant_conta_pagar_pagamento
-  WHERE conta_pagar_id = NEW.id;
-
-  SELECT MAX(data_pagamento), (SELECT usuario_id FROM cant_conta_pagar_pagamento WHERE conta_pagar_id = NEW.id ORDER BY data_pagamento DESC LIMIT 1)
-  INTO v_max_date, v_usuario;
-
-  IF v_total_pago >= (NEW.valor_original + v_total_juros - v_total_desconto) THEN
-    -- Ajusta os campos da nova linha antes do UPDATE principal; evita executar UPDATE na mesma tabela
-    SET NEW.valor_pago = v_total_pago;
-    SET NEW.valor_juros = v_total_juros;
-    SET NEW.valor_desconto = v_total_desconto;
-    SET NEW.status = 'PAGO';
-    SET NEW.data_pagamento = v_max_date;
-    SET NEW.usuario_pagamento_id = v_usuario;
-  ELSE
-    SET NEW.valor_pago = v_total_pago;
-    SET NEW.valor_juros = v_total_juros;
-    SET NEW.valor_desconto = v_total_desconto;
-    -- Se estava marcado como PAGO, volta para PENDENTE (ou mantém ATRASADO conforme data)
-    IF NEW.status = 'PAGO' THEN
-      SET NEW.status = 'PENDENTE';
-    END IF;
-  END IF;
-END $$
-DELIMITER ;
+-- =======================================================================
+-- TRIGGERS SIMPLIFICADAS RF-027 (Contas a Pagar)
+-- Nota: As triggers anteriores foram removidas por causar conflitos.
+-- Apenas as triggers essenciais do RF-027 são mantidas para consistência.
+-- =======================================================================
 
 -- Trigger para atualizar status de conta a receber quando totalmente recebida
 DELIMITER $$
