@@ -43,12 +43,16 @@ export async function GET(req: NextRequest) {
     const detalhes = await query<any>(
       `SELECT v.id, v.created_at, f.codigo AS funcionario_id, f.nome AS funcionario_nome,
               v.forma_pagamento, v.valor_liquido AS valor_venda,
-              (SELECT SUM(vi.quantidade) FROM cant_venda_item vi WHERE vi.venda_id=v.id) AS itens
+              COALESCE(SUM(vi.quantidade),0) AS itens,
+              GROUP_CONCAT(CONCAT(p.nome,' (',vi.quantidade,')') ORDER BY p.nome SEPARATOR ', ') AS produtos
          FROM cant_venda v
          JOIN funcionarios f ON f.codigo = v.comprador_funcionario_id
+         LEFT JOIN cant_venda_item vi ON vi.venda_id = v.id
+         LEFT JOIN cant_produtos p ON p.id = vi.produto_id
         WHERE v.tipo_comprador='FUNCIONARIO_ESCOLA'
           AND v.forma_pagamento = 'CONTA_FUNCIONARIO'
           AND v.created_at BETWEEN ? AND ? ${filtroFuncionario}
+        GROUP BY v.id, v.created_at, f.codigo, f.nome, v.forma_pagamento, v.valor_liquido
         ORDER BY v.created_at DESC
         LIMIT 1000`,
       params

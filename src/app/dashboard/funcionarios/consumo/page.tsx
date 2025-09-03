@@ -14,6 +14,7 @@ interface Detalhe {
   funcionario_nome: string;
   forma_pagamento: string;
   valor_venda: number;
+  produtos?: string;
   itens: number;
 }
 
@@ -339,18 +340,30 @@ export default function ConsumoContaPage() {
                             <th>Data</th>
                             <th>ID Venda</th>
                             <th>Forma</th>
+                            <th>Itens</th>
                             <th className='text-end'>Valor</th>
-                            <th className='text-end'>Itens</th>
                           </tr>
                         </thead>
                         <tbody>
                           {modalCompras.map((m) => (
                             <tr key={m.id}>
-                              <td>{new Date(m.created_at).toLocaleString()}</td>
-                              <td>{m.id}</td>
-                              <td>{m.forma_pagamento}</td>
-                              <td className='text-end'>{fmt(Number(m.valor_venda))}</td>
-                              <td className='text-end'>{m.itens}</td>
+                              <td style={{ verticalAlign: 'top' }}>
+                                {new Date(m.created_at).toLocaleString()}
+                              </td>
+                              <td style={{ verticalAlign: 'top' }}>{m.id}</td>
+                              <td style={{ verticalAlign: 'top' }}>{m.forma_pagamento}</td>
+                              <td>
+                                <div style={{ fontSize: '0.9em' }}>
+                                  {m.produtos ? (
+                                    <span>{m.produtos}</span>
+                                  ) : (
+                                    <span className='text-muted'>Sem itens listados</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className='text-end' style={{ verticalAlign: 'top' }}>
+                                {fmt(Number(m.valor_venda))}
+                              </td>
                             </tr>
                           ))}
                           {modalCompras.length === 0 && (
