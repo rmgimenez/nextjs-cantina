@@ -22,6 +22,8 @@ O sistema utiliza as seguintes tecnologias:
 - **MySQL**: Banco de dados relacional utilizado no backend.
 - **PNPM**: Gerenciador de pacotes utilizado para instalação das dependências.
 - **Bootstrap**: Framework CSS para estilização da aplicação.
+- **react-icons**: Biblioteca de ícones para React.
+- **chart.js**: Biblioteca para criação de gráficos.
 
 ## Funcionalidades
 

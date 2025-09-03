@@ -1,117 +1,117 @@
 'use client';
 
-// import DashboardLayout from '@/components/layout/dashboard-layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useEffect, useState } from 'react';
 import {
-  FiAlertCircle,
-  FiClock,
-  FiDollarSign,
-  FiPackage,
-  FiShoppingCart,
-  FiTrendingDown,
-  FiTrendingUp,
-  FiUsers,
-} from 'react-icons/fi';
-
-interface StatCardProps {
-  title: string;
-  value: string;
-  change: string;
-  changeType: 'positive' | 'negative' | 'neutral';
-  icon: React.ReactNode;
-}
-
-function StatCard({ title, value, change, changeType, icon }: StatCardProps) {
-  const changeColor = {
-    positive: 'text-green-600',
-    negative: 'text-red-600',
-    neutral: 'text-gray-600',
-  };
-
-  const changeIcon = {
-    positive: <FiTrendingUp className='w-3 h-3' />,
-    negative: <FiTrendingDown className='w-3 h-3' />,
-    neutral: <FiClock className='w-3 h-3' />,
-  };
-
-  return (
-    <Card>
-      <CardContent className='flex items-center justify-between'>
-        <div>
-          <p className='text-sm font-medium text-gray-600'>{title}</p>
-          <p className='text-2xl font-bold text-gray-900'>{value}</p>
-          <div className={`flex items-center mt-1 text-sm ${changeColor[changeType]}`}>
-            {changeIcon[changeType]}
-            <span className='ml-1'>{change}</span>
-          </div>
-        </div>
-        <div className='text-blue-600'>{icon}</div>
-      </CardContent>
-    </Card>
-  );
-}
+  AlertsAndStock,
+  DashboardHeader,
+  DashboardStats,
+  QuickActions,
+  RecentSales,
+  SalesTrendChart,
+  TopProducts,
+} from '@/components';
+import { useEffect, useState } from 'react';
+import { FiAlertCircle, FiDollarSign, FiPackage, FiTrendingUp, FiUsers } from 'react-icons/fi';
 
 interface DashboardData {
-  stats: StatCardProps[];
+  vendas: any;
+  estoque: any;
+  financeiro: any;
+  alunos: any;
   recentSales: any[];
   lowStockProducts: any[];
   topProducts: any[];
   alerts: any[];
+  trend: { data: string; vendas: number; total: number }[];
 }
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string>('ATENDENTE');
+  const [userName, setUserName] = useState<string>('');
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
 
-        // Buscar todas as APIs em paralelo
-        const [statsRes, salesRes, stockRes, productsRes, alertsRes] = await Promise.all([
-          fetch('/api/dashboard/stats'),
-          fetch('/api/dashboard/recent-sales'),
-          fetch('/api/dashboard/low-stock'),
-          fetch('/api/dashboard/top-products'),
-          fetch('/api/dashboard/alerts'),
-        ]);
-
-        // Verificar se todas as requisições foram bem-sucedidas
-        if (!statsRes.ok || !salesRes.ok || !stockRes.ok || !productsRes.ok || !alertsRes.ok) {
-          throw new Error('Erro ao buscar dados do dashboard');
+        // Buscar sessão primeiro para identificar o perfil
+        try {
+          const sessionRes = await fetch('/api/session', { method: 'GET', credentials: 'include' });
+          if (sessionRes.ok) {
+            const sessionBody = await sessionRes.json();
+            setUserRole((sessionBody?.user?.tipo || 'ATENDENTE').toString().toUpperCase());
+            setUserName(sessionBody?.user?.nome || '');
+          }
+        } catch (e) {
+          console.log('Falha ao buscar sessão - usando valores padrão');
         }
 
-        const [stats, recentSales, lowStockProducts, topProducts, alerts] = await Promise.all([
-          statsRes.json(),
-          salesRes.json(),
-          stockRes.json(),
-          productsRes.json(),
-          alertsRes.json(),
+        // Buscar todas as APIs em paralelo
+        const [
+          statsRes,
+          salesRes,
+          stockRes,
+          productsRes,
+          alertsRes,
+          financeiroRes,
+          estoqueRes,
+          trendRes,
+        ] = await Promise.all([
+          fetch('/api/dashboard/stats').catch(() => null),
+          fetch('/api/dashboard/recent-sales').catch(() => null),
+          fetch('/api/dashboard/low-stock').catch(() => null),
+          fetch('/api/dashboard/top-products').catch(() => null),
+          fetch('/api/dashboard/alerts').catch(() => null),
+          fetch('/api/dashboard/financeiro').catch(() => null),
+          fetch('/api/dashboard/estoque').catch(() => null),
+          fetch('/api/dashboard/trend').catch(() => null),
         ]);
 
-        // Adicionar ícones às estatísticas
-        const statsWithIcons = stats.map((stat: any, index: number) => {
-          const icons = [
-            <FiDollarSign key='dollar' className='w-8 h-8' />,
-            <FiShoppingCart key='cart' className='w-8 h-8' />,
-            <FiUsers key='users' className='w-8 h-8' />,
-            <FiPackage key='package' className='w-8 h-8' />,
-          ];
-          return {
-            ...stat,
-            icon: icons[index] || <FiDollarSign className='w-8 h-8' />,
-          };
-        });
-
-        setData({
-          stats: statsWithIcons,
+        // Processar respostas
+        const [
+          stats,
           recentSales,
           lowStockProducts,
           topProducts,
           alerts,
+          financeiro,
+          estoque,
+          trendBody,
+        ] = await Promise.all([
+          statsRes?.ok ? statsRes.json().catch(() => ({})) : {},
+          salesRes?.ok ? salesRes.json().catch(() => []) : [],
+          stockRes?.ok ? stockRes.json().catch(() => []) : [],
+          productsRes?.ok ? productsRes.json().catch(() => []) : [],
+          alertsRes?.ok ? alertsRes.json().catch(() => []) : [],
+          financeiroRes?.ok ? financeiroRes.json().catch(() => ({})) : {},
+          estoqueRes?.ok ? estoqueRes.json().catch(() => ({})) : {},
+          trendRes?.ok ? trendRes.json().catch(() => ({})) : {},
+        ]);
+
+        // Processar dados de vendas
+        const vendasData = {
+          totalVendas: recentSales.length || 0,
+          receitaTotal: (stats as any)?.vendasHoje || 0,
+        };
+
+        // Processar dados de alunos
+        const alunosData = {
+          alunosAtendidos: (stats as any)?.alunosHoje || 0,
+        };
+
+        const trendDias = (trendBody as any)?.dias || [];
+        setData({
+          vendas: vendasData,
+          estoque,
+          financeiro,
+          alunos: alunosData,
+          recentSales,
+          lowStockProducts,
+          topProducts,
+          alerts,
+          trend: trendDias,
         });
       } catch (err) {
         console.error('Erro ao carregar dados do dashboard:', err);
@@ -125,21 +125,31 @@ export default function DashboardPage() {
 
     // Atualizar a cada 30 segundos
     const interval = setInterval(fetchDashboardData, 30000);
-
     return () => clearInterval(interval);
   }, []);
 
   if (loading) {
     return (
       <>
-        <div className='bg-white border-bottom px-3 py-3'>
-          <h1 className='h4 mb-1 text-dark'>Dashboard</h1>
-          <p className='text-muted mb-0'>Carregando...</p>
-        </div>
-        <div className='flex items-center justify-center h-64'>
-          <div className='text-center'>
-            <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4'></div>
-            <p className='text-gray-600'>Carregando dados do dashboard...</p>
+        <DashboardHeader userRole='ATENDENTE' />
+        <div className='min-vh-100' style={{ backgroundColor: '#f8f9fa' }}>
+          <div className='container-fluid px-4 py-5'>
+            <div
+              className='d-flex align-items-center justify-content-center'
+              style={{ minHeight: '60vh' }}
+            >
+              <div className='text-center'>
+                <div
+                  className='spinner-border text-primary mb-4'
+                  role='status'
+                  style={{ width: '3rem', height: '3rem' }}
+                >
+                  <span className='visually-hidden'>Carregando...</span>
+                </div>
+                <h4 className='text-muted mb-3'>Carregando Dashboard</h4>
+                <p className='text-secondary'>Aguarde enquanto carregamos os dados...</p>
+              </div>
+            </div>
           </div>
         </div>
       </>
@@ -149,20 +159,26 @@ export default function DashboardPage() {
   if (error || !data) {
     return (
       <>
-        <div className='bg-white border-bottom px-3 py-3'>
-          <h1 className='h4 mb-1 text-dark'>Dashboard</h1>
-          <p className='text-muted mb-0'>Erro ao carregar dados</p>
-        </div>
-        <div className='flex items-center justify-center h-64'>
-          <div className='text-center'>
-            <FiAlertCircle className='w-12 h-12 text-red-500 mx-auto mb-4' />
-            <p className='text-red-600 mb-4'>{error || 'Erro desconhecido'}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className='bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700'
+        <DashboardHeader userRole='ATENDENTE' />
+        <div className='min-vh-100' style={{ backgroundColor: '#f8f9fa' }}>
+          <div className='container-fluid px-4 py-5'>
+            <div
+              className='d-flex align-items-center justify-content-center'
+              style={{ minHeight: '60vh' }}
             >
-              Tentar Novamente
-            </button>
+              <div className='text-center'>
+                <FiAlertCircle className='text-danger mb-4' style={{ fontSize: '4rem' }} />
+                <h4 className='text-danger mb-3'>Erro ao Carregar Dashboard</h4>
+                <p className='text-muted mb-4'>{error || 'Erro desconhecido'}</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className='btn btn-primary btn-lg px-4 py-2'
+                  style={{ backgroundColor: '#253287', borderColor: '#253287' }}
+                >
+                  Tentar Novamente
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </>
@@ -171,202 +187,179 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div className='bg-white border-bottom px-3 py-3'>
-        <h1 className='h4 mb-1 text-dark'>Dashboard</h1>
-        <p className='text-muted mb-0'>Visão geral das operações da cantina</p>
-      </div>
+      <DashboardHeader userRole={userRole} userName={userName} />
 
-      <div className='space-y-6'>
-        {/* Estatísticas - usar grid do Bootstrap para responsividade consistente */}
-        <div className='row g-3 mb-4'>
-          {data.stats.map((stat: any, index: number) => (
-            <div key={index} className='col-12 col-md-6 col-lg-3'>
-              <StatCard {...stat} />
+      {/* Background com gradiente sutil */}
+      <div
+        className='min-vh-100 dashboard-bg dashboard-fade-in'
+        style={{
+          background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
+          paddingBottom: '2rem',
+        }}
+      >
+        <div className='container-fluid px-4 py-4 dashboard-content'>
+          {/* Header Section */}
+          <div className='row mb-4'>
+            <div className='col-12'>
+              <div className='d-flex align-items-center justify-content-between mb-4'>
+                <div>
+                  <h1 className='h3 mb-1' style={{ color: '#253287', fontWeight: '600' }}>
+                    Dashboard da Cantina
+                  </h1>
+                  <p className='text-muted mb-0'>
+                    Visão geral das operações e métricas importantes
+                  </p>
+                </div>
+                <div className='d-flex align-items-center'>
+                  <small className='text-muted me-3'>
+                    Última atualização: {new Date().toLocaleTimeString('pt-BR')}
+                  </small>
+                  <FiTrendingUp style={{ color: '#253287' }} />
+                </div>
+              </div>
             </div>
-          ))}
-        </div>
-
-        {/* Conteúdo Principal */}
-        <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
-          {/* Vendas Recentes */}
-          <div className='lg:col-span-2'>
-            <Card>
-              <CardHeader>
-                <CardTitle>Vendas Recentes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className='space-y-4'>
-                  {data.recentSales.length > 0 ? (
-                    data.recentSales.map((sale: any) => (
-                      <div
-                        key={sale.id}
-                        className='flex items-center justify-between py-2 border-b border-gray-100 last:border-0'
-                      >
-                        <div className='flex items-center space-x-3'>
-                          <div className='w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center'>
-                            <span className='text-blue-600 font-semibold text-sm'>
-                              {sale.student.charAt(0)}
-                            </span>
-                          </div>
-                          <div>
-                            <p className='font-medium text-gray-900'>{sale.student}</p>
-                            <p className='text-sm text-gray-500'>{sale.items}</p>
-                          </div>
-                        </div>
-                        <div className='text-right'>
-                          <p className='font-semibold text-gray-900'>{sale.amount}</p>
-                          <p className='text-sm text-gray-500'>{sale.time}</p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className='text-center text-gray-500 py-8'>
-                      <FiShoppingCart className='w-12 h-12 mx-auto mb-2 opacity-50' />
-                      <p>Nenhuma venda registrada hoje</p>
-                    </div>
-                  )}
-                </div>
-                <div className='mt-4 pt-4 border-t border-gray-200'>
-                  <button className='text-blue-600 hover:text-blue-700 font-medium text-sm'>
-                    Ver todas as vendas →
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
-          {/* Alertas e Estoque Baixo */}
-          <div className='space-y-6'>
-            {/* Alertas */}
-            <Card>
-              <CardHeader>
-                <CardTitle className='flex items-center'>
-                  <FiAlertCircle className='w-5 h-5 mr-2 text-yellow-500' />
-                  Alertas
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className='space-y-3'>
-                  {data.alerts.length > 0 ? (
-                    data.alerts.map((alert: any, index: number) => (
-                      <div key={index} className='flex items-start space-x-3'>
-                        <div
-                          className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                            alert.type === 'error'
-                              ? 'bg-red-500'
-                              : alert.type === 'warning'
-                              ? 'bg-yellow-500'
-                              : 'bg-blue-500'
-                          }`}
-                        ></div>
-                        <div className='flex-1'>
-                          <p className='text-sm text-gray-900'>{alert.message}</p>
-                          <p className='text-xs text-gray-500'>{alert.time}</p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className='text-center text-gray-500 py-4'>
-                      <FiAlertCircle className='w-8 h-8 mx-auto mb-2 opacity-50' />
-                      <p className='text-sm'>Nenhum alerta no momento</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Estoque Baixo */}
-            <Card>
-              <CardHeader>
-                <CardTitle className='flex items-center'>
-                  <FiPackage className='w-5 h-5 mr-2 text-red-500' />
-                  Estoque Baixo
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className='space-y-3'>
-                  {data.lowStockProducts.length > 0 ? (
-                    data.lowStockProducts.map((product: any, index: number) => (
-                      <div key={index} className='border-l-4 border-l-red-400 pl-3'>
-                        <p className='font-medium text-gray-900 text-sm'>{product.name}</p>
-                        <div className='flex items-center justify-between mt-1'>
-                          <span className='text-xs text-gray-500'>
-                            Estoque: {product.stock} | Mín: {product.min}
-                          </span>
-                          <span
-                            className={`text-xs px-2 py-1 rounded-full ${
-                              product.status === 'critical'
-                                ? 'bg-red-100 text-red-700'
-                                : 'bg-yellow-100 text-yellow-700'
-                            }`}
-                          >
-                            {product.status === 'critical' ? 'Crítico' : 'Baixo'}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className='text-center text-gray-500 py-4'>
-                      <FiPackage className='w-8 h-8 mx-auto mb-2 opacity-50' />
-                      <p className='text-sm'>Todos os produtos com estoque adequado</p>
-                    </div>
-                  )}
-                </div>
-                <div className='mt-4 pt-4 border-t border-gray-200'>
-                  <button className='text-blue-600 hover:text-blue-700 font-medium text-sm'>
-                    Ver estoque completo →
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
+          {/* KPIs Section - Destaque no topo */}
+          <div className='row g-3 mb-5'>
+            <div className='col-12'>
+              <DashboardStats
+                userRole={userRole}
+                vendasData={data.vendas}
+                estoqueData={data.estoque}
+                financeiroData={data.financeiro}
+                alunosData={data.alunos}
+              />
+            </div>
           </div>
-        </div>
 
-        {/* Gráficos e Métricas Adicionais */}
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-          <Card>
-            <CardHeader>
-              <CardTitle>Vendas da Semana</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className='h-64 flex items-center justify-center text-gray-500'>
-                <div className='text-center'>
-                  <FiTrendingUp className='w-12 h-12 mx-auto mb-2 opacity-50' />
-                  <p>Gráfico de vendas será implementado</p>
-                  <p className='text-sm'>Com Chart.js ou Recharts</p>
+          {/* Main Content Grid */}
+          <div className='row g-4 mb-4'>
+            {/* Gráfico Principal - Ocupa 8 colunas */}
+            <div className='col-12 col-xl-8'>
+              <div
+                className='card dashboard-card h-100'
+                style={{ borderRadius: 10, boxShadow: '0 8px 24px rgba(37,50,135,0.06)' }}
+              >
+                <div
+                  className='card-header'
+                  style={{ backgroundColor: '#ffffff', borderBottom: '1px solid rgba(0,0,0,0.04)' }}
+                >
+                  <div className='d-flex align-items-center'>
+                    <FiTrendingUp className='me-2' style={{ color: '#253287' }} />
+                    <h5 className='mb-0' style={{ color: '#253287', fontWeight: '600' }}>
+                      Tendência de Vendas
+                    </h5>
+                  </div>
+                </div>
+                <div className='card-body p-4' style={{ backgroundColor: '#ffffff' }}>
+                  <div className='chart-container'>
+                    <SalesTrendChart points={data.trend} />
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Produtos Mais Vendidos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className='space-y-3'>
-                {data.topProducts.map((product: any, index: number) => (
-                  <div key={index}>
-                    <div className='flex items-center justify-between'>
-                      <span className='text-sm font-medium'>{product.name}</span>
-                      <span className='text-sm text-gray-500'>{product.sales} vendas</span>
-                    </div>
-                    <div className='w-full bg-gray-200 rounded-full h-2'>
-                      <div
-                        className='bg-blue-600 h-2 rounded-full'
-                        style={{ width: `${product.percentage}%` }}
-                      ></div>
-                    </div>
+            {/* Painel Lateral - Alertas e Estoque */}
+            <div className='col-12 col-xl-4'>
+              <div
+                className='card dashboard-card mb-4'
+                style={{ borderRadius: 10, boxShadow: '0 6px 16px rgba(0,0,0,0.06)' }}
+              >
+                <div
+                  className='card-header'
+                  style={{ backgroundColor: '#ffffff', borderBottom: '1px solid rgba(0,0,0,0.04)' }}
+                >
+                  <div className='d-flex align-items-center'>
+                    <FiAlertCircle className='me-2' style={{ color: '#B20000' }} />
+                    <h6 className='mb-0' style={{ color: '#333333', fontWeight: '600' }}>
+                      Alertas e Estoque
+                    </h6>
                   </div>
-                ))}
-                {data.topProducts.length === 0 && (
-                  <div className='text-center text-gray-500 py-4'>
-                    <p>Nenhuma venda registrada nos últimos 7 dias</p>
-                  </div>
-                )}
+                </div>
+                <div className='card-body p-3' style={{ backgroundColor: '#ffffff' }}>
+                  <AlertsAndStock alerts={data.alerts} lowStockProducts={data.lowStockProducts} />
+                </div>
               </div>
-            </CardContent>
-          </Card>
+
+              {/* Top Produtos - Card compacto */}
+              <div
+                className='card dashboard-card'
+                style={{ borderRadius: 10, boxShadow: '0 6px 16px rgba(0,0,0,0.06)' }}
+              >
+                <div
+                  className='card-header'
+                  style={{ backgroundColor: '#ffffff', borderBottom: '1px solid rgba(0,0,0,0.04)' }}
+                >
+                  <div className='d-flex align-items-center'>
+                    <FiPackage className='me-2' style={{ color: '#FEA800' }} />
+                    <h6 className='mb-0' style={{ color: '#333333', fontWeight: '600' }}>
+                      Produtos Mais Vendidos
+                    </h6>
+                  </div>
+                </div>
+                <div className='card-body p-3' style={{ backgroundColor: '#ffffff' }}>
+                  <TopProducts products={data.topProducts} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Vendas Recentes - Largura total */}
+          <div className='row g-4 mb-4'>
+            <div className='col-12'>
+              <div
+                className='card dashboard-card'
+                style={{ borderRadius: 10, boxShadow: '0 6px 18px rgba(0,0,0,0.06)' }}
+              >
+                <div
+                  className='card-header'
+                  style={{ backgroundColor: '#ffffff', borderBottom: '1px solid rgba(0,0,0,0.04)' }}
+                >
+                  <div className='d-flex align-items-center'>
+                    <FiDollarSign className='me-2' style={{ color: '#253287' }} />
+                    <h5 className='mb-0' style={{ color: '#253287', fontWeight: '600' }}>
+                      Vendas Recentes
+                    </h5>
+                  </div>
+                </div>
+                <div className='card-body p-4' style={{ backgroundColor: '#ffffff' }}>
+                  <RecentSales sales={data.recentSales} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Ações Rápidas - Destaque no final */}
+          <div className='row g-4'>
+            <div className='col-12'>
+              {/* Card com header em azul da identidade e corpo branco com sombra */}
+              <div
+                className='card dashboard-card'
+                style={{
+                  backgroundColor: '#ffffff',
+                  border: 'none',
+                  boxShadow: '0 6px 18px rgba(37,50,135,0.10)',
+                  borderRadius: 12,
+                }}
+              >
+                <div
+                  className='card-header py-3'
+                  style={{ backgroundColor: '#253287', borderRadius: '12px 12px 0 0' }}
+                >
+                  <div className='d-flex align-items-center'>
+                    <FiUsers className='me-2' style={{ color: '#ffffff' }} />
+                    <h5 className='mb-0' style={{ fontWeight: '600', color: '#ffffff' }}>
+                      Ações Rápidas
+                    </h5>
+                  </div>
+                </div>
+                <div className='card-body p-4' style={{ backgroundColor: '#ffffff' }}>
+                  <QuickActions userRole={userRole} />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </>
