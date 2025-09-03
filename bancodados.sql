@@ -969,7 +969,7 @@ CREATE TABLE `cant_conta_receber` (
   `data_emissao` DATE NOT NULL,
   `data_vencimento` DATE NOT NULL,
   `data_recebimento` DATE NULL,
-  `status` ENUM('PENDENTE','RECEBIDO','CANCELADA') DEFAULT 'PENDENTE',
+  `status` ENUM('PENDENTE','RECEBIDO','ATRASADO','CANCELADO') DEFAULT 'PENDENTE',
   `observacoes` TEXT,
   `usuario_cadastro_id` BIGINT NOT NULL,
   `usuario_recebimento_id` BIGINT NULL,
@@ -1273,33 +1273,17 @@ CREATE TRIGGER `trig_conta_receber_after_recebimento`
 AFTER INSERT ON `cant_conta_receber_recebimento`
 FOR EACH ROW
 BEGIN
-  DECLARE v_valor_total_recebido DECIMAL(12,2);
-  DECLARE v_valor_original DECIMAL(12,2);
-  DECLARE v_valor_juros DECIMAL(12,2);
-  DECLARE v_valor_desconto DECIMAL(12,2);
+  -- Chama procedure de recalculo
+  CALL cant_sp_recalcula_conta_receber(NEW.conta_receber_id);
   
-  -- Calcula valor total recebido
-  SELECT COALESCE(SUM(valor_recebido), 0) INTO v_valor_total_recebido
-  FROM cant_conta_receber_recebimento 
-  WHERE conta_receber_id = NEW.conta_receber_id;
-  
-  -- Busca dados da conta
-  SELECT valor_original, valor_juros, valor_desconto 
-  INTO v_valor_original, v_valor_juros, v_valor_desconto
-  FROM cant_conta_receber 
-  WHERE id = NEW.conta_receber_id;
-  
-  -- Atualiza conta a receber
+  -- Atualiza status baseado no valor total
   UPDATE cant_conta_receber SET
-    valor_recebido = v_valor_total_recebido,
-    valor_juros = v_valor_juros + NEW.valor_juros,
-    valor_desconto = v_valor_desconto + NEW.valor_desconto,
     status = CASE 
-      WHEN v_valor_total_recebido >= (v_valor_original + v_valor_juros + NEW.valor_juros - v_valor_desconto - NEW.valor_desconto) THEN 'RECEBIDO'
+      WHEN (valor_original + valor_juros - valor_desconto - valor_recebido) <= 0 THEN 'RECEBIDO'
       ELSE status 
     END,
     data_recebimento = CASE 
-      WHEN v_valor_total_recebido >= (v_valor_original + v_valor_juros + NEW.valor_juros - v_valor_desconto - NEW.valor_desconto) THEN NEW.data_recebimento
+      WHEN (valor_original + valor_juros - valor_desconto - valor_recebido) <= 0 THEN NEW.data_recebimento
       ELSE data_recebimento
     END,
     usuario_recebimento_id = NEW.usuario_id
@@ -1312,16 +1296,74 @@ BEGIN
       valor_juros = valor_juros + NEW.valor_juros,
       valor_desconto = valor_desconto + NEW.valor_desconto,
       status = CASE 
-        WHEN (valor_recebido + NEW.valor_recebido) >= (valor + valor_juros + NEW.valor_juros - valor_desconto - NEW.valor_desconto) THEN 'RECEBIDO'
+        WHEN (valor + valor_juros - valor_desconto - (valor_recebido + NEW.valor_recebido)) <= 0 THEN 'RECEBIDO'
         ELSE status 
       END,
       data_recebimento = CASE 
-        WHEN (valor_recebido + NEW.valor_recebido) >= (valor + valor_juros + NEW.valor_juros - valor_desconto - NEW.valor_desconto) THEN NEW.data_recebimento
+        WHEN (valor + valor_juros - valor_desconto - (valor_recebido + NEW.valor_recebido)) <= 0 THEN NEW.data_recebimento
         ELSE data_recebimento
       END,
       usuario_recebimento_id = NEW.usuario_id
     WHERE id = NEW.parcela_id;
   END IF;
+END $$
+DELIMITER ;
+
+-- Procedure de recalculo consolidado da conta a receber
+DROP PROCEDURE IF EXISTS `cant_sp_recalcula_conta_receber`;
+DELIMITER $$
+CREATE PROCEDURE `cant_sp_recalcula_conta_receber`(IN p_conta_id BIGINT)
+BEGIN
+  DECLARE v_total_recebido DECIMAL(12,2) DEFAULT 0.00;
+  DECLARE v_total_juros DECIMAL(12,2) DEFAULT 0.00;
+  DECLARE v_total_desconto DECIMAL(12,2) DEFAULT 0.00;
+
+  -- Calcula totais dos recebimentos
+  SELECT 
+    COALESCE(SUM(valor_recebido),0),
+    COALESCE(SUM(valor_juros),0), 
+    COALESCE(SUM(valor_desconto),0)
+  INTO v_total_recebido, v_total_juros, v_total_desconto
+  FROM cant_conta_receber_recebimento 
+  WHERE conta_receber_id = p_conta_id;
+
+  -- Atualiza a conta principal
+  UPDATE cant_conta_receber SET
+    valor_recebido = v_total_recebido,
+    valor_juros = v_total_juros,
+    valor_desconto = v_total_desconto
+  WHERE id = p_conta_id;
+END $$
+DELIMITER ;
+
+-- Triggers sobre recebimentos para manter consistência (idempotentes)
+DROP TRIGGER IF EXISTS `trg_cant_conta_receber_rec_ai`;
+DELIMITER $$
+CREATE TRIGGER `trg_cant_conta_receber_rec_ai`
+AFTER INSERT ON `cant_conta_receber_recebimento`
+FOR EACH ROW
+BEGIN
+  CALL cant_sp_recalcula_conta_receber(NEW.conta_receber_id);
+END $$
+DELIMITER ;
+
+DROP TRIGGER IF EXISTS `trg_cant_conta_receber_rec_au`;
+DELIMITER $$
+CREATE TRIGGER `trg_cant_conta_receber_rec_au`
+AFTER UPDATE ON `cant_conta_receber_recebimento`
+FOR EACH ROW
+BEGIN
+  CALL cant_sp_recalcula_conta_receber(NEW.conta_receber_id);
+END $$
+DELIMITER ;
+
+DROP TRIGGER IF EXISTS `trg_cant_conta_receber_rec_ad`;
+DELIMITER $$
+CREATE TRIGGER `trg_cant_conta_receber_rec_ad`
+AFTER DELETE ON `cant_conta_receber_recebimento`
+FOR EACH ROW
+BEGIN
+  CALL cant_sp_recalcula_conta_receber(OLD.conta_receber_id);
 END $$
 DELIMITER ;
 

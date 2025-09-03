@@ -1,60 +1,35 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { useEffect, useState } from 'react';
 
-interface ContaReceber {
-  id: number;
-  descricao: string;
-  cliente?: string;
-  numero_documento?: string;
-  valor_original: number;
-  valor_recebido: number;
-  valor_pendente: number;
-  data_emissao: string;
-  data_vencimento: string;
-  data_recebimento?: string;
-  status: 'PENDENTE' | 'RECEBIDO' | 'ATRASADO' | 'CANCELADO';
-  situacao: string;
-  dias_atraso?: number;
-  categoria_nome?: string;
-  usuario_cadastro_nome: string;
-}
+// Importando tipos e componentes
+import {
+  CategoriaFinanceira,
+  ContaReceber,
+  FiltrosContas,
+  FormDataConta,
+  FormDataRecebimento,
+  Pagination,
+  Recebimento,
+} from './types';
 
-interface CategoriaFinanceira {
-  id: number;
-  nome: string;
-  tipo: string;
-}
-
-interface Pagination {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-  hasNext: boolean;
-  hasPrev: boolean;
-}
+import FiltrosContasReceber from './components/FiltrosContasReceber';
+import ModalEditarConta from './components/ModalEditarConta';
+import ModalEditarRecebimento from './components/ModalEditarRecebimento';
+import ModalNovaConta from './components/ModalNovaConta';
+import ModalRecebimento from './components/ModalRecebimento';
+import ModalRecebimentos from './components/ModalRecebimentos';
+import PaginacaoContasReceber from './components/PaginacaoContasReceber';
+import TabelaContasReceber from './components/TabelaContasReceber';
 
 export default function ContasReceberPage() {
   const [contas, setContas] = useState<ContaReceber[]>([]);
   const [categorias, setCategorias] = useState<CategoriaFinanceira[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [showRecebimentoForm, setShowRecebimentoForm] = useState(false);
-  const [contaSelecionada, setContaSelecionada] = useState<ContaReceber | null>(null);
-  const [pagination, setPagination] = useState<Pagination>({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0,
-    hasNext: false,
-    hasPrev: false,
-  });
 
-  const [filtros, setFiltros] = useState({
+  // Estados de filtros
+  const [filtros, setFiltros] = useState<FiltrosContas>({
     status: '',
     situacao: '',
     categoria_id: '',
@@ -63,7 +38,25 @@ export default function ContasReceberPage() {
     data_fim: '',
   });
 
-  const [formData, setFormData] = useState({
+  // Estados de paginação
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false,
+  });
+
+  // Estados de modais
+  const [showNovaConta, setShowNovaConta] = useState(false);
+  const [showEditarConta, setShowEditarConta] = useState(false);
+  const [showRecebimento, setShowRecebimento] = useState(false);
+  const [showRecebimentos, setShowRecebimentos] = useState(false);
+  const [showEditarRecebimento, setShowEditarRecebimento] = useState(false);
+
+  // Estados de dados dos formulários
+  const [formData, setFormData] = useState<FormDataConta>({
     categoria_id: '',
     descricao: '',
     cliente: '',
@@ -76,7 +69,7 @@ export default function ContasReceberPage() {
     data_primeira_parcela: '',
   });
 
-  const [recebimentoData, setRecebimentoData] = useState({
+  const [recebimentoData, setRecebimentoData] = useState<FormDataRecebimento>({
     valor_recebido: '',
     valor_desconto: '0',
     valor_juros: '0',
@@ -84,6 +77,11 @@ export default function ContasReceberPage() {
     forma_recebimento: 'DINHEIRO',
     observacoes: '',
   });
+
+  // Estados de seleção
+  const [contaSelecionada, setContaSelecionada] = useState<ContaReceber | null>(null);
+  const [recebimentos, setRecebimentos] = useState<Recebimento[]>([]);
+  const [recebimentoSelecionado, setRecebimentoSelecionado] = useState<Recebimento | null>(null);
 
   useEffect(() => {
     carregarCategorias();
@@ -146,7 +144,7 @@ export default function ContasReceberPage() {
 
       if (response.ok) {
         await carregarContas();
-        setShowForm(false);
+        setShowNovaConta(false);
         setFormData({
           categoria_id: '',
           descricao: '',
@@ -195,7 +193,7 @@ export default function ContasReceberPage() {
 
       if (response.ok) {
         await carregarContas();
-        setShowRecebimentoForm(false);
+        setShowRecebimento(false);
         setContaSelecionada(null);
         setRecebimentoData({
           valor_recebido: '',
@@ -216,24 +214,78 @@ export default function ContasReceberPage() {
     }
   };
 
-  const formatarMoeda = (valor: number) => {
-    return valor.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    });
+  const handleEditar = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!contaSelecionada) return;
+
+    try {
+      const response = await fetch(`/api/financeiro/contas-receber/${contaSelecionada.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          ...formData,
+          valor_original: parseFloat(formData.valor_original),
+        }),
+      });
+
+      if (response.ok) {
+        await carregarContas();
+        setShowEditarConta(false);
+        setContaSelecionada(null);
+        alert('Conta editada com sucesso!');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Erro ao editar conta');
+      }
+    } catch (error) {
+      console.error('Erro ao editar conta:', error);
+      alert('Erro ao editar conta');
+    }
   };
 
-  const formatarData = (data: string) => {
-    return new Date(data).toLocaleDateString('pt-BR');
-  };
+  const handleEditarRecebimento = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const getSituacaoBadge = (situacao: string, status: string) => {
-    if (status === 'RECEBIDO') return 'bg-success';
-    if (status === 'CANCELADO') return 'bg-secondary';
-    if (situacao.includes('Atrasado')) return 'bg-danger';
-    if (situacao.includes('Hoje')) return 'bg-warning';
-    if (situacao.includes('Semana')) return 'bg-info';
-    return 'bg-primary';
+    if (!recebimentoSelecionado) return;
+
+    try {
+      const response = await fetch(
+        `/api/financeiro/contas-receber/recebimentos/${recebimentoSelecionado.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            ...recebimentoData,
+            valor_recebido: parseFloat(recebimentoData.valor_recebido),
+            valor_desconto: parseFloat(recebimentoData.valor_desconto),
+            valor_juros: parseFloat(recebimentoData.valor_juros),
+          }),
+        }
+      );
+
+      if (response.ok) {
+        // Recarregar recebimentos da conta
+        if (contaSelecionada) {
+          // Implementar carregamento de recebimentos
+        }
+        setShowEditarRecebimento(false);
+        setRecebimentoSelecionado(null);
+        alert('Recebimento editado com sucesso!');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Erro ao editar recebimento');
+      }
+    } catch (error) {
+      console.error('Erro ao editar recebimento:', error);
+      alert('Erro ao editar recebimento');
+    }
   };
 
   if (loading) {
@@ -256,516 +308,119 @@ export default function ContasReceberPage() {
           <a href='/dashboard/financeiro' className='btn btn-outline-secondary'>
             ← Voltar
           </a>
-          <Button onClick={() => setShowForm(true)}>Nova Conta</Button>
+          <Button onClick={() => setShowNovaConta(true)}>Nova Conta</Button>
         </div>
       </div>
 
       {/* Filtros */}
-      <Card className='mb-4'>
-        <div className='card-body'>
-          <div className='row'>
-            <div className='col-md-2'>
-              <label className='form-label'>Status</label>
-              <select
-                className='form-select'
-                value={filtros.status}
-                onChange={(e) => setFiltros({ ...filtros, status: e.target.value })}
-              >
-                <option value=''>Todos</option>
-                <option value='PENDENTE'>Pendente</option>
-                <option value='RECEBIDO'>Recebido</option>
-                <option value='ATRASADO'>Atrasado</option>
-                <option value='CANCELADO'>Cancelado</option>
-              </select>
-            </div>
-            <div className='col-md-2'>
-              <label className='form-label'>Situação</label>
-              <select
-                className='form-select'
-                value={filtros.situacao}
-                onChange={(e) => setFiltros({ ...filtros, situacao: e.target.value })}
-              >
-                <option value=''>Todas</option>
-                <option value='vence_hoje'>Vence Hoje</option>
-                <option value='vence_semana'>Vence Esta Semana</option>
-                <option value='atrasado'>Atrasado</option>
-              </select>
-            </div>
-            <div className='col-md-2'>
-              <label className='form-label'>Categoria</label>
-              <select
-                className='form-select'
-                value={filtros.categoria_id}
-                onChange={(e) => setFiltros({ ...filtros, categoria_id: e.target.value })}
-              >
-                <option value=''>Todas</option>
-                {categorias.map((categoria) => (
-                  <option key={categoria.id} value={categoria.id}>
-                    {categoria.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className='col-md-3'>
-              <label className='form-label'>Cliente</label>
-              <Input
-                type='text'
-                value={filtros.cliente}
-                onChange={(e) => setFiltros({ ...filtros, cliente: e.target.value })}
-                placeholder='Nome do cliente'
-              />
-            </div>
-            <div className='col-md-1'>
-              <label className='form-label'>&nbsp;</label>
-              <div>
-                <Button
-                  variant='outline'
-                  onClick={() =>
-                    setFiltros({
-                      status: '',
-                      situacao: '',
-                      categoria_id: '',
-                      cliente: '',
-                      data_inicio: '',
-                      data_fim: '',
-                    })
-                  }
-                >
-                  Limpar
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
+      <FiltrosContasReceber filtros={filtros} setFiltros={setFiltros} categorias={categorias} />
 
       {/* Lista de Contas */}
-      <Card>
-        <div className='card-body'>
-          {contas.length > 0 ? (
-            <>
-              <div className='table-responsive'>
-                <table className='table table-hover'>
-                  <thead>
-                    <tr>
-                      <th>Descrição</th>
-                      <th>Cliente</th>
-                      <th>Categoria</th>
-                      <th className='text-end'>Valor Original</th>
-                      <th className='text-end'>Valor Pendente</th>
-                      <th>Vencimento</th>
-                      <th>Situação</th>
-                      <th>Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {contas.map((conta) => (
-                      <tr key={conta.id}>
-                        <td>
-                          <div>
-                            <strong>{conta.descricao}</strong>
-                            {conta.numero_documento && (
-                              <>
-                                <br />
-                                <small className='text-muted'>Doc: {conta.numero_documento}</small>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                        <td>{conta.cliente || '-'}</td>
-                        <td>{conta.categoria_nome || '-'}</td>
-                        <td className='text-end'>{formatarMoeda(conta.valor_original)}</td>
-                        <td className='text-end'>
-                          <strong
-                            className={conta.valor_pendente > 0 ? 'text-success' : 'text-muted'}
-                          >
-                            {formatarMoeda(conta.valor_pendente)}
-                          </strong>
-                        </td>
-                        <td>
-                          {formatarData(conta.data_vencimento)}
-                          {conta.dias_atraso && conta.dias_atraso > 0 && (
-                            <>
-                              <br />
-                              <small className='text-danger'>
-                                {conta.dias_atraso} dias de atraso
-                              </small>
-                            </>
-                          )}
-                        </td>
-                        <td>
-                          <span
-                            className={`badge ${getSituacaoBadge(conta.situacao, conta.status)}`}
-                          >
-                            {conta.status}
-                          </span>
-                        </td>
-                        <td>
-                          {conta.status === 'PENDENTE' && (
-                            <Button
-                              size='small'
-                              onClick={() => {
-                                setContaSelecionada(conta);
-                                setRecebimentoData({
-                                  ...recebimentoData,
-                                  valor_recebido: conta.valor_pendente.toString(),
-                                });
-                                setShowRecebimentoForm(true);
-                              }}
-                            >
-                              Receber
-                            </Button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+      <TabelaContasReceber
+        contas={contas}
+        onEditar={(conta) => {
+          setContaSelecionada(conta);
+          setFormData({
+            categoria_id: '',
+            descricao: conta.descricao,
+            cliente: conta.cliente || '',
+            numero_documento: conta.numero_documento || '',
+            valor_original: conta.valor_original.toString(),
+            data_emissao: conta.data_emissao,
+            data_vencimento: conta.data_vencimento,
+            observacoes: '',
+            parcelas: '1',
+            data_primeira_parcela: '',
+          });
+          setShowEditarConta(true);
+        }}
+        onExcluir={(conta) => {
+          if (confirm(`Deseja realmente excluir a conta "${conta.descricao}"?`)) {
+            // Implementar exclusão
+          }
+        }}
+        onReceber={(conta) => {
+          setContaSelecionada(conta);
+          setRecebimentoData({
+            ...recebimentoData,
+            valor_recebido: conta.valor_pendente.toString(),
+          });
+          setShowRecebimento(true);
+        }}
+        onVerRecebimentos={(conta) => {
+          setContaSelecionada(conta);
+          // Carregar recebimentos da conta
+          setShowRecebimentos(true);
+        }}
+      />
 
-              {/* Paginação */}
-              {pagination.totalPages > 1 && (
-                <div className='d-flex justify-content-between align-items-center mt-4'>
-                  <div>
-                    Página {pagination.page} de {pagination.totalPages}({pagination.total}{' '}
-                    registros)
-                  </div>
-                  <div className='d-flex gap-2'>
-                    <Button
-                      variant='outline'
-                      disabled={!pagination.hasPrev}
-                      onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
-                    >
-                      Anterior
-                    </Button>
-                    <Button
-                      variant='outline'
-                      disabled={!pagination.hasNext}
-                      onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
-                    >
-                      Próxima
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <p className='text-muted text-center'>Nenhuma conta encontrada</p>
-          )}
-        </div>
-      </Card>
+      {/* Paginação */}
+      <PaginacaoContasReceber pagination={pagination} setPagination={setPagination} />
 
       {/* Modal de Nova Conta */}
-      {showForm && (
-        <div className='modal show d-block' style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className='modal-dialog modal-lg'>
-            <div className='modal-content'>
-              <div className='modal-header'>
-                <h5 className='modal-title'>Nova Conta a Receber</h5>
-                <button
-                  type='button'
-                  className='btn-close'
-                  onClick={() => setShowForm(false)}
-                ></button>
-              </div>
-              <form onSubmit={handleSubmit}>
-                <div className='modal-body'>
-                  <div className='row'>
-                    <div className='col-md-6'>
-                      <div className='mb-3'>
-                        <label className='form-label'>Descrição *</label>
-                        <Input
-                          type='text'
-                          value={formData.descricao}
-                          onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className='col-md-6'>
-                      <div className='mb-3'>
-                        <label className='form-label'>Cliente</label>
-                        <Input
-                          type='text'
-                          value={formData.cliente}
-                          onChange={(e) => setFormData({ ...formData, cliente: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                  </div>
+      <ModalNovaConta
+        show={showNovaConta}
+        onClose={() => setShowNovaConta(false)}
+        formData={formData}
+        setFormData={setFormData}
+        categorias={categorias}
+        onSubmit={handleSubmit}
+      />
 
-                  <div className='row'>
-                    <div className='col-md-6'>
-                      <div className='mb-3'>
-                        <label className='form-label'>Categoria</label>
-                        <select
-                          className='form-select'
-                          value={formData.categoria_id}
-                          onChange={(e) =>
-                            setFormData({ ...formData, categoria_id: e.target.value })
-                          }
-                        >
-                          <option value=''>Selecione...</option>
-                          {categorias.map((categoria) => (
-                            <option key={categoria.id} value={categoria.id}>
-                              {categoria.nome}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    <div className='col-md-6'>
-                      <div className='mb-3'>
-                        <label className='form-label'>Número do Documento</label>
-                        <Input
-                          type='text'
-                          value={formData.numero_documento}
-                          onChange={(e) =>
-                            setFormData({ ...formData, numero_documento: e.target.value })
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className='row'>
-                    <div className='col-md-4'>
-                      <div className='mb-3'>
-                        <label className='form-label'>Valor *</label>
-                        <Input
-                          type='number'
-                          step='0.01'
-                          value={formData.valor_original}
-                          onChange={(e) =>
-                            setFormData({ ...formData, valor_original: e.target.value })
-                          }
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className='col-md-4'>
-                      <div className='mb-3'>
-                        <label className='form-label'>Data Emissão *</label>
-                        <Input
-                          type='date'
-                          value={formData.data_emissao}
-                          onChange={(e) =>
-                            setFormData({ ...formData, data_emissao: e.target.value })
-                          }
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className='col-md-4'>
-                      <div className='mb-3'>
-                        <label className='form-label'>Data Vencimento *</label>
-                        <Input
-                          type='date'
-                          value={formData.data_vencimento}
-                          onChange={(e) =>
-                            setFormData({ ...formData, data_vencimento: e.target.value })
-                          }
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className='row'>
-                    <div className='col-md-6'>
-                      <div className='mb-3'>
-                        <label className='form-label'>Parcelas</label>
-                        <Input
-                          type='number'
-                          min='1'
-                          value={formData.parcelas}
-                          onChange={(e) => setFormData({ ...formData, parcelas: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                    {parseInt(formData.parcelas) > 1 && (
-                      <div className='col-md-6'>
-                        <div className='mb-3'>
-                          <label className='form-label'>Data 1ª Parcela</label>
-                          <Input
-                            type='date'
-                            value={formData.data_primeira_parcela}
-                            onChange={(e) =>
-                              setFormData({ ...formData, data_primeira_parcela: e.target.value })
-                            }
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className='mb-3'>
-                    <label className='form-label'>Observações</label>
-                    <textarea
-                      className='form-control'
-                      rows={3}
-                      value={formData.observacoes}
-                      onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className='modal-footer'>
-                  <button
-                    type='button'
-                    className='btn btn-secondary'
-                    onClick={() => setShowForm(false)}
-                  >
-                    Cancelar
-                  </button>
-                  <Button type='submit'>Salvar</Button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal de Editar Conta */}
+      <ModalEditarConta
+        show={showEditarConta}
+        onClose={() => setShowEditarConta(false)}
+        formData={formData}
+        setFormData={setFormData}
+        categorias={categorias}
+        onSubmit={handleEditar}
+      />
 
       {/* Modal de Recebimento */}
-      {showRecebimentoForm && contaSelecionada && (
-        <div className='modal show d-block' style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className='modal-dialog'>
-            <div className='modal-content'>
-              <div className='modal-header'>
-                <h5 className='modal-title'>Registrar Recebimento</h5>
-                <button
-                  type='button'
-                  className='btn-close'
-                  onClick={() => setShowRecebimentoForm(false)}
-                ></button>
-              </div>
-              <form onSubmit={handleRecebimento}>
-                <div className='modal-body'>
-                  <div className='mb-3'>
-                    <strong>Conta:</strong> {contaSelecionada.descricao}
-                    <br />
-                    <strong>Valor Pendente:</strong>{' '}
-                    {formatarMoeda(contaSelecionada.valor_pendente)}
-                  </div>
+      <ModalRecebimento
+        show={showRecebimento}
+        onClose={() => setShowRecebimento(false)}
+        conta={contaSelecionada}
+        recebimentoData={recebimentoData}
+        setRecebimentoData={setRecebimentoData}
+        onSubmit={handleRecebimento}
+      />
 
-                  <div className='row'>
-                    <div className='col-md-6'>
-                      <div className='mb-3'>
-                        <label className='form-label'>Valor Recebido *</label>
-                        <Input
-                          type='number'
-                          step='0.01'
-                          value={recebimentoData.valor_recebido}
-                          onChange={(e) =>
-                            setRecebimentoData({
-                              ...recebimentoData,
-                              valor_recebido: e.target.value,
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className='col-md-6'>
-                      <div className='mb-3'>
-                        <label className='form-label'>Data Recebimento *</label>
-                        <Input
-                          type='date'
-                          value={recebimentoData.data_recebimento}
-                          onChange={(e) =>
-                            setRecebimentoData({
-                              ...recebimentoData,
-                              data_recebimento: e.target.value,
-                            })
-                          }
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
+      {/* Modal de Recebimentos */}
+      <ModalRecebimentos
+        show={showRecebimentos}
+        onClose={() => setShowRecebimentos(false)}
+        conta={contaSelecionada}
+        recebimentos={recebimentos}
+        onEditar={(recebimento: Recebimento) => {
+          setRecebimentoSelecionado(recebimento);
+          setRecebimentoData({
+            valor_recebido: recebimento.valor_recebido.toString(),
+            valor_desconto: recebimento.valor_desconto.toString(),
+            valor_juros: recebimento.valor_juros.toString(),
+            data_recebimento: recebimento.data_recebimento,
+            forma_recebimento: recebimento.forma_recebimento,
+            observacoes: recebimento.observacoes || '',
+          });
+          setShowEditarRecebimento(true);
+        }}
+        onExcluir={(recebimento: Recebimento) => {
+          if (confirm('Deseja realmente excluir este recebimento?')) {
+            // Implementar exclusão
+          }
+        }}
+      />
 
-                  <div className='row'>
-                    <div className='col-md-4'>
-                      <div className='mb-3'>
-                        <label className='form-label'>Desconto</label>
-                        <Input
-                          type='number'
-                          step='0.01'
-                          value={recebimentoData.valor_desconto}
-                          onChange={(e) =>
-                            setRecebimentoData({
-                              ...recebimentoData,
-                              valor_desconto: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className='col-md-4'>
-                      <div className='mb-3'>
-                        <label className='form-label'>Juros</label>
-                        <Input
-                          type='number'
-                          step='0.01'
-                          value={recebimentoData.valor_juros}
-                          onChange={(e) =>
-                            setRecebimentoData({ ...recebimentoData, valor_juros: e.target.value })
-                          }
-                        />
-                      </div>
-                    </div>
-                    <div className='col-md-4'>
-                      <div className='mb-3'>
-                        <label className='form-label'>Forma Recebimento *</label>
-                        <select
-                          className='form-select'
-                          value={recebimentoData.forma_recebimento}
-                          onChange={(e) =>
-                            setRecebimentoData({
-                              ...recebimentoData,
-                              forma_recebimento: e.target.value,
-                            })
-                          }
-                          required
-                        >
-                          <option value='DINHEIRO'>Dinheiro</option>
-                          <option value='CHEQUE'>Cheque</option>
-                          <option value='TRANSFERENCIA'>Transferência</option>
-                          <option value='PIX'>PIX</option>
-                          <option value='CARTAO_DEBITO'>Cartão Débito</option>
-                          <option value='CARTAO_CREDITO'>Cartão Crédito</option>
-                          <option value='OUTRO'>Outro</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className='mb-3'>
-                    <label className='form-label'>Observações</label>
-                    <textarea
-                      className='form-control'
-                      rows={3}
-                      value={recebimentoData.observacoes}
-                      onChange={(e) =>
-                        setRecebimentoData({ ...recebimentoData, observacoes: e.target.value })
-                      }
-                    />
-                  </div>
-                </div>
-                <div className='modal-footer'>
-                  <button
-                    type='button'
-                    className='btn btn-secondary'
-                    onClick={() => setShowRecebimentoForm(false)}
-                  >
-                    Cancelar
-                  </button>
-                  <Button type='submit'>Registrar Recebimento</Button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal de Editar Recebimento */}
+      <ModalEditarRecebimento
+        show={showEditarRecebimento}
+        onClose={() => setShowEditarRecebimento(false)}
+        recebimentoSelecionado={recebimentoSelecionado}
+        recebimentoData={recebimentoData}
+        setRecebimentoData={setRecebimentoData}
+        onSubmit={handleEditarRecebimento}
+      />
     </div>
   );
 }
