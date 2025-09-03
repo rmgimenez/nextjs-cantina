@@ -66,10 +66,17 @@ export default function PDVPage() {
     }
   };
 
-  // Buscar clientes
-  const buscarClientes = async (busca: string): Promise<Cliente[]> => {
+  // Buscar clientes (aceita filtro opcional de tipo: 'todos' | 'aluno' | 'funcionario')
+  const buscarClientes = async (
+    busca: string,
+    tipo: 'todos' | 'aluno' | 'funcionario' = 'todos'
+  ): Promise<Cliente[]> => {
     try {
-      const response = await fetch(`/api/pdv/clientes?q=${encodeURIComponent(busca)}`);
+      const params = new URLSearchParams();
+      params.append('q', busca);
+      if (tipo && tipo !== 'todos') params.append('tipo', tipo);
+
+      const response = await fetch(`/api/pdv/clientes?${params.toString()}`);
       const data = await response.json();
       return data.ok ? data.clientes : [];
     } catch (error) {

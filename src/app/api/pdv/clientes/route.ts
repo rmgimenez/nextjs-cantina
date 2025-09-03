@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
           FROM funcionarios f
           LEFT JOIN cant_preco_cargo pc ON pc.cargo = f.cargo AND pc.ativo = 1
           WHERE (f.codigo = ? OR f.nome LIKE ?)
-          AND f.ativo = 1
+          AND COALESCE(f.inativo, 0) = 0
           ORDER BY f.nome
           LIMIT 10
         `;

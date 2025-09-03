@@ -19,7 +19,8 @@ interface Cliente {
 interface SeletorClienteProps {
   clienteSelecionado: Cliente | null;
   onClienteSelecionado: (cliente: Cliente | null) => void;
-  onBuscarClientes: (busca: string) => Promise<Cliente[]>;
+  // aceita opcionalmente um filtro de tipo: 'todos' | 'aluno' | 'funcionario'
+  onBuscarClientes: (busca: string, tipo?: 'todos' | 'aluno' | 'funcionario') => Promise<Cliente[]>;
 }
 
 export default function SeletorCliente({
@@ -31,6 +32,7 @@ export default function SeletorCliente({
   const [resultados, setResultados] = useState<Cliente[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [mostrarResultados, setMostrarResultados] = useState(false);
+  const [tipoFiltro, setTipoFiltro] = useState<'todos' | 'aluno' | 'funcionario'>('todos');
 
   const handleBusca = async (valor: string) => {
     setBusca(valor);
@@ -41,7 +43,7 @@ export default function SeletorCliente({
     }
     setBuscando(true);
     try {
-      const clientes = await onBuscarClientes(valor);
+      const clientes = await onBuscarClientes(valor, tipoFiltro);
       setResultados(clientes);
       setMostrarResultados(true);
     } catch (e) {
@@ -76,12 +78,29 @@ export default function SeletorCliente({
         {!clienteSelecionado ? (
           <div>
             <div className='position-relative mb-2'>
+              <div className='d-flex mb-2 gap-2'>
+                <select
+                  value={tipoFiltro}
+                  onChange={(e) => {
+                    const v = e.target.value as 'todos' | 'aluno' | 'funcionario';
+                    setTipoFiltro(v);
+                    // se já existe uma busca válida, reexecuta
+                    if (busca && busca.length >= 2) handleBusca(busca);
+                  }}
+                  className='form-select form-select-sm w-auto'
+                >
+                  <option value='todos'>Todos</option>
+                  <option value='aluno'>Alunos</option>
+                  <option value='funcionario'>Funcionários</option>
+                </select>
+                <div className='flex-grow-1'></div>
+              </div>
               <FiSearch className='position-absolute top-50 translate-middle-y ms-2 text-muted' />
               <input
                 type='text'
                 value={busca}
                 onChange={(e) => handleBusca(e.target.value)}
-                placeholder='RA, nome ou código do funcionário'
+                placeholder='RA, nome (aluno/func) ou código do funcionário'
                 className='form-control ps-5'
               />
               {buscando && (
@@ -125,15 +144,23 @@ export default function SeletorCliente({
                           </div>
                         )}
                         <div className='flex-grow-1'>
-                          <div className='small fw-semibold text-truncate'>{cliente.nome}</div>
+                          <div className='d-flex align-items-center justify-content-between'>
+                            <div className='small fw-semibold text-truncate'>{cliente.nome}</div>
+                            <div>
+                              <span
+                                className={`badge bg-${
+                                  cliente.tipo === 'aluno' ? 'success' : 'primary'
+                                } me-1`}
+                                title={cliente.tipo === 'aluno' ? 'Aluno' : 'Funcionário'}
+                              >
+                                {cliente.tipo === 'aluno' ? 'Aluno' : 'Funcionário'}
+                              </span>
+                            </div>
+                          </div>
                           <div className='text-muted small'>
                             {cliente.tipo === 'aluno'
-                              ? `Aluno - RA: ${cliente.id}${
-                                  cliente.curso ? ` - ${cliente.curso}` : ''
-                                }`
-                              : `Funcionário - Cód: ${cliente.id}${
-                                  cliente.cargo ? ` - ${cliente.cargo}` : ''
-                                }`}
+                              ? `RA: ${cliente.id}${cliente.curso ? ` • ${cliente.curso}` : ''}`
+                              : `Cód: ${cliente.id}${cliente.cargo ? ` • ${cliente.cargo}` : ''}`}
                           </div>
                           {cliente.tipo === 'aluno' && cliente.saldo !== undefined && (
                             <div
@@ -187,10 +214,19 @@ export default function SeletorCliente({
               )}
               <div className='flex-grow-1'>
                 <div className='fw-semibold'>{clienteSelecionado.nome}</div>
-                <div className='small text-muted mb-1'>
-                  {clienteSelecionado.tipo === 'aluno'
-                    ? `Aluno - RA: ${clienteSelecionado.id}`
-                    : `Funcionário - Código: ${clienteSelecionado.id}`}
+                <div className='d-flex align-items-center gap-2 mb-1'>
+                  <span
+                    className={`badge bg-${
+                      clienteSelecionado.tipo === 'aluno' ? 'success' : 'primary'
+                    }`}
+                  >
+                    {clienteSelecionado.tipo === 'aluno' ? 'Aluno' : 'Funcionário'}
+                  </span>
+                  <small className='text-muted'>
+                    {clienteSelecionado.tipo === 'aluno'
+                      ? `RA: ${clienteSelecionado.id}`
+                      : `Código: ${clienteSelecionado.id}`}
+                  </small>
                 </div>
                 {clienteSelecionado.tipo === 'aluno' && (
                   <>
