@@ -22,6 +22,7 @@ export default function RestricoesPage() {
   const [produtoResultados, setProdutoResultados] = useState<any[]>([]);
   const [tipoResultados, setTipoResultados] = useState<any[]>([]);
   const [alunoResultados, setAlunoResultados] = useState<any[]>([]);
+  const [alunoSelecionado, setAlunoSelecionado] = useState<any | null>(null);
   const [buscandoProduto, setBuscandoProduto] = useState(false);
   const [buscandoTipo, setBuscandoTipo] = useState(false);
   const [buscandoAluno, setBuscandoAluno] = useState(false);
@@ -38,8 +39,22 @@ export default function RestricoesPage() {
           const data = await res.json();
           setRestricoes(data.restricoes || []);
           setAlunoResultados([]);
+          // buscar dados do aluno para exibir
+          try {
+            const r2 = await fetch(`/api/alunos?q=${encodeURIComponent(q)}`);
+            if (r2.ok) {
+              const d2 = await r2.json();
+              const a = (d2.alunos && d2.alunos[0]) || null;
+              setAlunoSelecionado(a);
+            } else {
+              setAlunoSelecionado(null);
+            }
+          } catch (err) {
+            setAlunoSelecionado(null);
+          }
         } else {
           setRestricoes([]);
+          setAlunoSelecionado(null);
         }
       } else {
         // busca por nome: chamar endpoint /api/alunos?q=...
@@ -56,13 +71,15 @@ export default function RestricoesPage() {
           setAlunoResultados(alunos);
           // se veio apenas 1 resultado, buscar restricoes automaticamente
           if (alunos.length === 1) {
-            const r = String(alunos[0].ra);
+            const aluno = alunos[0];
+            const r = String(aluno.ra);
             setRa(r);
+            setAlunoResultados([]);
+            setAlunoSelecionado(aluno);
             const res = await fetch(`/api/alunos/restricoes?ra=${encodeURIComponent(r)}`);
             if (res.ok) {
               const data = await res.json();
               setRestricoes(data.restricoes || []);
-              setAlunoResultados([]);
             } else {
               setRestricoes([]);
             }
@@ -137,6 +154,12 @@ export default function RestricoesPage() {
                 className='form-control'
                 value={ra}
                 onChange={(e) => setRa(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    buscar();
+                  }
+                }}
                 placeholder='Digite o RA'
               />
               {alunoResultados.length > 0 && (
@@ -153,6 +176,7 @@ export default function RestricoesPage() {
                         const r = String(a.ra);
                         setRa(r);
                         setAlunoResultados([]);
+                        setAlunoSelecionado(a);
                         setLoading(true);
                         try {
                           const res = await fetch(
@@ -194,6 +218,36 @@ export default function RestricoesPage() {
           </div>
         </CardContent>
       </Card>
+
+      {alunoSelecionado && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Aluno Selecionado</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className='d-flex gap-3 align-items-center'>
+              <img
+                src={
+                  alunoSelecionado.foto ||
+                  `https://sistema.santanna.g12.br/carometr/${alunoSelecionado.ra}.jpg`
+                }
+                alt={alunoSelecionado.nome}
+                style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6 }}
+              />
+              <div>
+                <div className='fw-semibold'>{alunoSelecionado.nome}</div>
+                <div className='text-muted small'>RA: {alunoSelecionado.ra}</div>
+                <div className='text-muted small'>
+                  Nasc:{' '}
+                  {alunoSelecionado.nasc
+                    ? new Date(alunoSelecionado.nasc).toLocaleDateString('pt-BR')
+                    : '-'}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {novo && (
         <Card>
