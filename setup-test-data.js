@@ -1,18 +1,18 @@
-const mysql = require('mysql2/promise');
+const mysql = require("mysql2/promise");
 
 async function setupTestData() {
   try {
     const connection = await mysql.createConnection({
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'sant31br',
+      host: "localhost",
+      user: "root",
+      password: "",
+      database: "cantina",
     });
 
-    console.log('Conectado ao banco de dados');
+    console.log("Conectado ao banco de dados");
 
     // Inserir tipos de produto
-    console.log('Inserindo tipos de produto...');
+    console.log("Inserindo tipos de produto...");
     await connection.execute(`
       INSERT IGNORE INTO cant_produto_tipo (id, descricao, codigo, exige_peso) VALUES
       (1, 'Salgados', 'salgados', 0),
@@ -22,7 +22,7 @@ async function setupTestData() {
     `);
 
     // Inserir produtos
-    console.log('Inserindo produtos...');
+    console.log("Inserindo produtos...");
     await connection.execute(`
       INSERT IGNORE INTO cant_produtos (id, tipo_id, nome, descricao, preco_unitario, codigo_barra, estoque_minimo) VALUES
       (1, 1, 'Coxinha', 'Coxinha de frango tradicional', 4.50, '7891234567890', 10.000),
@@ -43,13 +43,13 @@ async function setupTestData() {
     `);
 
     // Limpar movimentações existentes desses produtos
-    console.log('Limpando movimentações antigas...');
+    console.log("Limpando movimentações antigas...");
     await connection.execute(`
       DELETE FROM cant_estoque_mov WHERE produto_id IN (1,2,3,4,5,6,7,8,9) AND referencia = 'ESTOQUE_INICIAL'
     `);
 
     // Inserir estoque inicial
-    console.log('Inserindo estoque inicial...');
+    console.log("Inserindo estoque inicial...");
     await connection.execute(`
       INSERT INTO cant_estoque_mov (produto_id, tipo_mov, quantidade, referencia, observacao) VALUES
       (1, 'ENTRADA', 50.000, 'ESTOQUE_INICIAL', 'Estoque inicial do produto'),
@@ -63,22 +63,34 @@ async function setupTestData() {
       (9, 'ENTRADA', 10.000, 'ESTOQUE_INICIAL', 'Estoque inicial do produto')
     `);
 
-    // Verificar resultados
-    console.log('\n=== Produtos inseridos ===');
-    const [produtos] = await connection.execute(`
-      SELECT p.id, p.nome, p.preco_unitario, t.descricao as categoria, 
-             COALESCE(vs.saldo, 0) as estoque
-      FROM cant_produtos p
-      JOIN cant_produto_tipo t ON t.id = p.tipo_id
-      LEFT JOIN cant_view_estoque_saldo vs ON vs.produto_id = p.id
-      ORDER BY p.id
+    // Inserir categorias financeiras de teste
+    console.log("Inserindo categorias financeiras...");
+    await connection.execute(`
+      INSERT IGNORE INTO cant_categoria_financeira (id, nome, tipo, descricao) VALUES
+      (1, 'Fornecedores', 'DESPESA', 'Pagamentos a fornecedores de produtos'),
+      (2, 'Utilities', 'DESPESA', 'Contas de luz, água, telefone, internet'),
+      (3, 'Manutenção', 'DESPESA', 'Gastos com manutenção de equipamentos')
     `);
-    console.table(produtos);
+
+    // Inserir contas a pagar de teste
+    console.log("Inserindo contas a pagar de teste...");
+    await connection.execute(`
+      INSERT IGNORE INTO cant_conta_pagar (
+        id, categoria_id, descricao, fornecedor, numero_documento, valor_original,
+        data_emissao, data_vencimento, status, observacoes, usuario_cadastro_id
+      ) VALUES
+      (1, 1, 'Compra de ingredientes', 'Distribuidora XYZ', 'NF001', 1500.00,
+       '2025-09-01', '2025-09-15', 'PENDENTE', 'Compra mensal de ingredientes', 1),
+      (2, 2, 'Conta de luz', 'Companhia Elétrica', 'CONTA001', 450.00,
+       '2025-09-01', '2025-09-10', 'PENDENTE', 'Conta do mês de agosto', 1),
+      (3, 3, 'Manutenção equipamentos', 'Tecnica Ltda', 'OS001', 800.00,
+       '2025-08-15', '2025-09-05', 'PAGO', 'Manutenção da geladeira', 1)
+    `);
 
     await connection.end();
-    console.log('\nDados de teste inseridos com sucesso!');
+    console.log("\nDados de teste inseridos com sucesso!");
   } catch (error) {
-    console.error('Erro ao inserir dados:', error);
+    console.error("Erro ao inserir dados:", error);
   }
 }
 
