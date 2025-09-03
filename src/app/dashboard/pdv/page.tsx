@@ -228,6 +228,37 @@ export default function PDVPage() {
         tipoComprador = 'AVULSA';
       }
 
+      // Antes de enviar, validar restrições para alunos em todos os itens do carrinho
+      if (clienteSelecionado && clienteSelecionado.tipo === 'aluno') {
+        for (const item of carrinho) {
+          try {
+            const resVal = await fetch(
+              `/api/alunos/restricoes/valida?aluno_ra=${clienteSelecionado.id}&produtoId=${item.id}`
+            );
+            if (resVal.ok) {
+              const dv = await resVal.json();
+              if (dv && dv.blocked) {
+                const motivos = (dv.reasons || [])
+                  .map((r: any) => r.motivo || r.type || '')
+                  .join('; ');
+                alert(`Venda bloqueada para o aluno: Item "${item.nome}" - ${motivos}`);
+                console.warn('Venda bloqueada na finalização', {
+                  aluno_ra: clienteSelecionado.id,
+                  produtoId: item.id,
+                  reasons: dv.reasons,
+                });
+                return; // abortar finalização
+              }
+            }
+          } catch (e) {
+            console.error('Erro ao validar restrição para item', item, e);
+            // Em caso de erro de validação, prevenir a venda por segurança
+            alert('Erro ao validar restrições do aluno. Verifique a conexão e tente novamente.');
+            return;
+          }
+        }
+      }
+
       const dadosVenda = {
         tipoComprador,
         compradorId,

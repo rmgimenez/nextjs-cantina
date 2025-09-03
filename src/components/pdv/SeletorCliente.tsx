@@ -219,6 +219,16 @@ export default function SeletorCliente({
                         <strong>Obs:</strong> {clienteSelecionado.observacao}
                       </div>
                     )}
+                    {/* Botão rápido para gerenciar restrições do aluno */}
+                    <div className='mt-2'>
+                      <a
+                        href={`/dashboard/alunos/restricoes?ra=${clienteSelecionado.id}`}
+                        className='btn btn-sm btn-outline-primary'
+                        target='_self'
+                      >
+                        Gerenciar Restrições do Aluno
+                      </a>
+                    </div>
                   </>
                 )}
                 {clienteSelecionado.tipo === 'funcionario' && (
