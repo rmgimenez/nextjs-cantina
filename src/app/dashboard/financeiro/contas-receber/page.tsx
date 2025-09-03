@@ -125,6 +125,24 @@ export default function ContasReceberPage() {
     }
   };
 
+  const carregarRecebimentos = async (contaId: number) => {
+    try {
+      const response = await fetch(`/api/financeiro/contas-receber/${contaId}`, {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setRecebimentos(data.recebimentos || []);
+      } else {
+        console.error('Erro ao carregar recebimentos');
+        setRecebimentos([]);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar recebimentos:', error);
+      setRecebimentos([]);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -349,7 +367,7 @@ export default function ContasReceberPage() {
         }}
         onVerRecebimentos={(conta) => {
           setContaSelecionada(conta);
-          // Carregar recebimentos da conta
+          carregarRecebimentos(conta.id);
           setShowRecebimentos(true);
         }}
       />
