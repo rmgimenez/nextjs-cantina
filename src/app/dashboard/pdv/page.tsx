@@ -2,61 +2,18 @@
 
 // import DashboardLayout from '@/components/layout/dashboard-layout';
 import { formatarMoeda } from '@/lib/formatters';
+import type { Cliente, ItemCarrinho, Produto, StatusCaixa } from '@/types/pdv';
 import { useEffect, useState } from 'react';
-import { FiRefreshCw, FiSearch } from 'react-icons/fi';
 
 // Componentes do PDV
 import Carrinho from '@/components/pdv/Carrinho';
 import Checkout from '@/components/pdv/Checkout';
 import ControleCaixa from '@/components/pdv/ControleCaixa';
-import GridProdutos from '@/components/pdv/GridProdutos';
+import ProdutosFiltro from '@/components/pdv/ProdutosFiltro';
+import ProdutosPanel from '@/components/pdv/ProdutosPanel';
 import SeletorCliente from '@/components/pdv/SeletorCliente';
 
-interface Produto {
-  id: number;
-  nome: string;
-  preco: number;
-  categoria: string;
-  estoque: number;
-  estoqueMinimo: number;
-  exigePeso: boolean;
-}
-
-interface ItemCarrinho {
-  id: number;
-  nome: string;
-  preco: number;
-  quantidade: number;
-  categoria: string;
-}
-
-interface Cliente {
-  tipo: 'aluno' | 'funcionario';
-  id: number;
-  nome: string;
-  curso?: string;
-  serie?: string;
-  turma?: string;
-  cargo?: string;
-  saldo?: number;
-  precoRefeicao?: number;
-  observacao?: string;
-  fotoUrl?: string;
-}
-
-interface StatusCaixa {
-  caixaAberto: boolean;
-  caixa: {
-    id: number;
-    dataAbertura: string;
-    valorInicial: number;
-    totalVendas: number;
-    totalSangrias: number;
-    totalReforcos: number;
-    valorCalculado: number;
-    usuarioAbertura: string;
-  } | null;
-}
+// (tipos importados de src/types/pdv.ts)
 
 export default function PDVPage() {
   // Estados principais
@@ -342,62 +299,19 @@ export default function PDVPage() {
           <div className='row g-3'>
             {/* Coluna Produtos */}
             <div className='col-12 col-lg-7 d-flex flex-column'>
-              {/* Card filtros */}
-              <div className='card shadow-sm mb-3'>
-                <div className='card-body py-3'>
-                  <div className='row g-2 align-items-center'>
-                    <div className='col-12 col-md-5'>
-                      <div className='position-relative'>
-                        <FiSearch className='position-absolute top-50 translate-middle-y ms-2 text-muted' />
-                        <input
-                          type='text'
-                          value={buscaProduto}
-                          onChange={(e) => setBuscaProduto(e.target.value)}
-                          placeholder='Buscar produto ou código'
-                          className='form-control ps-5'
-                        />
-                      </div>
-                    </div>
-                    <div className='col-8 col-md-4'>
-                      <select
-                        value={filtroCategoria}
-                        onChange={(e) => setFiltroCategoria(e.target.value)}
-                        className='form-select'
-                      >
-                        <option value=''>Todas as categorias</option>
-                        <option value='salgados'>Salgados</option>
-                        <option value='doces'>Doces</option>
-                        <option value='bebidas'>Bebidas</option>
-                        <option value='refeicoes'>Refeições</option>
-                      </select>
-                    </div>
-                    <div className='col-4 col-md-3 d-grid'>
-                      <button
-                        onClick={() => buscarProdutos(buscaProduto, filtroCategoria)}
-                        className='btn btn-primary d-flex align-items-center justify-content-center gap-2'
-                        title='Recarregar lista'
-                      >
-                        <FiRefreshCw /> <span>Atualizar</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <ProdutosFiltro
+                busca={buscaProduto}
+                onBuscaChange={setBuscaProduto}
+                filtroCategoria={filtroCategoria}
+                onFiltroChange={setFiltroCategoria}
+                onBuscar={() => buscarProdutos(buscaProduto, filtroCategoria)}
+              />
 
-              {/* Produtos */}
-              <div className='card flex-fill shadow-sm'>
-                <div className='card-header bg-white pb-2 pt-3 border-0 d-flex justify-content-between align-items-center'>
-                  <h5 className='mb-0 fw-semibold'>Produtos Disponíveis</h5>
-                  <small className='text-muted'>{produtos.length} itens</small>
-                </div>
-                <div className='card-body pt-0 overflow-auto' style={{ maxHeight: '62vh' }}>
-                  <GridProdutos
-                    produtos={produtos}
-                    onAdicionarAoCarrinho={adicionarAoCarrinho}
-                    loading={loadingProdutos}
-                  />
-                </div>
-              </div>
+              <ProdutosPanel
+                produtos={produtos}
+                onAdicionarAoCarrinho={adicionarAoCarrinho}
+                loading={loadingProdutos}
+              />
             </div>
 
             {/* Coluna lateral: cliente + carrinho + checkout */}

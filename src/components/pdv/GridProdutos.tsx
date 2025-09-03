@@ -1,15 +1,8 @@
-import { formatarMoeda } from '@/lib/formatters';
-import { FiPackage, FiPlus } from 'react-icons/fi';
+'use client';
 
-interface Produto {
-  id: number;
-  nome: string;
-  preco: number;
-  categoria: string;
-  estoque: number;
-  estoqueMinimo: number;
-  exigePeso: boolean;
-}
+import { formatarMoeda } from '@/lib/formatters';
+import type { Produto } from '@/types/pdv';
+import { FiPackage, FiPlus } from 'react-icons/fi';
 
 interface GridProdutosProps {
   produtos: Produto[];
