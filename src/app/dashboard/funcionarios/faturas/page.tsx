@@ -51,6 +51,22 @@ export default function FaturasFuncionariosPage() {
     carregar(); // eslint-disable-next-line
   }, []);
   const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const marcarPaga = async (id: number) => {
+    try {
+      const res = await fetch(`/api/relatorios/funcionarios/faturas`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) {
+        setFaturas((prev) => prev.map((f) => (f.id === id ? { ...f, status: 'PAGA' } : f)));
+      } else {
+        console.error('Erro ao marcar fatura como paga');
+      }
+    } catch (err) {
+      console.error('Erro ao marcar fatura como paga', err);
+    }
+  };
   return (
     <>
       <div className='bg-white border-bottom px-3 py-3'>
@@ -114,7 +130,19 @@ export default function FaturasFuncionariosPage() {
                 <tr key={f.id}>
                   <td>{f.funcionario_nome}</td>
                   <td className='text-end'>{fmt(f.valor_total)}</td>
-                  <td>{f.status}</td>
+                  <td>
+                    <div className='d-flex align-items-center gap-2'>
+                      <span>{f.status}</span>
+                      {f.status !== 'PAGA' && (
+                        <button
+                          className='btn btn-sm btn-outline-primary'
+                          onClick={() => marcarPaga(f.id)}
+                        >
+                          Marcar como paga
+                        </button>
+                      )}
+                    </div>
+                  </td>
                   <td>{new Date(f.data_geracao).toLocaleDateString('pt-BR')}</td>
                 </tr>
               ))}
