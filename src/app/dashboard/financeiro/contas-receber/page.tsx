@@ -92,7 +92,9 @@ export default function ContasReceberPage() {
 
   const carregarCategorias = async () => {
     try {
-      const response = await fetch('/api/financeiro/categorias?tipo=RECEITA');
+      const response = await fetch('/api/financeiro/categorias?tipo=RECEITA', {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
         setCategorias(data);
@@ -110,7 +112,9 @@ export default function ContasReceberPage() {
         ...Object.fromEntries(Object.entries(filtros).filter(([_, v]) => v)),
       });
 
-      const response = await fetch(`/api/financeiro/contas-receber?${params}`);
+      const response = await fetch(`/api/financeiro/contas-receber?${params}`, {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
         setContas(data.contas);
@@ -132,6 +136,7 @@ export default function ContasReceberPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           ...formData,
           valor_original: parseFloat(formData.valor_original),
@@ -178,6 +183,7 @@ export default function ContasReceberPage() {
           headers: {
             'Content-Type': 'application/json',
           },
+          credentials: 'include',
           body: JSON.stringify({
             ...recebimentoData,
             valor_recebido: parseFloat(recebimentoData.valor_recebido),

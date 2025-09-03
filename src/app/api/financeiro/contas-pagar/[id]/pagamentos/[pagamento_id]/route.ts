@@ -1,17 +1,17 @@
-import { verifyToken } from "@/lib/auth";
-import { query } from "@/lib/db";
-import { NextRequest, NextResponse } from "next/server";
+import { verifyToken } from '@/lib/auth';
+import { query } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function PUT(request: NextRequest, { params }: any) {
   try {
-    const token = request.cookies.get("cantina_session")?.value;
+    const token = request.cookies.get('cantina_session')?.value;
     const user = verifyToken(token);
 
-    if (!user || !["ADMIN", "ESTOQUISTA", "ATENDENTE"].includes(user.tipo)) {
-      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+    if (!user || !['ADMIN', 'ESTOQUISTA', 'ATENDENTE'].includes(user.tipo)) {
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
     }
 
-    const { id, pagamento_id } = params;
+    const { id, pagamento_id } = await params;
     const body = await request.json();
     const {
       parcela_id,
@@ -24,27 +24,21 @@ export async function PUT(request: NextRequest, { params }: any) {
     } = body;
 
     if (!valor_pago || !data_pagamento || !forma_pagamento) {
-      return NextResponse.json(
-        { error: "Dados obrigatórios não informados" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Dados obrigatórios não informados' }, { status: 400 });
     }
 
     if (
       ![
-        "DINHEIRO",
-        "CHEQUE",
-        "TRANSFERENCIA",
-        "PIX",
-        "CARTAO_DEBITO",
-        "CARTAO_CREDITO",
-        "OUTRO",
+        'DINHEIRO',
+        'CHEQUE',
+        'TRANSFERENCIA',
+        'PIX',
+        'CARTAO_DEBITO',
+        'CARTAO_CREDITO',
+        'OUTRO',
       ].includes(forma_pagamento)
     ) {
-      return NextResponse.json(
-        { error: "Forma de pagamento inválida" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Forma de pagamento inválida' }, { status: 400 });
     }
 
     // Verifica se o pagamento pertence à conta especificada
@@ -57,10 +51,7 @@ export async function PUT(request: NextRequest, { params }: any) {
     );
 
     if (!pagamento) {
-      return NextResponse.json(
-        { error: "Pagamento não encontrado" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Pagamento não encontrado' }, { status: 404 });
     }
 
     // Atualiza o pagamento
@@ -90,27 +81,24 @@ export async function PUT(request: NextRequest, { params }: any) {
     );
 
     return NextResponse.json({
-      message: "Pagamento atualizado com sucesso",
+      message: 'Pagamento atualizado com sucesso',
     });
   } catch (error) {
-    console.error("Erro ao atualizar pagamento:", error);
-    return NextResponse.json(
-      { error: "Erro interno do servidor" },
-      { status: 500 }
-    );
+    console.error('Erro ao atualizar pagamento:', error);
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
 }
 
 export async function DELETE(request: NextRequest, { params }: any) {
   try {
-    const token = request.cookies.get("cantina_session")?.value;
+    const token = request.cookies.get('cantina_session')?.value;
     const user = verifyToken(token);
 
-    if (!user || !["ADMIN", "ESTOQUISTA", "ATENDENTE"].includes(user.tipo)) {
-      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+    if (!user || !['ADMIN', 'ESTOQUISTA', 'ATENDENTE'].includes(user.tipo)) {
+      return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
     }
 
-    const { id, pagamento_id } = params;
+    const { id, pagamento_id } = await params;
 
     // Verifica se o pagamento pertence à conta especificada
     const [pagamento] = await query(
@@ -122,10 +110,7 @@ export async function DELETE(request: NextRequest, { params }: any) {
     );
 
     if (!pagamento) {
-      return NextResponse.json(
-        { error: "Pagamento não encontrado" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Pagamento não encontrado' }, { status: 404 });
     }
 
     // Exclui o pagamento
@@ -137,13 +122,10 @@ export async function DELETE(request: NextRequest, { params }: any) {
     );
 
     return NextResponse.json({
-      message: "Pagamento excluído com sucesso",
+      message: 'Pagamento excluído com sucesso',
     });
   } catch (error) {
-    console.error("Erro ao excluir pagamento:", error);
-    return NextResponse.json(
-      { error: "Erro interno do servidor" },
-      { status: 500 }
-    );
+    console.error('Erro ao excluir pagamento:', error);
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
 }

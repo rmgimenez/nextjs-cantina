@@ -11,7 +11,7 @@ export async function GET(request: NextRequest, { params }: any) {
       return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Busca a conta
     const [conta] = await query(
@@ -67,7 +67,7 @@ export async function PUT(request: NextRequest, { params }: any) {
       return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const {
       categoria_id,
@@ -133,7 +133,7 @@ export async function DELETE(request: NextRequest, { params }: any) {
       return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Verifica se há recebimentos associados
     const [recebimento] = await query(

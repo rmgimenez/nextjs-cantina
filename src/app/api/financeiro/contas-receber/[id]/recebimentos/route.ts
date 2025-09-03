@@ -11,7 +11,7 @@ export async function POST(request: NextRequest, { params }: any) {
       return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const {
       parcela_id,

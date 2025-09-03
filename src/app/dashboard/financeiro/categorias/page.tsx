@@ -35,7 +35,9 @@ export default function CategoriasFinanceirasPage() {
       const url = filtroTipo
         ? `/api/financeiro/categorias?tipo=${filtroTipo}`
         : '/api/financeiro/categorias';
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
         setCategorias(data);
@@ -56,6 +58,7 @@ export default function CategoriasFinanceirasPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 

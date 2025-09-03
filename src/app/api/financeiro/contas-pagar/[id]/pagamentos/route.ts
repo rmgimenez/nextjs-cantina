@@ -2,6 +2,35 @@ import { verifyToken } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 
+export async function GET(request: NextRequest, { params }: any) {
+  try {
+    const token = request.cookies.get('cantina_session')?.value;
+    const user = verifyToken(token);
+
+    if (!user) {
+      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    const pagamentos = await query(
+      `
+      SELECT cpp.*, u.nome as usuario_nome
+      FROM cant_conta_pagar_pagamento cpp
+      LEFT JOIN cant_usuarios u ON cpp.usuario_id = u.id
+      WHERE cpp.conta_pagar_id = ?
+      ORDER BY cpp.data_pagamento DESC
+    `,
+      [id]
+    );
+
+    return NextResponse.json(pagamentos);
+  } catch (error) {
+    console.error('Erro ao buscar pagamentos da conta:', error);
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest, { params }: any) {
   try {
     const token = request.cookies.get('cantina_session')?.value;
@@ -11,8 +40,9 @@ export async function POST(request: NextRequest, { params }: any) {
       return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
+
     const {
       parcela_id,
       valor_pago,
@@ -25,6 +55,29 @@ export async function POST(request: NextRequest, { params }: any) {
 
     if (!valor_pago || !data_pagamento || !forma_pagamento) {
       return NextResponse.json({ error: 'Dados obrigatórios não informados' }, { status: 400 });
+    }
+
+    // Converte valores para números
+    const valorPagoNum = parseFloat(valor_pago);
+    const valorDescontoNum = parseFloat(valor_desconto || 0);
+    const valorJurosNum = parseFloat(valor_juros || 0);
+
+    if (isNaN(valorPagoNum) || valorPagoNum <= 0) {
+      return NextResponse.json({ error: 'Valor pago deve ser maior que zero' }, { status: 400 });
+    }
+
+    if (isNaN(valorDescontoNum) || valorDescontoNum < 0) {
+      return NextResponse.json(
+        { error: 'Valor desconto deve ser maior ou igual a zero' },
+        { status: 400 }
+      );
+    }
+
+    if (isNaN(valorJurosNum) || valorJurosNum < 0) {
+      return NextResponse.json(
+        { error: 'Valor juros deve ser maior ou igual a zero' },
+        { status: 400 }
+      );
     }
 
     if (
@@ -49,9 +102,9 @@ export async function POST(request: NextRequest, { params }: any) {
       [
         id,
         parcela_id || null,
-        valor_pago,
-        valor_desconto,
-        valor_juros,
+        valorPagoNum,
+        valorDescontoNum,
+        valorJurosNum,
         data_pagamento,
         forma_pagamento,
         observacoes || null,

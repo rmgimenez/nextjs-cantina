@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { ContaPagar } from "../types";
+import { ContaPagar } from '../types';
 
 interface TabelaContasPagarProps {
   contas: ContaPagar[];
@@ -18,32 +18,32 @@ export default function TabelaContasPagar({
   onVerPagamentos,
 }: TabelaContasPagarProps) {
   const formatarMoeda = (valor: number) => {
-    return valor.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
+    return valor.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
     });
   };
 
   const formatarData = (data: string) => {
-    return new Date(data).toLocaleDateString("pt-BR");
+    return new Date(data).toLocaleDateString('pt-BR');
   };
 
   const getSituacaoBadge = (situacao: string, status: string) => {
-    if (status === "PAGO") return "bg-success";
-    if (status === "CANCELADO") return "bg-secondary";
-    if (situacao.includes("Atrasado")) return "bg-danger";
-    if (situacao.includes("Hoje")) return "bg-warning";
-    if (situacao.includes("Semana")) return "bg-info";
-    return "bg-primary";
+    if (status === 'PAGO') return 'bg-success';
+    if (status === 'CANCELADO') return 'bg-secondary';
+    if (situacao.includes('Atrasado')) return 'bg-danger';
+    if (situacao.includes('Hoje')) return 'bg-warning';
+    if (situacao.includes('Semana')) return 'bg-info';
+    return 'bg-primary';
   };
 
   if (contas.length === 0) {
-    return <p className="text-muted text-center">Nenhuma conta encontrada</p>;
+    return <p className='text-muted text-center'>Nenhuma conta encontrada</p>;
   }
 
   return (
-    <div className="table-responsive">
-      <table className="table table-hover">
+    <div className='table-responsive'>
+      <table className='table table-hover'>
         <thead>
           <tr>
             <th>Descrição</th>
@@ -60,74 +60,69 @@ export default function TabelaContasPagar({
           {contas.map((conta) => (
             <tr key={conta.id}>
               <td>{conta.descricao}</td>
-              <td>{conta.fornecedor || "-"}</td>
+              <td>{conta.fornecedor || '-'}</td>
               <td>{formatarMoeda(conta.valor_original)}</td>
-              <td
-                className={
-                  conta.valor_pendente > 0
-                    ? "text-danger fw-bold"
-                    : "text-success"
-                }
-              >
+              <td className={conta.valor_pendente > 0 ? 'text-danger fw-bold' : 'text-success'}>
                 {formatarMoeda(conta.valor_pendente)}
               </td>
               <td>{formatarData(conta.data_vencimento)}</td>
               <td>
                 <span
                   className={`badge ${
-                    conta.status === "PAGO"
-                      ? "bg-success"
-                      : conta.status === "ATRASADO"
-                      ? "bg-danger"
-                      : conta.status === "CANCELADO"
-                      ? "bg-secondary"
-                      : "bg-warning"
+                    conta.status === 'PAGO'
+                      ? 'bg-success'
+                      : conta.status === 'ATRASADO'
+                      ? 'bg-danger'
+                      : conta.status === 'CANCELADO'
+                      ? 'bg-secondary'
+                      : 'bg-warning'
                   }`}
                 >
                   {conta.status}
                 </span>
               </td>
               <td>
-                <span
-                  className={`badge ${getSituacaoBadge(
-                    conta.situacao,
-                    conta.status
-                  )}`}
-                >
+                <span className={`badge ${getSituacaoBadge(conta.situacao, conta.status)}`}>
                   {conta.situacao}
                 </span>
               </td>
               <td>
-                <div className="d-flex gap-1">
-                  {conta.status !== "PAGO" && conta.status !== "CANCELADO" && (
-                    <button
-                      className="btn btn-sm btn-success"
-                      onClick={() => onPagar(conta)}
-                      title="Registrar Pagamento"
-                    >
-                      💰
-                    </button>
-                  )}
+                <div className='d-flex gap-1'>
+                  {conta.status !== 'PAGO' &&
+                    conta.status !== 'CANCELADO' &&
+                    conta.valor_pendente > 0 && (
+                      <button
+                        className='btn btn-sm btn-success'
+                        onClick={() => onPagar(conta)}
+                        title='Registrar Pagamento'
+                        aria-label={`Registrar pagamento da conta ${conta.descricao}`}
+                      >
+                        Pagar
+                      </button>
+                    )}
                   <button
-                    className="btn btn-sm btn-info"
+                    className='btn btn-sm btn-info'
                     onClick={() => onVerPagamentos(conta)}
-                    title="Ver Pagamentos"
+                    title='Ver Pagamentos'
+                    aria-label={`Ver pagamentos da conta ${conta.descricao}`}
                   >
-                    👁️
+                    Ver Pagamentos
                   </button>
                   <button
-                    className="btn btn-sm btn-warning"
+                    className='btn btn-sm btn-warning'
                     onClick={() => onEditar(conta)}
-                    title="Editar"
+                    title='Editar'
+                    aria-label={`Editar conta ${conta.descricao}`}
                   >
-                    ✏️
+                    Editar
                   </button>
                   <button
-                    className="btn btn-sm btn-danger"
+                    className='btn btn-sm btn-danger'
                     onClick={() => onExcluir(conta)}
-                    title="Excluir"
+                    title='Excluir'
+                    aria-label={`Excluir conta ${conta.descricao}`}
                   >
-                    🗑️
+                    Excluir
                   </button>
                 </div>
               </td>

@@ -1,28 +1,28 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { useEffect, useState } from 'react';
 
 // Importando tipos e componentes
 import {
-  ContaPagar,
-  Pagamento,
   CategoriaFinanceira,
-  Pagination,
+  ContaPagar,
   FiltrosContas,
   FormDataConta,
   FormDataPagamento,
-} from "./types";
+  Pagamento,
+  Pagination,
+} from './types';
 
-import FiltrosContasPagar from "./components/FiltrosContasPagar";
-import TabelaContasPagar from "./components/TabelaContasPagar";
-import PaginacaoContasPagar from "./components/PaginacaoContasPagar";
-import ModalNovaConta from "./components/ModalNovaConta";
-import ModalEditarConta from "./components/ModalEditarConta";
-import ModalPagamento from "./components/ModalPagamento";
-import ModalPagamentos from "./components/ModalPagamentos";
-import ModalEditarPagamento from "./components/ModalEditarPagamento";
+import FiltrosContasPagar from './components/FiltrosContasPagar';
+import ModalEditarConta from './components/ModalEditarConta';
+import ModalEditarPagamento from './components/ModalEditarPagamento';
+import ModalNovaConta from './components/ModalNovaConta';
+import ModalPagamento from './components/ModalPagamento';
+import ModalPagamentos from './components/ModalPagamentos';
+import PaginacaoContasPagar from './components/PaginacaoContasPagar';
+import TabelaContasPagar from './components/TabelaContasPagar';
 
 export default function ContasPagarPage() {
   // Estados principais
@@ -33,12 +33,12 @@ export default function ContasPagarPage() {
 
   // Estados de filtros
   const [filtros, setFiltros] = useState<FiltrosContas>({
-    status: "",
-    situacao: "",
-    categoria_id: "",
-    fornecedor: "",
-    data_inicio: "",
-    data_fim: "",
+    status: '',
+    situacao: '',
+    categoria_id: '',
+    fornecedor: '',
+    data_inicio: '',
+    data_fim: '',
   });
 
   // Estados de paginação
@@ -56,45 +56,39 @@ export default function ContasPagarPage() {
   const [showModalEditarConta, setShowModalEditarConta] = useState(false);
   const [showModalPagamento, setShowModalPagamento] = useState(false);
   const [showModalPagamentos, setShowModalPagamentos] = useState(false);
-  const [showModalEditarPagamento, setShowModalEditarPagamento] =
-    useState(false);
+  const [showModalEditarPagamento, setShowModalEditarPagamento] = useState(false);
 
   // Estados de dados dos modais
-  const [contaSelecionada, setContaSelecionada] = useState<ContaPagar | null>(
-    null
-  );
-  const [pagamentoSelecionado, setPagamentoSelecionado] =
-    useState<Pagamento | null>(null);
+  const [contaSelecionada, setContaSelecionada] = useState<ContaPagar | null>(null);
+  const [pagamentoSelecionado, setPagamentoSelecionado] = useState<Pagamento | null>(null);
   const [editData, setEditData] = useState<FormDataConta>({
-    categoria_id: "",
-    descricao: "",
-    fornecedor: "",
-    numero_documento: "",
-    valor_original: "",
-    data_emissao: "",
-    data_vencimento: "",
-    observacoes: "",
-    parcelas: "",
-    data_primeira_parcela: "",
+    categoria_id: '',
+    descricao: '',
+    fornecedor: '',
+    numero_documento: '',
+    valor_original: '',
+    data_emissao: '',
+    data_vencimento: '',
+    observacoes: '',
+    parcelas: '',
+    data_primeira_parcela: '',
   });
   const [pagamentoData, setPagamentoData] = useState<FormDataPagamento>({
-    valor_pago: "",
-    valor_desconto: "",
-    valor_juros: "",
-    data_pagamento: "",
-    forma_pagamento: "",
-    observacoes: "",
+    valor_pago: '',
+    valor_desconto: '',
+    valor_juros: '',
+    data_pagamento: '',
+    forma_pagamento: '',
+    observacoes: '',
   });
-  const [editPagamentoData, setEditPagamentoData] = useState<FormDataPagamento>(
-    {
-      valor_pago: "",
-      valor_desconto: "",
-      valor_juros: "",
-      data_pagamento: "",
-      forma_pagamento: "",
-      observacoes: "",
-    }
-  );
+  const [editPagamentoData, setEditPagamentoData] = useState<FormDataPagamento>({
+    valor_pago: '',
+    valor_desconto: '',
+    valor_juros: '',
+    data_pagamento: '',
+    forma_pagamento: '',
+    observacoes: '',
+  });
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
 
   // Carregar categorias
@@ -109,13 +103,15 @@ export default function ContasPagarPage() {
 
   const carregarCategorias = async () => {
     try {
-      const response = await fetch("/api/financeiro/categorias");
+      const response = await fetch('/api/financeiro/categorias', {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
         setCategorias(data);
       }
     } catch (error) {
-      console.error("Erro ao carregar categorias:", error);
+      console.error('Erro ao carregar categorias:', error);
     }
   };
 
@@ -127,12 +123,12 @@ export default function ContasPagarPage() {
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
-        ...Object.fromEntries(
-          Object.entries(filtros).filter(([_, value]) => value !== "")
-        ),
+        ...Object.fromEntries(Object.entries(filtros).filter(([_, value]) => value !== '')),
       });
 
-      const response = await fetch(`/api/financeiro/contas-pagar?${params}`);
+      const response = await fetch(`/api/financeiro/contas-pagar?${params}`, {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
         setContas(data.contas);
@@ -144,11 +140,11 @@ export default function ContasPagarPage() {
           hasPrev: data.hasPrev,
         });
       } else {
-        setError("Erro ao carregar contas");
+        setError('Erro ao carregar contas');
       }
     } catch (error) {
-      setError("Erro de conexão");
-      console.error("Erro ao carregar contas:", error);
+      setError('Erro de conexão');
+      console.error('Erro ao carregar contas:', error);
     } finally {
       setLoading(false);
     }
@@ -161,12 +157,12 @@ export default function ContasPagarPage() {
 
   const handleLimparFiltros = () => {
     setFiltros({
-      status: "",
-      situacao: "",
-      categoria_id: "",
-      fornecedor: "",
-      data_inicio: "",
-      data_fim: "",
+      status: '',
+      situacao: '',
+      categoria_id: '',
+      fornecedor: '',
+      data_inicio: '',
+      data_fim: '',
     });
     setPagination((prev) => ({ ...prev, page: 1 }));
   };
@@ -174,50 +170,49 @@ export default function ContasPagarPage() {
   const handleEditarConta = (conta: ContaPagar) => {
     setContaSelecionada(conta);
     setEditData({
-      categoria_id: conta.categoria_nome || "",
+      categoria_id: conta.categoria_nome || '',
       descricao: conta.descricao,
-      fornecedor: conta.fornecedor || "",
-      numero_documento: conta.numero_documento || "",
+      fornecedor: conta.fornecedor || '',
+      numero_documento: conta.numero_documento || '',
       valor_original: conta.valor_original.toString(),
       data_emissao: conta.data_emissao,
       data_vencimento: conta.data_vencimento,
-      observacoes: "",
-      parcelas: "",
-      data_primeira_parcela: "",
+      observacoes: '',
+      parcelas: '',
+      data_primeira_parcela: '',
     });
     setShowModalEditarConta(true);
   };
 
   const handleExcluirConta = async (conta: ContaPagar) => {
-    if (confirm("Tem certeza que deseja excluir esta conta?")) {
+    if (confirm('Tem certeza que deseja excluir esta conta?')) {
       try {
-        const response = await fetch(
-          `/api/financeiro/contas-pagar/${conta.id}`,
-          {
-            method: "DELETE",
-          }
-        );
+        const response = await fetch(`/api/financeiro/contas-pagar/${conta.id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        });
         if (response.ok) {
           carregarContas();
         } else {
-          alert("Erro ao excluir conta");
+          alert('Erro ao excluir conta');
         }
       } catch (error) {
-        console.error("Erro ao excluir conta:", error);
-        alert("Erro ao excluir conta");
+        console.error('Erro ao excluir conta:', error);
+        alert('Erro ao excluir conta');
       }
     }
   };
 
   const handlePagarConta = (conta: ContaPagar) => {
+    const valorPendente = isNaN(conta.valor_pendente) ? 0 : conta.valor_pendente;
     setContaSelecionada(conta);
     setPagamentoData({
-      valor_pago: conta.valor_pendente.toString(),
-      valor_desconto: "",
-      valor_juros: "",
-      data_pagamento: new Date().toISOString().split("T")[0],
-      forma_pagamento: "",
-      observacoes: "",
+      valor_pago: Math.max(0, valorPendente).toString(),
+      valor_desconto: '',
+      valor_juros: '',
+      data_pagamento: new Date().toISOString().split('T')[0],
+      forma_pagamento: '',
+      observacoes: '',
     });
     setShowModalPagamento(true);
   };
@@ -225,15 +220,15 @@ export default function ContasPagarPage() {
   const handleVerPagamentos = async (conta: ContaPagar) => {
     setContaSelecionada(conta);
     try {
-      const response = await fetch(
-        `/api/financeiro/contas-pagar/${conta.id}/pagamentos`
-      );
+      const response = await fetch(`/api/financeiro/contas-pagar/${conta.id}/pagamentos`, {
+        credentials: 'include',
+      });
       if (response.ok) {
         const data = await response.json();
         setPagamentos(data);
       }
     } catch (error) {
-      console.error("Erro ao carregar pagamentos:", error);
+      console.error('Erro ao carregar pagamentos:', error);
       setPagamentos([]);
     }
     setShowModalPagamentos(true);
@@ -247,23 +242,23 @@ export default function ContasPagarPage() {
       valor_juros: pagamento.valor_juros.toString(),
       data_pagamento: pagamento.data_pagamento,
       forma_pagamento: pagamento.forma_pagamento,
-      observacoes: pagamento.observacoes || "",
+      observacoes: pagamento.observacoes || '',
     });
     setShowModalEditarPagamento(true);
   };
 
   const handleNovaConta = () => {
     setEditData({
-      categoria_id: "",
-      descricao: "",
-      fornecedor: "",
-      numero_documento: "",
-      valor_original: "",
-      data_emissao: new Date().toISOString().split("T")[0],
-      data_vencimento: "",
-      observacoes: "",
-      parcelas: "",
-      data_primeira_parcela: "",
+      categoria_id: '',
+      descricao: '',
+      fornecedor: '',
+      numero_documento: '',
+      valor_original: '',
+      data_emissao: new Date().toISOString().split('T')[0],
+      data_vencimento: '',
+      observacoes: '',
+      parcelas: '',
+      data_primeira_parcela: '',
     });
     setShowModalNovaConta(true);
   };
@@ -271,22 +266,23 @@ export default function ContasPagarPage() {
   const handleSubmitNovaConta = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch("/api/financeiro/contas-pagar", {
-        method: "POST",
+      const response = await fetch('/api/financeiro/contas-pagar', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(editData),
       });
       if (response.ok) {
         setShowModalNovaConta(false);
         carregarContas();
       } else {
-        alert("Erro ao criar conta");
+        alert('Erro ao criar conta');
       }
     } catch (error) {
-      console.error("Erro ao criar conta:", error);
-      alert("Erro ao criar conta");
+      console.error('Erro ao criar conta:', error);
+      alert('Erro ao criar conta');
     }
   };
 
@@ -295,26 +291,24 @@ export default function ContasPagarPage() {
     if (!contaSelecionada) return;
 
     try {
-      const response = await fetch(
-        `/api/financeiro/contas-pagar/${contaSelecionada.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(editData),
-        }
-      );
+      const response = await fetch(`/api/financeiro/contas-pagar/${contaSelecionada.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(editData),
+      });
       if (response.ok) {
         setShowModalEditarConta(false);
         setContaSelecionada(null);
         carregarContas();
       } else {
-        alert("Erro ao editar conta");
+        alert('Erro ao editar conta');
       }
     } catch (error) {
-      console.error("Erro ao editar conta:", error);
-      alert("Erro ao editar conta");
+      console.error('Erro ao editar conta:', error);
+      alert('Erro ao editar conta');
     }
   };
 
@@ -322,14 +316,29 @@ export default function ContasPagarPage() {
     e.preventDefault();
     if (!contaSelecionada) return;
 
+    // Validação básica no frontend
+    if (!pagamentoData.valor_pago || parseFloat(pagamentoData.valor_pago) <= 0) {
+      alert('Valor pago deve ser maior que zero');
+      return;
+    }
+    if (!pagamentoData.data_pagamento) {
+      alert('Data do pagamento é obrigatória');
+      return;
+    }
+    if (!pagamentoData.forma_pagamento) {
+      alert('Forma de pagamento é obrigatória');
+      return;
+    }
+
     try {
       const response = await fetch(
         `/api/financeiro/contas-pagar/${contaSelecionada.id}/pagamentos`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
+          credentials: 'include',
           body: JSON.stringify(pagamentoData),
         }
       );
@@ -338,11 +347,12 @@ export default function ContasPagarPage() {
         setContaSelecionada(null);
         carregarContas();
       } else {
-        alert("Erro ao registrar pagamento");
+        const errorData = await response.json();
+        alert(`Erro ao registrar pagamento: ${errorData.error || 'Erro desconhecido'}`);
       }
     } catch (error) {
-      console.error("Erro ao registrar pagamento:", error);
-      alert("Erro ao registrar pagamento");
+      console.error('Erro ao registrar pagamento:', error);
+      alert('Erro ao registrar pagamento');
     }
   };
 
@@ -351,26 +361,24 @@ export default function ContasPagarPage() {
     if (!pagamentoSelecionado) return;
 
     try {
-      const response = await fetch(
-        `/api/financeiro/pagamentos/${pagamentoSelecionado.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(editPagamentoData),
-        }
-      );
+      const response = await fetch(`/api/financeiro/pagamentos/${pagamentoSelecionado.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(editPagamentoData),
+      });
       if (response.ok) {
         setShowModalEditarPagamento(false);
         setPagamentoSelecionado(null);
         carregarContas();
       } else {
-        alert("Erro ao editar pagamento");
+        alert('Erro ao editar pagamento');
       }
     } catch (error) {
-      console.error("Erro ao editar pagamento:", error);
-      alert("Erro ao editar pagamento");
+      console.error('Erro ao editar pagamento:', error);
+      alert('Erro ao editar pagamento');
     }
   };
 
@@ -385,32 +393,25 @@ export default function ContasPagarPage() {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h3 mb-0">Contas a Pagar</h1>
-        <Button onClick={handleNovaConta} className="btn btn-primary">
+    <div className='container mx-auto p-6'>
+      <div className='d-flex justify-content-between align-items-center mb-4'>
+        <h1 className='h3 mb-0'>Contas a Pagar</h1>
+        <Button onClick={handleNovaConta} className='btn btn-primary'>
           Nova Conta
         </Button>
       </div>
 
-      <Card className="mb-4">
-        <div className="card-body">
-          <FiltrosContasPagar
-            filtros={filtros}
-            setFiltros={setFiltros}
-            categorias={categorias}
-          />
-          <div className="d-flex gap-2 mt-3">
-            <Button
-              onClick={() => handleAplicarFiltros(filtros)}
-              className="btn btn-primary"
-            >
+      <Card className='mb-4'>
+        <div className='card-body'>
+          <FiltrosContasPagar filtros={filtros} setFiltros={setFiltros} categorias={categorias} />
+          <div className='d-flex gap-2 mt-3'>
+            <Button onClick={() => handleAplicarFiltros(filtros)} className='btn btn-primary'>
               Aplicar Filtros
             </Button>
             <Button
               onClick={handleLimparFiltros}
-              variant="outline"
-              className="btn btn-outline-secondary"
+              variant='outline'
+              className='btn btn-outline-secondary'
             >
               Limpar Filtros
             </Button>
@@ -419,21 +420,21 @@ export default function ContasPagarPage() {
       </Card>
 
       <Card>
-        <div className="card-body">
+        <div className='card-body'>
           {loading ? (
-            <div className="text-center py-5">
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Carregando...</span>
+            <div className='text-center py-5'>
+              <div className='spinner-border text-primary' role='status'>
+                <span className='visually-hidden'>Carregando...</span>
               </div>
-              <p className="mt-2 text-muted">Carregando contas...</p>
+              <p className='mt-2 text-muted'>Carregando contas...</p>
             </div>
           ) : error ? (
-            <div className="text-center py-5">
-              <p className="text-danger">{error}</p>
+            <div className='text-center py-5'>
+              <p className='text-danger'>{error}</p>
               <Button
                 onClick={carregarContas}
-                variant="outline"
-                className="btn btn-outline-primary"
+                variant='outline'
+                className='btn btn-outline-primary'
               >
                 Tentar Novamente
               </Button>
@@ -449,17 +450,14 @@ export default function ContasPagarPage() {
               />
 
               {contas.length > 0 && (
-                <div className="mt-4">
-                  <PaginacaoContasPagar
-                    pagination={pagination}
-                    setPagination={setPagination}
-                  />
+                <div className='mt-4'>
+                  <PaginacaoContasPagar pagination={pagination} setPagination={setPagination} />
                 </div>
               )}
 
               {contas.length === 0 && (
-                <div className="text-center py-5">
-                  <p className="text-muted">Nenhuma conta encontrada</p>
+                <div className='text-center py-5'>
+                  <p className='text-muted'>Nenhuma conta encontrada</p>
                 </div>
               )}
             </>
