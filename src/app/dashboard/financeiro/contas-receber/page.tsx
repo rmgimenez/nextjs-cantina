@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { formatarMoeda } from '@/lib/formatters';
 import { useEffect, useState } from 'react';
 
 // Importando tipos e componentes
@@ -353,7 +354,12 @@ export default function ContasReceberPage() {
           setShowEditarConta(true);
         }}
         onExcluir={(conta) => {
-          if (confirm(`Deseja realmente excluir a conta "${conta.descricao}"?`)) {
+          const valor = formatarMoeda((conta as any).valor_pendente ?? 0);
+          if (
+            confirm(
+              `Deseja realmente excluir a conta "${conta.descricao}"? Valor pendente: ${valor}`
+            )
+          ) {
             // Implementar exclusão
           }
         }}

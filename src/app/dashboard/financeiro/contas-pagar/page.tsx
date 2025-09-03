@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { formatarMoeda } from '@/lib/formatters';
 import { useEffect, useState } from 'react';
 
 // Importando tipos e componentes
@@ -204,7 +205,8 @@ export default function ContasPagarPage() {
   };
 
   const handleExcluirConta = async (conta: ContaPagar) => {
-    if (confirm('Tem certeza que deseja excluir esta conta?')) {
+    const valor = formatarMoeda((conta as any).valor_pendente ?? 0);
+    if (confirm(`Tem certeza que deseja excluir esta conta? Valor pendente: ${valor}`)) {
       try {
         const response = await fetch(`/api/financeiro/contas-pagar/${conta.id}`, {
           method: 'DELETE',

@@ -7,8 +7,11 @@
  * @param valor - Valor numérico a ser formatado
  * @returns String formatada como moeda brasileira
  */
-export const formatarMoeda = (valor: number): string => {
-  return valor.toLocaleString('pt-BR', {
+export const formatarMoeda = (valor: number | string | null | undefined): string => {
+  // Garante que valores enviados como string ou nulos sejam convertidos para number
+  const n = typeof valor === 'number' ? valor : parseFloat(String(valor ?? '0').replace(',', '.'));
+  const safeNumber = Number.isFinite(n) ? n : 0;
+  return safeNumber.toLocaleString('pt-BR', {
     style: 'currency',
     currency: 'BRL',
   });
@@ -30,8 +33,13 @@ export const formatarData = (data: string | Date): string => {
  * @param casasDecimais - Número de casas decimais (padrão: 2)
  * @returns String formatada
  */
-export const formatarNumero = (valor: number, casasDecimais: number = 2): string => {
-  return valor.toLocaleString('pt-BR', {
+export const formatarNumero = (
+  valor: number | string | null | undefined,
+  casasDecimais: number = 2
+): string => {
+  const n = typeof valor === 'number' ? valor : parseFloat(String(valor ?? '0').replace(',', '.'));
+  const safeNumber = Number.isFinite(n) ? n : 0;
+  return safeNumber.toLocaleString('pt-BR', {
     minimumFractionDigits: casasDecimais,
     maximumFractionDigits: casasDecimais,
   });
