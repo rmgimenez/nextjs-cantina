@@ -15,6 +15,7 @@ import {
   Recebimento,
 } from './types';
 
+import ContaCard from '@/components/ui/conta-card';
 import FiltrosContasReceber from './components/FiltrosContasReceber';
 import ModalEditarConta from './components/ModalEditarConta';
 import ModalEditarRecebimento from './components/ModalEditarRecebimento';
@@ -22,7 +23,6 @@ import ModalNovaConta from './components/ModalNovaConta';
 import ModalRecebimento from './components/ModalRecebimento';
 import ModalRecebimentos from './components/ModalRecebimentos';
 import PaginacaoContasReceber from './components/PaginacaoContasReceber';
-import TabelaContasReceber from './components/TabelaContasReceber';
 
 export default function ContasReceberPage() {
   const [contas, setContas] = useState<ContaReceber[]>([]);
@@ -334,52 +334,74 @@ export default function ContasReceberPage() {
       {/* Filtros */}
       <FiltrosContasReceber filtros={filtros} setFiltros={setFiltros} categorias={categorias} />
 
-      {/* Lista de Contas */}
-      <TabelaContasReceber
-        contas={contas}
-        onEditar={(conta) => {
-          setContaSelecionada(conta);
-          setFormData({
-            categoria_id: '',
-            descricao: conta.descricao,
-            cliente: conta.cliente || '',
-            numero_documento: conta.numero_documento || '',
-            valor_original: conta.valor_original.toString(),
-            data_emissao: conta.data_emissao,
-            data_vencimento: conta.data_vencimento,
-            observacoes: '',
-            parcelas: '1',
-            data_primeira_parcela: '',
-          });
-          setShowEditarConta(true);
-        }}
-        onExcluir={(conta) => {
-          const valor = formatarMoeda((conta as any).valor_pendente ?? 0);
-          if (
-            confirm(
-              `Deseja realmente excluir a conta "${conta.descricao}"? Valor pendente: ${valor}`
-            )
-          ) {
-            // Implementar exclusão
-          }
-        }}
-        onReceber={(conta) => {
-          setContaSelecionada(conta);
-          setRecebimentoData({
-            ...recebimentoData,
-            valor_recebido: conta.valor_pendente.toString(),
-          });
-          setShowRecebimento(true);
-        }}
-        onVerRecebimentos={(conta) => {
-          setContaSelecionada(conta);
-          carregarRecebimentos(conta.id);
-          setShowRecebimentos(true);
-        }}
-      />
+      {/* Lista de Contas em cards */}
+      <div className='mb-3'>
+        {contas.length === 0 && (
+          <div className='text-center py-5'>
+            <p className='text-muted'>Nenhuma conta encontrada</p>
+          </div>
+        )}
 
-      {/* Paginação */}
-      <PaginacaoContasReceber pagination={pagination} setPagination={setPagination} />
+        {contas.map((conta) => (
+          <ContaCard
+            key={conta.id}
+            id={conta.id}
+            descricao={conta.descricao}
+            categoria={(conta as any).categoria_nome}
+            documento={conta.numero_documento}
+            participante={conta.cliente}
+            valor_original={conta.valor_original}
+            valor_pendente={(conta as any).valor_pendente}
+            data_emissao={conta.data_emissao}
+            data_vencimento={conta.data_vencimento}
+            situacao={(conta as any).situacao}
+            status={conta.status}
+            onEditar={() => {
+              setContaSelecionada(conta);
+              setFormData({
+                categoria_id: '',
+                descricao: conta.descricao,
+                cliente: conta.cliente || '',
+                numero_documento: conta.numero_documento || '',
+                valor_original: conta.valor_original.toString(),
+                data_emissao: conta.data_emissao,
+                data_vencimento: conta.data_vencimento,
+                observacoes: '',
+                parcelas: '1',
+                data_primeira_parcela: '',
+              });
+              setShowEditarConta(true);
+            }}
+            onExcluir={() => {
+              const valor = formatarMoeda((conta as any).valor_pendente ?? 0);
+              if (
+                confirm(
+                  `Deseja realmente excluir a conta "${conta.descricao}"? Valor pendente: ${valor}`
+                )
+              ) {
+                // Implementar exclusão
+              }
+            }}
+            onAcaoPrincipal={() => {
+              setContaSelecionada(conta);
+              setRecebimentoData({
+                ...recebimentoData,
+                valor_recebido: conta.valor_pendente.toString(),
+              });
+              setShowRecebimento(true);
+            }}
+            onVerLancamentos={() => {
+              setContaSelecionada(conta);
+              carregarRecebimentos(conta.id);
+              setShowRecebimentos(true);
+            }}
+          />
+        ))}
+
+        <div className='mt-4'>
+          <PaginacaoContasReceber pagination={pagination} setPagination={setPagination} />
+        </div>
+      </div>
 
       {/* Modal de Nova Conta */}
       <ModalNovaConta

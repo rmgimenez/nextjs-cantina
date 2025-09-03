@@ -16,6 +16,7 @@ import {
   Pagination,
 } from './types';
 
+import ContaCard from '@/components/ui/conta-card';
 import FiltrosContasPagar from './components/FiltrosContasPagar';
 import ModalEditarConta from './components/ModalEditarConta';
 import ModalEditarPagamento from './components/ModalEditarPagamento';
@@ -23,7 +24,6 @@ import ModalNovaConta from './components/ModalNovaConta';
 import ModalPagamento from './components/ModalPagamento';
 import ModalPagamentos from './components/ModalPagamentos';
 import PaginacaoContasPagar from './components/PaginacaoContasPagar';
-import TabelaContasPagar from './components/TabelaContasPagar';
 
 export default function ContasPagarPage() {
   // Estados principais
@@ -514,25 +514,41 @@ export default function ContasPagarPage() {
             </div>
           ) : (
             <>
-              <TabelaContasPagar
-                contas={contas}
-                onEditar={handleEditarConta}
-                onExcluir={handleExcluirConta}
-                onPagar={handlePagarConta}
-                onVerPagamentos={handleVerPagamentos}
-              />
+              {/* Lista em cards para melhor espaçamento */}
+              <div className='mb-3'>
+                {contas.length === 0 && (
+                  <div className='text-center py-5'>
+                    <p className='text-muted'>Nenhuma conta encontrada</p>
+                  </div>
+                )}
 
-              {contas.length > 0 && (
-                <div className='mt-4'>
-                  <PaginacaoContasPagar pagination={pagination} setPagination={setPagination} />
-                </div>
-              )}
+                {contas.map((c) => (
+                  <ContaCard
+                    key={c.id}
+                    id={c.id}
+                    descricao={c.descricao}
+                    categoria={(c as any).categoria_nome}
+                    documento={c.numero_documento}
+                    participante={c.fornecedor}
+                    valor_original={c.valor_original}
+                    valor_pendente={(c as any).valor_pendente}
+                    data_emissao={c.data_emissao}
+                    data_vencimento={c.data_vencimento}
+                    situacao={(c as any).situacao}
+                    status={c.status}
+                    onEditar={() => handleEditarConta(c)}
+                    onExcluir={() => handleExcluirConta(c)}
+                    onAcaoPrincipal={() => handlePagarConta(c)}
+                    onVerLancamentos={() => handleVerPagamentos(c)}
+                  />
+                ))}
 
-              {contas.length === 0 && (
-                <div className='text-center py-5'>
-                  <p className='text-muted'>Nenhuma conta encontrada</p>
-                </div>
-              )}
+                {contas.length > 0 && (
+                  <div className='mt-4'>
+                    <PaginacaoContasPagar pagination={pagination} setPagination={setPagination} />
+                  </div>
+                )}
+              </div>
             </>
           )}
         </div>
