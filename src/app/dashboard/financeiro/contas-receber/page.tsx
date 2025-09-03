@@ -416,7 +416,7 @@ export default function ContasReceberPage() {
       <ModalEditarRecebimento
         show={showEditarRecebimento}
         onClose={() => setShowEditarRecebimento(false)}
-        recebimentoSelecionado={recebimentoSelecionado}
+        recebimento={recebimentoSelecionado}
         recebimentoData={recebimentoData}
         setRecebimentoData={setRecebimentoData}
         onSubmit={handleEditarRecebimento}
