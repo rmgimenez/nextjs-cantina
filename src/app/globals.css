@@ -22,7 +22,12 @@
   --background: #ffffff;
   --foreground: #111827; /* texto primário mais escuro para melhor contraste */
   /* Gradiente de marca */
-  --brand-gradient: linear-gradient(90deg, var(--primary-blue) 0%, #3141a8 50%, #2a2f86 100%);
+  --brand-gradient: linear-gradient(
+    90deg,
+    var(--primary-blue) 0%,
+    #3141a8 50%,
+    #2a2f86 100%
+  );
   --brand-soft: rgba(37, 50, 135, 0.08);
 }
 
@@ -35,8 +40,8 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -108,7 +113,7 @@ small,
 }
 
 /* Forçar contraste em elementos com light backgrounds */
-[class*='bg-'] {
+[class*="bg-"] {
   color: var(--foreground);
 }
 
@@ -132,7 +137,11 @@ small,
 
 /* Navbar branding */
 .navbar {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.9));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 255, 255, 0.9)
+  );
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
 }
 
@@ -267,8 +276,16 @@ small,
 
 /* Dashboard background with subtle pattern */
 .dashboard-bg {
-  background-image: radial-gradient(circle at 25% 25%, rgba(37, 50, 135, 0.02) 0%, transparent 50%),
-    radial-gradient(circle at 75% 75%, rgba(254, 168, 0, 0.02) 0%, transparent 50%);
+  background-image: radial-gradient(
+      circle at 25% 25%,
+      rgba(37, 50, 135, 0.02) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 75% 75%,
+      rgba(254, 168, 0, 0.02) 0%,
+      transparent 50%
+    );
   background-size: 400px 400px;
   background-position: 0 0, 200px 200px;
 }
@@ -289,7 +306,11 @@ small,
 }
 
 .dashboard-card .card-header {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 0.95) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(248, 249, 250, 0.95) 100%
+  );
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 16px 16px 0 0 !important;
   padding: 1.25rem 1.5rem;
@@ -314,13 +335,17 @@ small,
 }
 
 .kpi-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--primary-blue), var(--primary-yellow));
+  background: linear-gradient(
+    90deg,
+    var(--primary-blue),
+    var(--primary-yellow)
+  );
 }
 
 .kpi-card:hover {
@@ -344,13 +369,18 @@ small,
 }
 
 .dashboard-action-btn::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
   transition: left 0.5s;
 }
 
@@ -366,7 +396,11 @@ small,
 /* Chart container improvements */
 .chart-container {
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 250, 0.95) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(248, 249, 250, 0.95) 100%
+  );
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
@@ -494,4 +528,151 @@ small,
 
 .dashboard-content::-webkit-scrollbar-thumb:hover {
   background: #1f2870;
+}
+
+/* ===== QUICK ACTIONS REFINED LAYOUT ===== */
+.quick-actions-wrapper {
+  position: relative;
+}
+
+.quick-actions-group {
+  background: linear-gradient(135deg, #ffffff 0%, #f7f9fc 100%);
+  border: 1px solid rgba(37, 50, 135, 0.08);
+  border-radius: 14px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+  transition: all 0.35s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.quick-actions-group::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+      circle at 85% 15%,
+      rgba(254, 168, 0, 0.12),
+      transparent 60%
+    ),
+    radial-gradient(circle at 10% 90%, rgba(37, 50, 135, 0.15), transparent 70%);
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.quick-actions-group:hover {
+  box-shadow: 0 10px 32px -4px rgba(37, 50, 135, 0.18);
+  transform: translateY(-2px);
+}
+
+.divider-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    var(--primary-blue),
+    var(--primary-yellow)
+  );
+  box-shadow: 0 0 0 4px rgba(37, 50, 135, 0.08);
+}
+
+.quick-action-card {
+  display: block;
+  background: #ffffff;
+  border: 1px solid rgba(37, 50, 135, 0.07);
+  border-radius: 12px;
+  padding: 1rem 0.75rem 0.9rem;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.quick-action-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.5),
+    transparent
+  );
+  transition: left 0.8s ease;
+}
+
+.quick-action-card:hover::before {
+  left: 100%;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  border-color: rgba(37, 50, 135, 0.18);
+  box-shadow: 0 8px 26px -6px rgba(37, 50, 135, 0.25);
+}
+
+.quick-action-card:active {
+  transform: translateY(-2px) scale(0.99);
+}
+
+.qa-icon-wrapper {
+  width: 62px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  backdrop-filter: blur(4px);
+  transition: all 0.35s ease;
+  position: relative;
+}
+
+.quick-action-card:hover .qa-icon-wrapper {
+  transform: scale(1.08) rotate(3deg);
+  box-shadow: 0 8px 26px -6px rgba(0, 0, 0, 0.25);
+}
+
+.qa-label {
+  font-size: 0.845rem;
+  letter-spacing: 0.25px;
+  line-height: 1.1;
+}
+
+.qa-desc {
+  font-size: 0.67rem;
+  line-height: 1.15;
+  letter-spacing: 0.3px;
+  max-width: 130px;
+  display: inline-block;
+}
+
+@media (max-width: 992px) {
+  .qa-desc {
+    max-width: 100%;
+  }
+  .quick-action-card {
+    padding: 0.9rem 0.65rem 0.8rem;
+  }
+  .qa-icon-wrapper {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+@media (max-width: 576px) {
+  .quick-actions-group {
+    padding: 1.25rem !important;
+  }
+  .quick-action-card {
+    border-radius: 10px;
+  }
+  .qa-label {
+    font-size: 0.8rem;
+  }
+  .qa-desc {
+    font-size: 0.6rem;
+  }
 }
