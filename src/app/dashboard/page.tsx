@@ -134,8 +134,12 @@ export default function DashboardPage() {
 
     fetchDashboardData();
 
-    // Atualizar a cada 30 segundos
-    const interval = setInterval(fetchDashboardData, 30000);
+    const segundosParaAtualizar = 300; // 5 minutos
+
+    const interval = setInterval(
+      fetchDashboardData,
+      1000 * segundosParaAtualizar
+    );
     return () => clearInterval(interval);
   }, []);
 
