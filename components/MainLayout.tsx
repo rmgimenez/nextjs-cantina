@@ -264,6 +264,20 @@ export default function MainLayout({ children }: MainLayoutProps) {
       permission: [1], // Apenas Admin
       children: [
         {
+          id: "dashboard-financeiro",
+          label: "Dashboard Financeiro",
+          icon: "📊",
+          path: "/financeiro/dashboard",
+          permission: [1],
+        },
+        {
+          id: "fornecedores",
+          label: "Fornecedores",
+          icon: "🏢",
+          path: "/financeiro/fornecedores",
+          permission: [1],
+        },
+        {
           id: "contas-pagar",
           label: "Contas a Pagar",
           icon: "📤",
@@ -275,6 +289,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
           label: "Contas a Receber",
           icon: "📥",
           path: "/financeiro/contas-receber",
+          permission: [1],
+        },
+        {
+          id: "relatorios-financeiros",
+          label: "Relatórios Financeiros",
+          icon: "📈",
+          path: "/financeiro/relatorios",
           permission: [1],
         },
         {

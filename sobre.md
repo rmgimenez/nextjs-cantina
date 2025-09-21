@@ -415,7 +415,7 @@ Os requisitos funcionais deverão ser separados por códigos, exemplo RF-001, RF
 - Deve haver controle de timeout de sessão por inatividade
 - Logout deve invalidar a sessão atual
   **Tabelas Relacionadas**: `cant_usuarios_cantina`
-  **Status**: Não iniciado
+  **Status**: ✅ **Concluído**
 
 ### RF-002 - Cadastro de Funcionários da Cantina
 
@@ -428,7 +428,7 @@ Os requisitos funcionais deverão ser separados por códigos, exemplo RF-001, RF
 - Funcionário pode ter diferentes níveis de acesso (administrador, operador)
 - Deve permitir ativação/desativação de usuários
   **Tabelas Relacionadas**: `cant_usuarios_cantina`
-  **Status**: Não iniciado
+  **Status**: 🔄 **Em desenvolvimento** (API CRUD implementada, falta interface completa)
 
 ### RF-003 - Controle de Perfis de Acesso
 
@@ -479,7 +479,7 @@ Os requisitos funcionais deverão ser separados por códigos, exemplo RF-001, RF
 - Não permitir exclusão de tipos que possuam produtos vinculados
 - Ordenação alfabética na listagem
   **Tabelas Relacionadas**: `cant_tipos_produtos`
-  **Status**: Não iniciado
+  **Status**: 🔄 **Em desenvolvimento** (API CRUD implementada, interface parcialmente completa)
 
 ### RF-007 - Cadastro de Produtos
 
@@ -721,3 +721,209 @@ Os requisitos funcionais deverão ser separados por códigos, exemplo RF-001, RF
 - Procedimento de restauração
   **Tabelas Relacionadas**: Todas as tabelas `cant_*`
   **Status**: Não iniciado
+
+### RF-025 - Tela Inicial e Dashboard Básico
+
+**Descrição**: O sistema deve ter uma tela inicial com dashboard básico e navegação principal.
+**Regras de Negócio**:
+
+- Verificação automática de autenticação ao acessar
+- Redirecionamento para login se não autenticado
+- Dashboard responsivo com estatísticas básicas
+- Menu de navegação para principais funcionalidades
+- Ações rápidas para funções mais utilizadas
+- Design consistente com as cores do sistema
+- Interface moderna e intuitiva
+  **Tabelas Relacionadas**: Múltiplas tabelas para estatísticas
+  **Status**: ✅ **Concluído**
+
+### RF-026 - Configurações do Sistema
+
+**Descrição**: O sistema deve permitir configurações gerais e parâmetros operacionais.
+**Regras de Negócio**:
+
+- Configuração de timeout de sessão
+- Parâmetros de segurança (critérios de senha)
+- Configuração de URLs externas (fotos de alunos)
+- Configuração de valores padrão do sistema
+- Backup automático das configurações
+- Logs de alterações de configurações
+  **Tabelas Relacionadas**: `cant_configuracoes_sistema`
+  **Status**: Não iniciado
+
+### RF-027 - Validação e Sanitização de Dados
+
+**Descrição**: O sistema deve implementar validação rigorosa e sanitização de todos os dados de entrada.
+**Regras de Negócio**:
+
+- Validação de campos obrigatórios em todas as telas
+- Sanitização contra XSS e SQL injection
+- Validação de tipos de dados (números, emails, telefones)
+- Validação de tamanhos de campos
+- Mensagens de erro padronizadas e amigáveis
+- Validação tanto no frontend quanto no backend
+  **Tabelas Relacionadas**: Todas as tabelas
+  **Status**: Parcialmente implementado
+
+### RF-028 - Sistema de Logs e Auditoria
+
+**Descrição**: O sistema deve manter logs detalhados de todas as operações críticas.
+**Regras de Negócio**:
+
+- Log de todas as vendas e transações
+- Log de alterações em produtos e preços
+- Log de acessos e tentativas de login
+- Log de alterações em contas de usuários
+- Retenção de logs por período configurável
+- Relatórios de auditoria para administradores
+  **Tabelas Relacionadas**: `cant_log_acoes`, `cant_log_vendas`, `cant_log_sistema`
+  **Status**: Parcialmente implementado
+
+### RF-029 - Busca e Filtros Avançados
+
+**Descrição**: O sistema deve permitir busca rápida e filtros avançados em todas as listagens.
+**Regras de Negócio**:
+
+- Busca de alunos por RA, nome ou turma
+- Busca de produtos por nome ou código de barras
+- Filtros por período em relatórios
+- Busca de funcionários por nome ou cargo
+- Auto-complete em campos de busca
+- Histórico de buscas recentes
+  **Tabelas Relacionadas**: Múltiplas tabelas
+  **Status**: Não iniciado
+
+### RF-030 - Responsividade e Acessibilidade
+
+**Descrição**: O sistema deve ser totalmente responsivo e acessível.
+**Regras de Negócio**:
+
+- Interface adaptável para tablets e smartphones
+- Suporte a leitores de tela
+- Navegação por teclado
+- Contraste adequado para deficientes visuais
+- Textos alternativos em imagens
+- Tamanhos de fonte ajustáveis
+  **Tabelas Relacionadas**: Não aplicável
+  **Status**: Parcialmente implementado
+
+### RF-031 - Cache e Performance
+
+**Descrição**: O sistema deve implementar estratégias de cache para otimizar performance.
+**Regras de Negócio**:
+
+- Cache de dados frequentemente acessados (produtos, tipos)
+- Cache de sessões de usuário
+- Compressão de imagens de alunos
+- Otimização de consultas ao banco
+- Lazy loading em listagens grandes
+- Métricas de performance
+  **Tabelas Relacionadas**: Não aplicável
+  **Status**: Não iniciado
+
+### RF-032 - Exportação e Importação de Dados
+
+**Descrição**: O sistema deve permitir exportação e importação de dados em formatos padrão.
+**Regras de Negócio**:
+
+- Exportação de relatórios em PDF e Excel
+- Importação de produtos via CSV
+- Importação de contas de alunos via CSV
+- Validação de dados na importação
+- Log de operações de importação/exportação
+- Templates padrão para importação
+  **Tabelas Relacionadas**: Todas as tabelas principais
+  **Status**: Não iniciado
+
+### RF-033 - Notificações e Alertas
+
+**Descrição**: O sistema deve enviar notificações e alertas automáticos.
+**Regras de Negócio**:
+
+- Alerta de produtos com estoque baixo
+- Notificação de faturas vencendo
+- Alerta de pacotes de alunos próximos ao vencimento
+- Notificação de tentativas de acesso inválidas
+- Dashboard com resumo de alertas
+- Configuração de tipos de alertas por usuário
+  **Tabelas Relacionadas**: `cant_alertas`, `cant_notificacoes`
+  **Status**: Não iniciado
+
+## Prioridade de Desenvolvimento
+
+### 🔥 **ALTA PRIORIDADE** - Funcionalidades Críticas (Próximas 2-4 semanas)
+
+1. **RF-007 - Cadastro de Produtos** ⚠️ Dependência crítica para PDV
+2. **RF-004 - Gestão de Contas de Alunos** ⚠️ Necessário para vendas
+3. **RF-008 - Controle de Estoque** ⚠️ Base para controle financeiro
+4. **RF-009 - PDV (Ponto de Venda)** 🎯 **FUNCIONALIDADE PRINCIPAL**
+
+### 🟡 **MÉDIA PRIORIDADE** - Funcionalidades Importantes (4-8 semanas)
+
+1. **RF-005 - Restrições de Consumo para Alunos** - Segurança e controle médico
+2. **RF-010 - Controle de Caixa** - Gestão financeira essencial
+3. **RF-018 - Observações dos Alunos** - Importante para operação diária
+4. **RF-003 - Controle de Perfis de Acesso** - Segurança do sistema
+5. **RF-011 - Vendas para Funcionários da Escola** - Funcionalidade diferencial
+
+### 🔵 **BAIXA PRIORIDADE** - Funcionalidades Complementares (8+ semanas)
+
+1. **RF-015 - Pacotes de Alimentação** - Valor agregado
+2. **RF-016 - Controle de Uso de Pacotes**
+3. **RF-012 - Valores Diferenciados por Cargo**
+4. **RF-013 - Geração de Faturas para Funcionários**
+5. **RF-014 - Registro de Pagamentos de Funcionários**
+
+### 📊 **Relatórios e Analytics**
+
+1. **RF-017 - Histórico de Vendas e Consumo**
+2. **RF-019 - Relatório de Consumo Mensal**
+3. **RF-022 - Dashboard Gerencial**
+
+### 🔧 **Infraestrutura e Melhorias**
+
+1. **RF-027 - Validação e Sanitização de Dados** - Segurança
+2. **RF-028 - Sistema de Logs e Auditoria** - Rastreabilidade
+3. **RF-029 - Busca e Filtros Avançados** - UX
+4. **RF-030 - Responsividade e Acessibilidade** - Acessibilidade
+5. **RF-031 - Cache e Performance** - Otimização
+6. **RF-032 - Exportação e Importação de Dados** - Utilidade
+7. **RF-033 - Notificações e Alertas** - Automação
+
+### 💼 **Funcionalidades Administrativas**
+
+1. **RF-020 - Controle de Contas a Pagar e Receber**
+2. **RF-023 - Integração com Sistema APS**
+3. **RF-024 - Backup e Recuperação de Dados**
+4. **RF-026 - Configurações do Sistema**
+
+## Dependências entre Requisitos
+
+```
+RF-007 (Produtos) ─┐
+                   ├─→ RF-009 (PDV) ─┐
+RF-004 (Contas)  ──┘                ├─→ RF-010 (Caixa)
+                                     │
+RF-008 (Estoque) ────────────────────┘
+
+RF-005 (Restrições) ──→ RF-009 (PDV)
+RF-018 (Observações) ──→ RF-009 (PDV)
+
+RF-011 (Vendas Func.) ──→ RF-013 (Faturas) ──→ RF-014 (Pagamentos)
+
+RF-015 (Pacotes) ──→ RF-016 (Uso Pacotes)
+```
+
+## Estimativas de Desenvolvimento
+
+| RF     | Funcionalidade       | Complexidade | Estimativa | Dependências           |
+| ------ | -------------------- | ------------ | ---------- | ---------------------- |
+| RF-007 | Cadastro de Produtos | Média        | 3-5 dias   | RF-006                 |
+| RF-004 | Contas de Alunos     | Média        | 4-6 dias   | Integração APS         |
+| RF-008 | Controle de Estoque  | Alta         | 5-8 dias   | RF-007                 |
+| RF-009 | PDV                  | Muito Alta   | 8-12 dias  | RF-004, RF-007, RF-008 |
+| RF-010 | Controle de Caixa    | Alta         | 5-7 dias   | RF-009                 |
+| RF-005 | Restrições Alunos    | Baixa        | 2-3 dias   | RF-004                 |
+| RF-018 | Observações Alunos   | Baixa        | 2-3 dias   | RF-004                 |
+
+\*Estimativas baseadas em desenvolvimento por um desenvolvedor experiente com a stack.
