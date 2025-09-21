@@ -30,7 +30,7 @@ export async function GET(req: Request) {
       INNER JOIN cant_perfis_acesso pa ON fc.id_perfil = pa.id
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: (string | number)[] = [];
 
     if (search) {
       sql += ` AND (fc.nome LIKE ? OR fc.usuario LIKE ? OR fc.email LIKE ?)`;
@@ -113,7 +113,7 @@ export async function POST(req: Request) {
     const hashedPassword = await bcrypt.hash(senha, 12);
 
     // Inserir funcionário
-    const result = (await query(
+    const result = await query(
       `INSERT INTO cant_usuarios_cantina
        (nome, usuario, senha, email, telefone, id_perfil, ativo, criado_por)
        VALUES (?, ?, ?, ?, ?, ?, 1, 1)`,
@@ -125,15 +125,15 @@ export async function POST(req: Request) {
         telefone || null,
         id_perfil,
       ]
-    )) as any;
+    );
 
     // Buscar dados do funcionário criado
     const newFuncionario = await query(
       `SELECT fc.*, pa.nome as perfil_nome
        FROM cant_usuarios_cantina fc
        INNER JOIN cant_perfis_acesso pa ON fc.id_perfil = pa.id
-       WHERE fc.id = ?`,
-      [result.insertId]
+       WHERE fc.id = LAST_INSERT_ID()`,
+      []
     );
 
     return NextResponse.json(

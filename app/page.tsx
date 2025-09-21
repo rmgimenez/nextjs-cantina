@@ -1,93 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
-interface User {
-  id: number;
-  nome: string;
-  perfil: number;
-}
+import MainLayout from "../components/MainLayout";
 
 export default function HomePage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch("/api/auth/me");
-        const data = await res.json();
-
-        if (data.authenticated) {
-          setUser(data.user);
-        } else {
-          router.push("/login");
-          return;
-        }
-      } catch (error) {
-        console.error("Erro ao verificar autenticação:", error);
-        router.push("/login");
-        return;
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    checkAuth();
-  }, [router]);
-
-  if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Carregando...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null; // Redirecionamento será feito pelo useEffect
-  }
-
   return (
-    <div className="container-fluid">
-      {/* Header */}
-      <header
-        className="bg-primary text-white py-3 mb-4"
-        style={{ backgroundColor: "#253287" }}
-      >
-        <div className="container">
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <h1 className="h4 mb-0">
-                Sistema de Controle de Cantina Escolar
-              </h1>
-              <small>Bem-vindo, {user.nome}!</small>
-            </div>
-            <div>
-              <button
-                className="btn btn-outline-light btn-sm"
-                onClick={async () => {
-                  await fetch("/api/auth/logout", { method: "POST" });
-                  router.push("/login");
-                }}
-              >
-                Sair
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Dashboard Content */}
-      <div className="container">
-        <div className="row">
-          {/* Cards de Estatísticas */}
+    <MainLayout>
+      <div className="container-fluid">
+        {/* Cards de Estatísticas */}
+        <div className="row mb-4">
           <div className="col-md-3 mb-4">
-            <div className="card border-0 shadow-sm">
+            <div className="card border-0 shadow-sm card-dashboard">
               <div className="card-body text-center">
                 <div className="text-primary mb-2" style={{ fontSize: "2rem" }}>
                   📊
@@ -100,7 +25,7 @@ export default function HomePage() {
           </div>
 
           <div className="col-md-3 mb-4">
-            <div className="card border-0 shadow-sm">
+            <div className="card border-0 shadow-sm card-dashboard">
               <div className="card-body text-center">
                 <div className="text-warning mb-2" style={{ fontSize: "2rem" }}>
                   📦
@@ -113,7 +38,7 @@ export default function HomePage() {
           </div>
 
           <div className="col-md-3 mb-4">
-            <div className="card border-0 shadow-sm">
+            <div className="card border-0 shadow-sm card-dashboard">
               <div className="card-body text-center">
                 <div className="text-success mb-2" style={{ fontSize: "2rem" }}>
                   👥
@@ -126,7 +51,7 @@ export default function HomePage() {
           </div>
 
           <div className="col-md-3 mb-4">
-            <div className="card border-0 shadow-sm">
+            <div className="card border-0 shadow-sm card-dashboard">
               <div className="card-body text-center">
                 <div className="text-danger mb-2" style={{ fontSize: "2rem" }}>
                   ⚠️
@@ -140,7 +65,7 @@ export default function HomePage() {
         </div>
 
         {/* Menu de Ações Rápidas */}
-        <div className="row">
+        <div className="row mb-4">
           <div className="col-12">
             <div className="card border-0 shadow-sm">
               <div className="card-header bg-light">
@@ -150,33 +75,39 @@ export default function HomePage() {
                 <div className="row g-3">
                   <div className="col-md-3">
                     <button
-                      className="btn btn-outline-primary w-100 p-3"
-                      onClick={() => router.push("/funcionarios-cantina")}
+                      className="btn btn-outline-primary w-100 p-3 btn-action"
+                      onClick={() => router.push("/vendas/pdv")}
                     >
                       <div className="text-center">
                         <div
                           style={{ fontSize: "2rem", marginBottom: "0.5rem" }}
                         >
-                          �
-                        </div>
-                        <div>Funcionários</div>
-                      </div>
-                    </button>
-                  </div>
-                  <div className="col-md-3">
-                    <button className="btn btn-outline-success w-100 p-3">
-                      <div className="text-center">
-                        <div
-                          style={{ fontSize: "2rem", marginBottom: "0.5rem" }}
-                        >
-                          �
+                          💰
                         </div>
                         <div>Nova Venda</div>
                       </div>
                     </button>
                   </div>
                   <div className="col-md-3">
-                    <button className="btn btn-outline-warning w-100 p-3">
+                    <button
+                      className="btn btn-outline-success w-100 p-3 btn-action"
+                      onClick={() => router.push("/alunos/contas")}
+                    >
+                      <div className="text-center">
+                        <div
+                          style={{ fontSize: "2rem", marginBottom: "0.5rem" }}
+                        >
+                          👨‍🎓
+                        </div>
+                        <div>Buscar Aluno</div>
+                      </div>
+                    </button>
+                  </div>
+                  <div className="col-md-3">
+                    <button
+                      className="btn btn-outline-warning w-100 p-3 btn-action"
+                      onClick={() => router.push("/estoque/controle")}
+                    >
                       <div className="text-center">
                         <div
                           style={{ fontSize: "2rem", marginBottom: "0.5rem" }}
@@ -188,7 +119,10 @@ export default function HomePage() {
                     </button>
                   </div>
                   <div className="col-md-3">
-                    <button className="btn btn-outline-info w-100 p-3">
+                    <button
+                      className="btn btn-outline-info w-100 p-3 btn-action"
+                      onClick={() => router.push("/relatorios/vendas")}
+                    >
                       <div className="text-center">
                         <div
                           style={{ fontSize: "2rem", marginBottom: "0.5rem" }}
@@ -206,18 +140,16 @@ export default function HomePage() {
         </div>
 
         {/* Informações do Sistema */}
-        <div className="row mt-4">
+        <div className="row">
           <div className="col-md-6">
             <div className="card border-0 shadow-sm">
               <div className="card-header bg-light">
                 <h6 className="mb-0">Últimas Vendas</h6>
               </div>
               <div className="card-body">
-                <div className="text-center text-muted py-4">
-                  <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>
-                    📋
-                  </div>
-                  <p>Nenhuma venda realizada hoje</p>
+                <div className="empty-state">
+                  <div className="empty-state-icon">📋</div>
+                  <p className="text-muted">Nenhuma venda realizada hoje</p>
                 </div>
               </div>
             </div>
@@ -229,26 +161,15 @@ export default function HomePage() {
                 <h6 className="mb-0">Produtos com Estoque Baixo</h6>
               </div>
               <div className="card-body">
-                <div className="text-center text-muted py-4">
-                  <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>
-                    ✅
-                  </div>
-                  <p>Todos os produtos com estoque adequado</p>
+                <div className="empty-state">
+                  <div className="empty-state-icon">✅</div>
+                  <p className="text-muted">Todos os produtos com estoque adequado</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Footer */}
-      <footer className="mt-5 py-3 bg-light text-center">
-        <div className="container">
-          <small className="text-muted">
-            Sistema de Controle de Cantina Escolar - {new Date().getFullYear()}
-          </small>
-        </div>
-      </footer>
-    </div>
+    </MainLayout>
   );
 }

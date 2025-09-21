@@ -19,10 +19,10 @@ interface FuncionarioCantina {
 // GET - Buscar funcionário específico
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
 
     if (!id || isNaN(Number(id))) {
       return NextResponse.json({ error: "ID inválido" }, { status: 400 });
@@ -59,10 +59,10 @@ export async function GET(
 // PUT - Atualizar funcionário
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
     const body = await req.json();
     const { nome, usuario, email, telefone, id_perfil, senha, ativo } = body;
 
@@ -117,7 +117,7 @@ export async function PUT(
     // Preparar dados para atualização
     let updateFields =
       "nome = ?, usuario = ?, email = ?, telefone = ?, id_perfil = ?, ativo = ?";
-    let updateParams = [
+    const updateParams = [
       nome,
       usuario,
       email || null,
@@ -173,10 +173,10 @@ export async function PUT(
 // DELETE - Excluir funcionário (soft delete - desativar)
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
 
     if (!id || isNaN(Number(id))) {
       return NextResponse.json({ error: "ID inválido" }, { status: 400 });

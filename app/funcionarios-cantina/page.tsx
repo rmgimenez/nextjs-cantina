@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import MainLayout from "../../components/MainLayout";
 
 interface User {
   id: number;
@@ -31,7 +31,6 @@ export default function FuncionariosCantinaPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingFuncionario, setEditingFuncionario] =
     useState<FuncionarioCantina | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
     async function checkAuth() {
@@ -42,12 +41,12 @@ export default function FuncionariosCantinaPage() {
         if (data.authenticated) {
           setUser(data.user);
         } else {
-          router.push("/login");
+          window.location.href = "/login";
           return;
         }
       } catch (error) {
         console.error("Erro ao verificar autenticação:", error);
-        router.push("/login");
+        window.location.href = "/login";
         return;
       } finally {
         setLoading(false);
@@ -55,7 +54,7 @@ export default function FuncionariosCantinaPage() {
     }
 
     checkAuth();
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -153,40 +152,8 @@ export default function FuncionariosCantinaPage() {
   }
 
   return (
-    <div className="container-fluid">
-      {/* Header */}
-      <header
-        className="bg-primary text-white py-3 mb-4"
-        style={{ backgroundColor: "#253287" }}
-      >
-        <div className="container">
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <h1 className="h4 mb-0">Funcionários da Cantina</h1>
-              <small>Gerencie os usuários do sistema</small>
-            </div>
-            <div>
-              <button
-                className="btn btn-outline-light btn-sm me-2"
-                onClick={() => router.push("/")}
-              >
-                Voltar ao Dashboard
-              </button>
-              <button
-                className="btn btn-outline-light btn-sm"
-                onClick={async () => {
-                  await fetch("/api/auth/logout", { method: "POST" });
-                  router.push("/login");
-                }}
-              >
-                Sair
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="container">
+    <MainLayout>
+      <div className="container-fluid">
         {/* Filtros e Busca */}
         <div className="card border-0 shadow-sm mb-4">
           <div className="card-body">
@@ -237,7 +204,7 @@ export default function FuncionariosCantinaPage() {
         {/* Tabela de Funcionários */}
         <div className="card border-0 shadow-sm">
           <div className="card-body">
-            <div className="table-responsive">
+            <div className="table-responsive table-responsive-custom">
               <table className="table table-hover">
                 <thead className="table-light">
                   <tr>
@@ -255,13 +222,11 @@ export default function FuncionariosCantinaPage() {
                   {funcionarios.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="text-center py-4">
-                        <div className="text-muted">
-                          <div
-                            style={{ fontSize: "3rem", marginBottom: "1rem" }}
-                          >
-                            👥
-                          </div>
-                          <p>Nenhum funcionário encontrado</p>
+                        <div className="empty-state">
+                          <div className="empty-state-icon">👥</div>
+                          <p className="text-muted">
+                            Nenhum funcionário encontrado
+                          </p>
                         </div>
                       </td>
                     </tr>
@@ -354,7 +319,7 @@ export default function FuncionariosCantinaPage() {
           }}
         />
       )}
-    </div>
+    </MainLayout>
   );
 }
 
@@ -411,16 +376,22 @@ function FuncionarioModal({
     setLoading(true);
 
     try {
-      const submitData: any = {
+      const submitData = {
         ...formData,
         ativo: parseInt(formData.ativo),
       };
 
-      // Remover campos de senha se estiverem vazios
-      if (!submitData.senha) {
-        delete submitData.senha;
-        delete submitData.confirmarSenha;
-      }
+      // Preparar dados para envio (remover campos de senha se vazios)
+      const dataToSend = submitData.senha
+        ? submitData
+        : {
+            nome: submitData.nome,
+            usuario: submitData.usuario,
+            email: submitData.email,
+            telefone: submitData.telefone,
+            id_perfil: submitData.id_perfil,
+            ativo: submitData.ativo,
+          };
 
       const url = funcionario
         ? `/api/funcionarios-cantina/${funcionario.id}`
@@ -432,7 +403,7 @@ function FuncionarioModal({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(submitData),
+        body: JSON.stringify(dataToSend),
       });
 
       const data = await res.json();
