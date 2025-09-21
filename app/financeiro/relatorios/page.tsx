@@ -114,14 +114,15 @@ export default function RelatoriosInadimplenciaPage() {
     };
 
     contasInadimplentes.forEach((conta) => {
-      totais.totalValor += conta.valor;
+      const valorNumerico = Number(conta.valor) || 0;
+      totais.totalValor += valorNumerico;
 
       const categoria = getCategoriaAtraso(conta.dias_atraso);
       const catKey = categoria.categoria as keyof typeof totais.porCategoria;
-      totais.porCategoria[catKey].valor += conta.valor;
+      totais.porCategoria[catKey].valor += valorNumerico;
       totais.porCategoria[catKey].quantidade += 1;
 
-      totais.porTipo[conta.tipo].valor += conta.valor;
+      totais.porTipo[conta.tipo].valor += valorNumerico;
       totais.porTipo[conta.tipo].quantidade += 1;
     });
 

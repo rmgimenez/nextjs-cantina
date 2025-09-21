@@ -262,7 +262,7 @@ export default function ContasReceberPage() {
                   R${" "}
                   {contas
                     .filter((c) => c.status === "PENDENTE")
-                    .reduce((sum, c) => sum + c.valor, 0)
+                    .reduce((sum, c) => sum + (Number(c.valor) || 0), 0)
                     .toFixed(2)}
                 </h4>
               </div>
@@ -276,7 +276,7 @@ export default function ContasReceberPage() {
                   R${" "}
                   {contas
                     .filter((c) => c.status === "VENCIDO")
-                    .reduce((sum, c) => sum + c.valor, 0)
+                    .reduce((sum, c) => sum + (Number(c.valor) || 0), 0)
                     .toFixed(2)}
                 </h4>
               </div>
@@ -290,7 +290,7 @@ export default function ContasReceberPage() {
                   R${" "}
                   {contas
                     .filter((c) => c.status === "RECEBIDO")
-                    .reduce((sum, c) => sum + c.valor, 0)
+                    .reduce((sum, c) => sum + (Number(c.valor) || 0), 0)
                     .toFixed(2)}
                 </h4>
               </div>
@@ -301,7 +301,10 @@ export default function ContasReceberPage() {
               <div className="card-body text-center">
                 <h6 className="text-muted">Total Geral</h6>
                 <h4 className="text-primary mb-0">
-                  R$ {contas.reduce((sum, c) => sum + c.valor, 0).toFixed(2)}
+                  R${" "}
+                  {contas
+                    .reduce((sum, c) => sum + (Number(c.valor) || 0), 0)
+                    .toFixed(2)}
                 </h4>
               </div>
             </div>
@@ -361,7 +364,9 @@ export default function ContasReceberPage() {
                           </span>
                         </td>
                         <td>{conta.descricao}</td>
-                        <td className="fw-bold">R$ {conta.valor.toFixed(2)}</td>
+                        <td className="fw-bold">
+                          R$ {(Number(conta.valor) || 0).toFixed(2)}
+                        </td>
                         <td>
                           {new Date(conta.dt_vencimento).toLocaleDateString(
                             "pt-BR"
