@@ -27,6 +27,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
   const router = useRouter();
   const pathname = usePathname();
 
@@ -54,6 +55,24 @@ export default function MainLayout({ children }: MainLayoutProps) {
     checkAuth();
   }, [router]);
 
+  // Auto-expand menu baseado na rota atual
+  useEffect(() => {
+    const newExpandedMenus = new Set<string>();
+
+    menuItems.forEach((item) => {
+      if (item.children) {
+        const hasActiveChild = item.children.some((child) =>
+          isActive(child.path)
+        );
+        if (hasActiveChild) {
+          newExpandedMenus.add(item.id);
+        }
+      }
+    });
+
+    setExpandedMenus(newExpandedMenus);
+  }, [pathname]);
+
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
@@ -61,6 +80,20 @@ export default function MainLayout({ children }: MainLayoutProps) {
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
     }
+  };
+
+  const toggleSubmenu = (menuId: string, hasChildren: boolean) => {
+    if (!hasChildren) return;
+
+    setExpandedMenus((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(menuId)) {
+        newSet.delete(menuId);
+      } else {
+        newSet.add(menuId);
+      }
+      return newSet;
+    });
   };
 
   const menuItems: MenuItem[] = [
@@ -359,28 +392,36 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </div>
 
         {/* Menu Items */}
-        <div className="p-2">
+        <div
+          className="p-2"
+          style={{
+            maxHeight: "calc(100vh - 120px)",
+            overflowY: "auto",
+            overflowX: "hidden",
+          }}
+        >
           {menuItems.map((item) => {
             if (!hasPermission(item)) return null;
 
             const active = isActive(item.path);
             const hasChildren = item.children && item.children.length > 0;
+            const isExpanded = expandedMenus.has(item.id);
 
             return (
-              <div key={item.id}>
-                <Link
-                  href={item.path}
+              <div key={item.id} className="mb-1">
+                <div
                   className={`d-flex align-items-center text-decoration-none text-white p-3 rounded mb-1 ${
                     active ? "bg-primary" : "hover-bg-secondary"
                   }`}
                   style={{
                     transition: "all 0.2s ease",
-                    cursor: hasChildren ? "default" : "pointer",
+                    cursor: hasChildren ? "pointer" : "pointer",
                   }}
-                  onClick={(e) => {
+                  onClick={() => {
                     if (hasChildren) {
-                      e.preventDefault();
-                      // Toggle submenu logic could be added here
+                      toggleSubmenu(item.id, true);
+                    } else {
+                      router.push(item.path);
                     }
                   }}
                 >
@@ -394,15 +435,32 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     <>
                       <span className="flex-grow-1">{item.label}</span>
                       {hasChildren && (
-                        <span style={{ fontSize: "0.8rem" }}>▼</span>
+                        <span
+                          style={{
+                            fontSize: "0.8rem",
+                            transition: "transform 0.2s ease",
+                            transform: isExpanded
+                              ? "rotate(180deg)"
+                              : "rotate(0deg)",
+                          }}
+                        >
+                          ▼
+                        </span>
                       )}
                     </>
                   )}
-                </Link>
+                </div>
 
                 {/* Submenu */}
                 {sidebarOpen && hasChildren && (
-                  <div className="ms-4 mb-2">
+                  <div
+                    className="ms-4 mb-2"
+                    style={{
+                      maxHeight: isExpanded ? "500px" : "0px",
+                      overflow: "hidden",
+                      transition: "max-height 0.3s ease-in-out",
+                    }}
+                  >
                     {item.children!.map((child) => {
                       if (!hasPermission(child)) return null;
 
@@ -417,7 +475,12 @@ export default function MainLayout({ children }: MainLayoutProps) {
                           }`}
                           style={{
                             fontSize: "0.9rem",
-                            transition: "all 0.2s ease",
+                            marginLeft: "0px",
+                            opacity: isExpanded ? 1 : 0,
+                            transform: isExpanded
+                              ? "translateY(0)"
+                              : "translateY(-10px)",
+                            transition: "all 0.3s ease-in-out",
                           }}
                         >
                           <span
