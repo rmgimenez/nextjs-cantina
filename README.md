@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sistema de Controle de Cantina Escolar
 
-## Getting Started
+Este é um sistema completo para gestão de cantinas escolares, desenvolvido com Next.js, TypeScript e MySQL.
 
-First, run the development server:
+## Funcionalidades Implementadas
+
+### ✅ Tela Inicial (Dashboard)
+
+- **Verificação de autenticação automática**: Redireciona para login se usuário não estiver autenticado
+- **Dashboard responsivo** com estatísticas principais:
+  - Vendas do dia
+  - Produtos em estoque
+  - Alunos ativos
+  - Alertas de estoque baixo
+- **Ações rápidas** para funcionalidades principais
+- **Design personalizado** com cores da cantina (#253287, #B20000, #FEA800)
+- **Interface moderna** usando Bootstrap
+
+### ✅ Autenticação (RF-001)
+
+- Sistema de login com usuário e senha
+- Sessões seguras com JWT
+- Controle de perfis de acesso
+- Logout automático
+
+## Tecnologias Utilizadas
+
+- **Next.js 15** - Framework React com App Router
+- **TypeScript** - Tipagem estática
+- **MySQL** - Banco de dados relacional
+- **Bootstrap 5** - Framework CSS responsivo
+- **JWT** - Autenticação stateless
+- **bcryptjs** - Hash de senhas
+
+## Cores do Sistema
+
+- **Azul Principal**: #253287
+- **Vermelho**: #B20000
+- **Amarelo**: #FEA800
+- **Escuro**: #333333
+- **Claro**: #FFFFFF
+
+## Como Executar
+
+1. **Instalar dependências**:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. **Configurar banco de dados**:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+   - Criar banco MySQL
+   - Executar script `bancodados.sql`
+   - Configurar variáveis de ambiente em `.env.local`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. **Executar aplicação**:
 
-## Learn More
+```bash
+pnpm dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+4. **Acessar**: http://localhost:3001
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Estrutura do Projeto
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+app/
+├── api/auth/          # APIs de autenticação
+├── login/            # Página de login
+├── layout.tsx        # Layout principal
+├── page.tsx          # Dashboard inicial
+└── globals.css       # Estilos globais
 
-## Deploy on Vercel
+lib/
+├── auth.ts           # Funções de autenticação
+├── db.ts            # Conexão com banco
+└── jwt.ts           # Utilitários JWT
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## APIs Disponíveis
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `POST /api/auth/login` - Login do usuário
+- `POST /api/auth/logout` - Logout do usuário
+- `GET /api/auth/me` - Verificar usuário autenticado
+
+## Próximos Passos
+
+- Implementar PDV (Ponto de Venda)
+- Gestão de produtos e estoque
+- Controle de contas de alunos
+- Relatórios e dashboards avançados

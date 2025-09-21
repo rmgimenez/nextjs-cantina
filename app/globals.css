@@ -1,0 +1,97 @@
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* Cores do Sistema de Cantina */
+  --azul-principal: #253287;
+  --vermelho-principal: #b20000;
+  --amarelo-principal: #fea800;
+  --escuro: #333333;
+  --claro: #ffffff;
+
+  /* Cores Bootstrap customizadas */
+  --bs-primary: var(--azul-principal);
+  --bs-danger: var(--vermelho-principal);
+  --bs-warning: var(--amarelo-principal);
+  --bs-dark: var(--escuro);
+  --bs-light: var(--claro);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  html {
+    color-scheme: dark;
+  }
+}
+
+/* Estilos personalizados para o sistema */
+.btn-primary {
+  background-color: var(--azul-principal);
+  border-color: var(--azul-principal);
+}
+
+.btn-primary:hover {
+  background-color: #1a237e;
+  border-color: #1a237e;
+}
+
+.btn-outline-primary {
+  color: var(--azul-principal);
+  border-color: var(--azul-principal);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--azul-principal);
+  border-color: var(--azul-principal);
+}
+
+.text-primary {
+  color: var(--azul-principal) !important;
+}
+
+.bg-primary {
+  background-color: var(--azul-principal) !important;
+}
+
+.card {
+  border-radius: 8px;
+}
+
+.card-header {
+  border-radius: 8px 8px 0 0 !important;
+}
+
+.shadow-sm {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
