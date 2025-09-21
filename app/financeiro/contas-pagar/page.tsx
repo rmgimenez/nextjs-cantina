@@ -45,6 +45,8 @@ export default function ContasPagarPage() {
   const [dtFimFilter, setDtFimFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingConta, setEditingConta] = useState<ContaPagar | null>(null);
+  const [showPagamentoModal, setShowPagamentoModal] = useState(false);
+  const [pagamentoConta, setPagamentoConta] = useState<ContaPagar | null>(null);
 
   useEffect(() => {
     async function checkAuth() {
@@ -383,6 +385,18 @@ export default function ContasPagarPage() {
                         <td>{conta.numero_documento || "-"}</td>
                         <td>
                           <div className="btn-group btn-group-sm">
+                            {conta.status !== "PAGO" && (
+                              <button
+                                className="btn btn-outline-success"
+                                onClick={() => {
+                                  setPagamentoConta(conta);
+                                  setShowPagamentoModal(true);
+                                }}
+                                title="Registrar Pagamento"
+                              >
+                                Pagar
+                              </button>
+                            )}
                             <button
                               className="btn btn-outline-primary"
                               onClick={() => {
@@ -422,6 +436,22 @@ export default function ContasPagarPage() {
           onSave={() => {
             setShowModal(false);
             setEditingConta(null);
+            loadContas();
+          }}
+        />
+      )}
+
+      {/* Modal para Registrar Pagamento */}
+      {showPagamentoModal && pagamentoConta && (
+        <PagamentoModal
+          conta={pagamentoConta}
+          onClose={() => {
+            setShowPagamentoModal(false);
+            setPagamentoConta(null);
+          }}
+          onSave={() => {
+            setShowPagamentoModal(false);
+            setPagamentoConta(null);
             loadContas();
           }}
         />
@@ -675,6 +705,254 @@ function ContaPagarModal({
                 disabled={loading}
               >
                 {loading ? "Salvando..." : conta ? "Atualizar" : "Criar"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Componente Modal para Registrar Pagamento
+interface PagamentoModalProps {
+  conta: ContaPagar;
+  onClose: () => void;
+  onSave: () => void;
+}
+
+function PagamentoModal({ conta, onClose, onSave }: PagamentoModalProps) {
+  const [formData, setFormData] = useState({
+    valor_pago: "",
+    dt_pagamento: new Date().toISOString().split("T")[0],
+    forma_pagamento: "DINHEIRO",
+    observacoes: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Calcular valor restante a pagar
+  const valorRestante = (conta.valor || 0) - (conta.valor_pago || 0);
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    const valorPago = parseFloat(formData.valor_pago);
+    if (!formData.valor_pago || valorPago <= 0) {
+      newErrors.valor_pago = "Valor pago deve ser maior que zero";
+    } else if (valorPago > valorRestante) {
+      newErrors.valor_pago = `Valor pago não pode ser maior que o valor restante (R$ ${valorRestante.toFixed(
+        2
+      )})`;
+    }
+
+    if (!formData.dt_pagamento) {
+      newErrors.dt_pagamento = "Data de pagamento é obrigatória";
+    }
+
+    if (!formData.forma_pagamento) {
+      newErrors.forma_pagamento = "Forma de pagamento é obrigatória";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) return;
+
+    setLoading(true);
+
+    try {
+      const submitData = {
+        valor_pago: parseFloat(formData.valor_pago),
+        dt_pagamento: formData.dt_pagamento,
+        forma_pagamento: formData.forma_pagamento,
+        observacoes: formData.observacoes.trim() || undefined,
+      };
+
+      const res = await fetch(`/api/contas-pagar/${conta.id}/pagar`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submitData),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        alert("Pagamento registrado com sucesso!");
+        onSave();
+      } else {
+        alert("Erro: " + data.error);
+      }
+    } catch (error) {
+      console.error("Erro ao registrar pagamento:", error);
+      alert("Erro interno do servidor");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      className="modal show d-block"
+      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+    >
+      <div className="modal-dialog modal-lg">
+        <div className="modal-content">
+          <div className="modal-header">
+            <h5 className="modal-title">Registrar Pagamento</h5>
+            <button
+              type="button"
+              className="btn-close"
+              onClick={onClose}
+            ></button>
+          </div>
+          <form onSubmit={handleSubmit}>
+            <div className="modal-body">
+              {/* Informações da conta */}
+              <div className="card border-0 bg-light mb-3">
+                <div className="card-body">
+                  <h6 className="card-title">Informações da Conta</h6>
+                  <div className="row">
+                    <div className="col-md-6">
+                      <p className="mb-1">
+                        <strong>Fornecedor:</strong> {conta.fornecedor_nome}
+                      </p>
+                      <p className="mb-1">
+                        <strong>Descrição:</strong> {conta.descricao}
+                      </p>
+                    </div>
+                    <div className="col-md-6">
+                      <p className="mb-1">
+                        <strong>Valor Total:</strong> R${" "}
+                        {(conta.valor || 0).toFixed(2)}
+                      </p>
+                      <p className="mb-1">
+                        <strong>Valor Pago:</strong> R${" "}
+                        {(conta.valor_pago || 0).toFixed(2)}
+                      </p>
+                      <p className="mb-1">
+                        <strong>Valor Restante:</strong>{" "}
+                        <span className="text-primary fw-bold">
+                          R$ {valorRestante.toFixed(2)}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <label className="form-label">Valor a Pagar *</label>
+                  <div className="input-group">
+                    <span className="input-group-text">R$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      max={valorRestante}
+                      className={`form-control ${
+                        errors.valor_pago ? "is-invalid" : ""
+                      }`}
+                      value={formData.valor_pago}
+                      onChange={(e) =>
+                        setFormData({ ...formData, valor_pago: e.target.value })
+                      }
+                      placeholder={`Máx. ${valorRestante.toFixed(2)}`}
+                    />
+                    {errors.valor_pago && (
+                      <div className="invalid-feedback">
+                        {errors.valor_pago}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Data do Pagamento *</label>
+                  <input
+                    type="date"
+                    className={`form-control ${
+                      errors.dt_pagamento ? "is-invalid" : ""
+                    }`}
+                    value={formData.dt_pagamento}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        dt_pagamento: e.target.value,
+                      })
+                    }
+                  />
+                  {errors.dt_pagamento && (
+                    <div className="invalid-feedback">
+                      {errors.dt_pagamento}
+                    </div>
+                  )}
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Forma de Pagamento *</label>
+                  <select
+                    className={`form-select ${
+                      errors.forma_pagamento ? "is-invalid" : ""
+                    }`}
+                    value={formData.forma_pagamento}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        forma_pagamento: e.target.value as
+                          | "DINHEIRO"
+                          | "CARTAO"
+                          | "TRANSFERENCIA"
+                          | "CHEQUE"
+                          | "PIX",
+                      })
+                    }
+                  >
+                    <option value="DINHEIRO">Dinheiro</option>
+                    <option value="CARTAO">Cartão</option>
+                    <option value="TRANSFERENCIA">Transferência</option>
+                    <option value="CHEQUE">Cheque</option>
+                    <option value="PIX">PIX</option>
+                  </select>
+                  {errors.forma_pagamento && (
+                    <div className="invalid-feedback">
+                      {errors.forma_pagamento}
+                    </div>
+                  )}
+                </div>
+                <div className="col-12">
+                  <label className="form-label">Observações</label>
+                  <textarea
+                    className="form-control"
+                    rows={3}
+                    value={formData.observacoes}
+                    onChange={(e) =>
+                      setFormData({ ...formData, observacoes: e.target.value })
+                    }
+                    placeholder="Observações sobre o pagamento..."
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={onClose}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="btn btn-success"
+                disabled={loading}
+              >
+                {loading ? "Registrando..." : "Registrar Pagamento"}
               </button>
             </div>
           </form>

@@ -66,9 +66,16 @@ export async function GET(req: Request) {
 
     const rows = await query(sql, params);
 
+    // Converter valores numéricos de string para number
+    const processedRows = rows.map((row: any) => ({
+      ...row,
+      valor: row.valor ? parseFloat(row.valor) : 0,
+      valor_pago: row.valor_pago ? parseFloat(row.valor_pago) : 0,
+    }));
+
     return NextResponse.json({
       success: true,
-      data: rows,
+      data: processedRows,
     });
   } catch (error) {
     console.error("Erro ao listar contas a pagar:", error);

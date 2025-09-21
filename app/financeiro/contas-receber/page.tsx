@@ -40,6 +40,10 @@ export default function ContasReceberPage() {
   const [dtFimFilter, setDtFimFilter] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingConta, setEditingConta] = useState<ContaReceber | null>(null);
+  const [showRecebimentoModal, setShowRecebimentoModal] = useState(false);
+  const [recebimentoConta, setRecebimentoConta] = useState<ContaReceber | null>(
+    null
+  );
 
   useEffect(() => {
     async function checkAuth() {
@@ -383,6 +387,18 @@ export default function ContasReceberPage() {
                         <td>{conta.numero_documento || "-"}</td>
                         <td>
                           <div className="btn-group btn-group-sm">
+                            {conta.status !== "RECEBIDO" && (
+                              <button
+                                className="btn btn-outline-success"
+                                onClick={() => {
+                                  setRecebimentoConta(conta);
+                                  setShowRecebimentoModal(true);
+                                }}
+                                title="Registrar Recebimento"
+                              >
+                                Receber
+                              </button>
+                            )}
                             <button
                               className="btn btn-outline-primary"
                               onClick={() => {
@@ -421,6 +437,22 @@ export default function ContasReceberPage() {
           onSave={() => {
             setShowModal(false);
             setEditingConta(null);
+            loadContas();
+          }}
+        />
+      )}
+
+      {/* Modal para Registrar Recebimento */}
+      {showRecebimentoModal && recebimentoConta && (
+        <RecebimentoModal
+          conta={recebimentoConta}
+          onClose={() => {
+            setShowRecebimentoModal(false);
+            setRecebimentoConta(null);
+          }}
+          onSave={() => {
+            setShowRecebimentoModal(false);
+            setRecebimentoConta(null);
             loadContas();
           }}
         />
@@ -780,6 +812,257 @@ function ContaReceberModal({ conta, onClose, onSave }: ContaReceberModalProps) {
                 disabled={loading}
               >
                 {loading ? "Salvando..." : conta ? "Atualizar" : "Criar"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Componente Modal para Registrar Recebimento
+interface RecebimentoModalProps {
+  conta: ContaReceber;
+  onClose: () => void;
+  onSave: () => void;
+}
+
+function RecebimentoModal({ conta, onClose, onSave }: RecebimentoModalProps) {
+  const [formData, setFormData] = useState({
+    valor_recebido: "",
+    dt_recebimento: new Date().toISOString().split("T")[0],
+    forma_pagamento: "DINHEIRO",
+    observacoes: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Calcular valor restante a receber
+  const valorRestante = (conta.valor || 0) - (conta.valor_recebido || 0);
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    const valorRecebido = parseFloat(formData.valor_recebido);
+    if (!formData.valor_recebido || valorRecebido <= 0) {
+      newErrors.valor_recebido = "Valor recebido deve ser maior que zero";
+    } else if (valorRecebido > valorRestante) {
+      newErrors.valor_recebido = `Valor recebido não pode ser maior que o valor restante (R$ ${valorRestante.toFixed(
+        2
+      )})`;
+    }
+
+    if (!formData.dt_recebimento) {
+      newErrors.dt_recebimento = "Data de recebimento é obrigatória";
+    }
+
+    if (!formData.forma_pagamento) {
+      newErrors.forma_pagamento = "Forma de pagamento é obrigatória";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) return;
+
+    setLoading(true);
+
+    try {
+      const submitData = {
+        valor_recebido: parseFloat(formData.valor_recebido),
+        dt_recebimento: formData.dt_recebimento,
+        forma_pagamento: formData.forma_pagamento,
+        observacoes: formData.observacoes.trim() || undefined,
+      };
+
+      const res = await fetch(`/api/contas-receber/${conta.id}/receber`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submitData),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        alert("Recebimento registrado com sucesso!");
+        onSave();
+      } else {
+        alert("Erro: " + data.error);
+      }
+    } catch (error) {
+      console.error("Erro ao registrar recebimento:", error);
+      alert("Erro interno do servidor");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      className="modal show d-block"
+      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+    >
+      <div className="modal-dialog modal-lg">
+        <div className="modal-content">
+          <div className="modal-header">
+            <h5 className="modal-title">Registrar Recebimento</h5>
+            <button
+              type="button"
+              className="btn-close"
+              onClick={onClose}
+            ></button>
+          </div>
+          <form onSubmit={handleSubmit}>
+            <div className="modal-body">
+              {/* Informações da conta */}
+              <div className="card border-0 bg-light mb-3">
+                <div className="card-body">
+                  <h6 className="card-title">Informações da Conta</h6>
+                  <div className="row">
+                    <div className="col-md-6">
+                      <p className="mb-1">
+                        <strong>Cliente:</strong> {conta.nome_cliente}
+                      </p>
+                      <p className="mb-1">
+                        <strong>Descrição:</strong> {conta.descricao}
+                      </p>
+                    </div>
+                    <div className="col-md-6">
+                      <p className="mb-1">
+                        <strong>Valor Total:</strong> R${" "}
+                        {(conta.valor || 0).toFixed(2)}
+                      </p>
+                      <p className="mb-1">
+                        <strong>Valor Recebido:</strong> R${" "}
+                        {(conta.valor_recebido || 0).toFixed(2)}
+                      </p>
+                      <p className="mb-1">
+                        <strong>Valor Restante:</strong>{" "}
+                        <span className="text-primary fw-bold">
+                          R$ {valorRestante.toFixed(2)}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <label className="form-label">Valor a Receber *</label>
+                  <div className="input-group">
+                    <span className="input-group-text">R$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      max={valorRestante}
+                      className={`form-control ${
+                        errors.valor_recebido ? "is-invalid" : ""
+                      }`}
+                      value={formData.valor_recebido}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          valor_recebido: e.target.value,
+                        })
+                      }
+                      placeholder={`Máx. ${valorRestante.toFixed(2)}`}
+                    />
+                    {errors.valor_recebido && (
+                      <div className="invalid-feedback">
+                        {errors.valor_recebido}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Data do Recebimento *</label>
+                  <input
+                    type="date"
+                    className={`form-control ${
+                      errors.dt_recebimento ? "is-invalid" : ""
+                    }`}
+                    value={formData.dt_recebimento}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        dt_recebimento: e.target.value,
+                      })
+                    }
+                  />
+                  {errors.dt_recebimento && (
+                    <div className="invalid-feedback">
+                      {errors.dt_recebimento}
+                    </div>
+                  )}
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Forma de Pagamento *</label>
+                  <select
+                    className={`form-select ${
+                      errors.forma_pagamento ? "is-invalid" : ""
+                    }`}
+                    value={formData.forma_pagamento}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        forma_pagamento: e.target.value as
+                          | "DINHEIRO"
+                          | "CARTAO"
+                          | "TRANSFERENCIA"
+                          | "CHEQUE"
+                          | "PIX",
+                      })
+                    }
+                  >
+                    <option value="DINHEIRO">Dinheiro</option>
+                    <option value="CARTAO">Cartão</option>
+                    <option value="TRANSFERENCIA">Transferência</option>
+                    <option value="CHEQUE">Cheque</option>
+                    <option value="PIX">PIX</option>
+                  </select>
+                  {errors.forma_pagamento && (
+                    <div className="invalid-feedback">
+                      {errors.forma_pagamento}
+                    </div>
+                  )}
+                </div>
+                <div className="col-12">
+                  <label className="form-label">Observações</label>
+                  <textarea
+                    className="form-control"
+                    rows={3}
+                    value={formData.observacoes}
+                    onChange={(e) =>
+                      setFormData({ ...formData, observacoes: e.target.value })
+                    }
+                    placeholder="Observações sobre o recebimento..."
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={onClose}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="btn btn-success"
+                disabled={loading}
+              >
+                {loading ? "Registrando..." : "Registrar Recebimento"}
               </button>
             </div>
           </form>

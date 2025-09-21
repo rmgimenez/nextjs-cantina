@@ -80,9 +80,16 @@ export async function GET(req: Request) {
 
     const rows = await query(sql, params);
 
+    // Converter valores numéricos de string para number
+    const processedRows = rows.map((row: any) => ({
+      ...row,
+      valor: row.valor ? parseFloat(row.valor) : 0,
+      valor_recebido: row.valor_recebido ? parseFloat(row.valor_recebido) : 0,
+    }));
+
     return NextResponse.json({
       success: true,
-      data: rows,
+      data: processedRows,
     });
   } catch (error) {
     console.error("Erro ao listar contas a receber:", error);
