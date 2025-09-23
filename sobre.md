@@ -522,7 +522,7 @@ Os requisitos funcionais deverão ser separados por códigos, exemplo RF-001, RF
 - Exibir observações do aluno durante a venda
 - Verificar restrições antes de finalizar venda
   **Tabelas Relacionadas**: `alunos`, `cant_vendas`, `cant_vendas_itens`, `cant_contas_alunos`
-  **Status**: Não iniciado
+  **Status**: ✅ **Concluído**
 
 ### RF-010 - Controle de Caixa
 
@@ -536,7 +536,7 @@ Os requisitos funcionais deverão ser separados por códigos, exemplo RF-001, RF
 - Não permitir vendas com caixa fechado
 - Histórico de movimentações do caixa
   **Tabelas Relacionadas**: `cant_caixa`, `cant_movimentacoes_caixa`
-  **Status**: Não iniciado
+  **Status**: ✅ **Concluído**
 
 ### RF-011 - Vendas para Funcionários da Escola
 
