@@ -329,7 +329,13 @@ export default function PDVPage() {
                       setAluno(null);
                       setFuncionario(null);
                       setMsg('');
-                      setFormaPagamento(novo === 'ALUNO' ? 'SALDO' : 'DINHEIRO');
+                      setFormaPagamento(
+                        novo === 'ALUNO'
+                          ? 'SALDO'
+                          : novo === 'FUNCIONARIO'
+                          ? 'CONTA_FUNCIONARIO'
+                          : 'DINHEIRO'
+                      );
                     }}
                   >
                     <option value='ALUNO'>Aluno</option>
@@ -343,15 +349,16 @@ export default function PDVPage() {
                     className='form-select d-inline-block w-auto'
                     value={formaPagamento}
                     onChange={(e) => setFormaPagamento(e.target.value as any)}
+                    disabled={tipoCliente === 'FUNCIONARIO'}
                   >
                     {tipoCliente === 'ALUNO' && <option value='SALDO'>Saldo do aluno</option>}
-                    {tipoCliente !== 'ALUNO' && (
+                    {tipoCliente === 'FUNCIONARIO' && (
+                      <option value='CONTA_FUNCIONARIO'>Conta do funcionário</option>
+                    )}
+                    {tipoCliente === 'GERAL' && (
                       <>
                         <option value='DINHEIRO'>Dinheiro</option>
                         <option value='CARTAO'>Cartão</option>
-                        {tipoCliente === 'FUNCIONARIO' && (
-                          <option value='CONTA_FUNCIONARIO'>Conta do funcionário</option>
-                        )}
                       </>
                     )}
                   </select>

@@ -197,8 +197,11 @@ export async function POST(req: Request) {
     if (tipo_cliente === 'ALUNO' && forma_pagamento !== 'SALDO') {
       return NextResponse.json({ error: 'Alunos só podem pagar com SALDO' }, { status: 400 });
     }
-    if (tipo_cliente === 'FUNCIONARIO' && forma_pagamento === 'SALDO') {
-      return NextResponse.json({ error: 'Funcionário não utiliza SALDO' }, { status: 400 });
+    if (tipo_cliente === 'FUNCIONARIO' && forma_pagamento !== 'CONTA_FUNCIONARIO') {
+      return NextResponse.json(
+        { error: 'Funcionários devem pagar com CONTA_FUNCIONARIO' },
+        { status: 400 }
+      );
     }
     if (tipo_cliente === 'GERAL') {
       if (['SALDO', 'CONTA_FUNCIONARIO'].includes(forma_pagamento)) {
