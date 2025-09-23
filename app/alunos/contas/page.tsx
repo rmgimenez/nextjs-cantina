@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import MainLayout from '../../../components/MainLayout';
 
 interface User {
@@ -30,16 +30,27 @@ interface MovimentacaoAluno {
   id_venda: number | null;
   dt_movimentacao: string; // ISO date
 }
+interface AlunoBusca {
+  ra: number;
+  nome: string;
+  turma?: string | null;
+  serie?: string | number | null;
+  curso_nome?: string | null;
+}
 
 export default function ContasAlunosPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [ra, setRa] = useState('');
+  const [termo, setTermo] = useState('');
   const [aluno, setAluno] = useState<AlunoConta | null>(null);
   const [movs, setMovs] = useState<MovimentacaoAluno[]>([]);
   const [valor, setValor] = useState('');
   const [descricao, setDescricao] = useState('Recarga manual');
   const [busy, setBusy] = useState(false);
+  const [sugestoes, setSugestoes] = useState<AlunoBusca[]>([]);
+  const [showSugestoes, setShowSugestoes] = useState(false);
+  const debounceRef = useRef<number | null>(null);
 
   useEffect(() => {
     async function checkAuth() {
@@ -60,14 +71,15 @@ export default function ContasAlunosPage() {
     checkAuth();
   }, []);
 
-  async function buscar() {
-    if (!ra.trim()) return;
+  async function buscarPorRa(raParam: string | number) {
+    const raStr = String(raParam).trim();
+    if (!raStr) return;
     try {
-      const res = await fetch(`/api/alunos/contas/${ra.trim()}`);
+      const res = await fetch(`/api/alunos/contas/${raStr}`);
       const data = await res.json();
       if (data.success) {
         setAluno(data.data as AlunoConta);
-        const resMov = await fetch(`/api/alunos/contas/${ra.trim()}/movimentacoes?limit=50`);
+        const resMov = await fetch(`/api/alunos/contas/${raStr}/movimentacoes?limit=50`);
         const dataMov = await resMov.json();
         if (dataMov.success) setMovs(dataMov.data as MovimentacaoAluno[]);
       } else {
@@ -79,6 +91,68 @@ export default function ContasAlunosPage() {
       console.error(e);
     }
   }
+
+  // Mantém compatibilidade com chamadas existentes
+  async function buscar() {
+    if (!ra.trim()) return;
+    await buscarPorRa(ra.trim());
+  }
+
+  function handleSelectAluno(a: AlunoBusca) {
+    setRa(String(a.ra));
+    setTermo('');
+    setSugestoes([]);
+    setShowSugestoes(false);
+    buscarPorRa(a.ra);
+  }
+
+  function handleSearchClick() {
+    const t = termo.trim();
+    if (!t) return;
+    if (/^\d+$/.test(t)) {
+      setRa(t);
+      buscarPorRa(t);
+      setShowSugestoes(false);
+      setSugestoes([]);
+      return;
+    }
+    if (sugestoes.length === 1) {
+      handleSelectAluno(sugestoes[0]);
+      return;
+    }
+    alert('Selecione um aluno na lista de resultados.');
+  }
+
+  // Debounce da busca de sugestões por nome/RA
+  useEffect(() => {
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    const t = termo.trim();
+    if (!t) {
+      setSugestoes([]);
+      setShowSugestoes(false);
+      return;
+    }
+    debounceRef.current = window.setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/alunos/busca?q=${encodeURIComponent(t)}&limit=15`);
+        const data = await res.json();
+        if (data.success) {
+          setSugestoes(data.data as AlunoBusca[]);
+          setShowSugestoes(true);
+        } else {
+          setSugestoes([]);
+          setShowSugestoes(false);
+        }
+      } catch (e) {
+        console.error(e);
+        setSugestoes([]);
+        setShowSugestoes(false);
+      }
+    }, 250);
+    return () => {
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    };
+  }, [termo]);
 
   async function recarregar() {
     const v = Number(valor);
@@ -126,19 +200,54 @@ export default function ContasAlunosPage() {
         <div className='card border-0 shadow-sm mb-4'>
           <div className='card-body'>
             <div className='row g-3 align-items-end'>
-              <div className='col-md-3'>
-                <label className='form-label'>RA do aluno</label>
-                <input
-                  className='form-control'
-                  value={ra}
-                  onChange={(e) => setRa(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') buscar();
-                  }}
-                />
+              <div className='col-md-5'>
+                <label className='form-label'>RA ou nome do aluno</label>
+                <div className='position-relative'>
+                  <input
+                    className='form-control'
+                    value={termo}
+                    onChange={(e) => setTermo(e.target.value)}
+                    onFocus={() => {
+                      if (sugestoes.length > 0) setShowSugestoes(true);
+                    }}
+                    onBlur={() => {
+                      // Pequeno atraso para permitir clique nas sugestões
+                      setTimeout(() => setShowSugestoes(false), 150);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSearchClick();
+                    }}
+                    placeholder='Digite o RA ou parte do nome'
+                  />
+                  {showSugestoes && sugestoes.length > 0 && (
+                    <div
+                      className='list-group position-absolute w-100 shadow-sm'
+                      style={{ zIndex: 1000, maxHeight: 260, overflowY: 'auto' }}
+                    >
+                      {sugestoes.map((s) => (
+                        <button
+                          type='button'
+                          key={s.ra}
+                          className='list-group-item list-group-item-action'
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => handleSelectAluno(s)}
+                        >
+                          <div className='d-flex justify-content-between'>
+                            <span>{s.nome}</span>
+                            <small className='text-muted'>RA {s.ra}</small>
+                          </div>
+                          <small className='text-muted'>
+                            {s.serie ?? '-'} {s.turma ?? ''}{' '}
+                            {s.curso_nome ? `• ${s.curso_nome}` : ''}
+                          </small>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className='col-md-2'>
-                <button className='btn btn-primary w-100' onClick={buscar}>
+                <button className='btn btn-primary w-100' onClick={handleSearchClick}>
                   Buscar
                 </button>
               </div>
