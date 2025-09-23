@@ -193,6 +193,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
           permission: [1, 2],
         },
         {
+          id: 'historico-aluno',
+          label: 'Histórico do Aluno',
+          icon: '📊',
+          path: '/alunos/historico',
+          permission: [1, 2],
+        },
+        {
           id: 'restricoes',
           label: 'Restrições',
           icon: '🚫',
