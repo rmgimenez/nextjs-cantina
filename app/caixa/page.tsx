@@ -1,6 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import MainLayout from '../../components/MainLayout';
 
 interface User {
   id: number;
@@ -96,104 +97,105 @@ export default function CaixaPage() {
 
   const aberto = Boolean(status?.aberto);
   return (
-    <div className='container py-4'>
-      <h2 className='text-primary mb-3'>Caixa</h2>
-      {msg && <div className='alert alert-info'>{msg}</div>}
+    <MainLayout>
+      <div>
+        {msg && <div className='alert alert-info mb-3'>{msg}</div>}
 
-      {!aberto ? (
-        <div className='card mb-3'>
-          <div className='card-body'>
-            <h5>Abrir caixa</h5>
-            <div className='input-group' style={{ maxWidth: 300 }}>
-              <span className='input-group-text'>Valor inicial</span>
-              <input
-                className='form-control'
-                value={valorInicial}
-                onChange={(e) => setValorInicial(e.target.value)}
-              />
-              <button className='btn btn-success' onClick={abrirCaixa}>
-                Abrir
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <>
+        {!aberto ? (
           <div className='card mb-3'>
             <div className='card-body'>
-              <h5>Status</h5>
-              <div>Aberto em: {status?.caixa?.dt_abertura}</div>
-              <div>Valor inicial: R$ {Number(status?.caixa?.valor_inicial || 0).toFixed(2)}</div>
-              <div>Suprimentos: R$ {Number(status?.totais?.suprimentos || 0).toFixed(2)}</div>
-              <div>Sangrias: R$ {Number(status?.totais?.sangrias || 0).toFixed(2)}</div>
-              <div>
-                Vendas (dinheiro): R$ {Number(status?.totais?.vendas_dinheiro || 0).toFixed(2)}
-              </div>
-              <div>
-                <strong>
-                  Esperado em caixa: R$ {Number(status?.totais?.esperado || 0).toFixed(2)}
-                </strong>
-              </div>
-            </div>
-          </div>
-
-          <div className='card mb-3'>
-            <div className='card-body'>
-              <h5>Movimentação</h5>
-              <div className='row g-2'>
-                <div className='col-md-3'>
-                  <select
-                    className='form-select'
-                    value={tipoMov}
-                    onChange={(e) => setTipoMov(e.target.value as any)}
-                  >
-                    <option value='SUPRIMENTO'>Suprimento</option>
-                    <option value='SANGRIA'>Sangria</option>
-                  </select>
-                </div>
-                <div className='col-md-3'>
-                  <input
-                    className='form-control'
-                    placeholder='Valor'
-                    value={valorMov}
-                    onChange={(e) => setValorMov(e.target.value)}
-                  />
-                </div>
-                <div className='col-md-4'>
-                  <input
-                    className='form-control'
-                    placeholder='Descrição'
-                    value={descricaoMov}
-                    onChange={(e) => setDescricaoMov(e.target.value)}
-                  />
-                </div>
-                <div className='col-md-2'>
-                  <button className='btn btn-primary w-100' onClick={movimentar}>
-                    Lançar
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className='card'>
-            <div className='card-body'>
-              <h5>Fechar caixa</h5>
-              <div className='input-group' style={{ maxWidth: 360 }}>
-                <span className='input-group-text'>Valor contado</span>
+              <h5>Abrir caixa</h5>
+              <div className='input-group' style={{ maxWidth: 300 }}>
+                <span className='input-group-text'>Valor inicial</span>
                 <input
                   className='form-control'
-                  value={valorReal}
-                  onChange={(e) => setValorReal(e.target.value)}
+                  value={valorInicial}
+                  onChange={(e) => setValorInicial(e.target.value)}
                 />
-                <button className='btn btn-danger' onClick={fecharCaixa}>
-                  Fechar
+                <button className='btn btn-success' onClick={abrirCaixa}>
+                  Abrir
                 </button>
               </div>
             </div>
           </div>
-        </>
-      )}
-    </div>
+        ) : (
+          <>
+            <div className='card mb-3'>
+              <div className='card-body'>
+                <h5>Status</h5>
+                <div>Aberto em: {status?.caixa?.dt_abertura}</div>
+                <div>Valor inicial: R$ {Number(status?.caixa?.valor_inicial || 0).toFixed(2)}</div>
+                <div>Suprimentos: R$ {Number(status?.totais?.suprimentos || 0).toFixed(2)}</div>
+                <div>Sangrias: R$ {Number(status?.totais?.sangrias || 0).toFixed(2)}</div>
+                <div>
+                  Vendas (dinheiro): R$ {Number(status?.totais?.vendas_dinheiro || 0).toFixed(2)}
+                </div>
+                <div>
+                  <strong>
+                    Esperado em caixa: R$ {Number(status?.totais?.esperado || 0).toFixed(2)}
+                  </strong>
+                </div>
+              </div>
+            </div>
+
+            <div className='card mb-3'>
+              <div className='card-body'>
+                <h5>Movimentação</h5>
+                <div className='row g-2'>
+                  <div className='col-md-3'>
+                    <select
+                      className='form-select'
+                      value={tipoMov}
+                      onChange={(e) => setTipoMov(e.target.value as any)}
+                    >
+                      <option value='SUPRIMENTO'>Suprimento</option>
+                      <option value='SANGRIA'>Sangria</option>
+                    </select>
+                  </div>
+                  <div className='col-md-3'>
+                    <input
+                      className='form-control'
+                      placeholder='Valor'
+                      value={valorMov}
+                      onChange={(e) => setValorMov(e.target.value)}
+                    />
+                  </div>
+                  <div className='col-md-4'>
+                    <input
+                      className='form-control'
+                      placeholder='Descrição'
+                      value={descricaoMov}
+                      onChange={(e) => setDescricaoMov(e.target.value)}
+                    />
+                  </div>
+                  <div className='col-md-2'>
+                    <button className='btn btn-primary w-100' onClick={movimentar}>
+                      Lançar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className='card'>
+              <div className='card-body'>
+                <h5>Fechar caixa</h5>
+                <div className='input-group' style={{ maxWidth: 360 }}>
+                  <span className='input-group-text'>Valor contado</span>
+                  <input
+                    className='form-control'
+                    value={valorReal}
+                    onChange={(e) => setValorReal(e.target.value)}
+                  />
+                  <button className='btn btn-danger' onClick={fecharCaixa}>
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </MainLayout>
   );
 }

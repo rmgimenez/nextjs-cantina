@@ -1,6 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import MainLayout from '../../components/MainLayout';
 
 interface User {
   id: number;
@@ -282,283 +283,300 @@ export default function PDVPage() {
   if (!user) return null;
 
   return (
-    <div className='container py-4'>
-      <h2 className='mb-3 text-primary'>PDV</h2>
-      {/* Status do Caixa */}
-      {statusCaixa && (
-        <div
-          className={`alert ${
-            statusCaixa.aberto ? 'alert-success' : 'alert-warning'
-          } d-flex justify-content-between align-items-center`}
-        >
-          <div>
-            <strong>Caixa: {statusCaixa.aberto ? 'ABERTO' : 'FECHADO'}</strong>
-            {statusCaixa.aberto && (
-              <>
-                {' '}
-                <span className='ms-2'>
-                  Esperado: R$ {Number(statusCaixa?.totais?.esperado || 0).toFixed(2)}
-                </span>
-              </>
-            )}
+    <MainLayout>
+      <div>
+        {/* Status do Caixa */}
+        {statusCaixa && (
+          <div
+            className={`alert ${
+              statusCaixa.aberto ? 'alert-success' : 'alert-warning'
+            } d-flex justify-content-between align-items-center mb-3`}
+          >
+            <div>
+              <strong>Caixa: {statusCaixa.aberto ? 'ABERTO' : 'FECHADO'}</strong>
+              {statusCaixa.aberto && (
+                <>
+                  {' '}
+                  <span className='ms-2'>
+                    Esperado: R$ {Number(statusCaixa?.totais?.esperado || 0).toFixed(2)}
+                  </span>
+                </>
+              )}
+            </div>
+            <a
+              className='btn btn-sm btn-outline-primary'
+              href='/caixa'
+              target='_self'
+              rel='noopener'
+            >
+              Ir para o Caixa
+            </a>
           </div>
-          <a className='btn btn-sm btn-outline-primary' href='/caixa' target='_self' rel='noopener'>
-            Ir para o Caixa
-          </a>
-        </div>
-      )}
-      {msg && <div className='alert alert-info'>{msg}</div>}
-      <div className='row g-3'>
-        <div className='col-12'>
-          <div className='card mb-2'>
-            <div className='card-body d-flex flex-wrap gap-2 align-items-center'>
-              <div className='me-3'>
-                <label className='form-label mb-0 me-2'>Tipo de cliente</label>
-                <select
-                  className='form-select d-inline-block w-auto'
-                  value={tipoCliente}
-                  onChange={(e) => {
-                    const novo = e.target.value as 'ALUNO' | 'FUNCIONARIO' | 'GERAL';
-                    setTipoCliente(novo);
-                    setAluno(null);
-                    setFuncionario(null);
-                    setMsg('');
-                    setFormaPagamento(novo === 'ALUNO' ? 'SALDO' : 'DINHEIRO');
-                  }}
-                >
-                  <option value='ALUNO'>Aluno</option>
-                  <option value='FUNCIONARIO'>Funcionário</option>
-                  <option value='GERAL'>Geral</option>
-                </select>
-              </div>
-              <div>
-                <label className='form-label mb-0 me-2'>Pagamento</label>
-                <select
-                  className='form-select d-inline-block w-auto'
-                  value={formaPagamento}
-                  onChange={(e) => setFormaPagamento(e.target.value as any)}
-                >
-                  {tipoCliente === 'ALUNO' && <option value='SALDO'>Saldo do aluno</option>}
-                  {tipoCliente !== 'ALUNO' && (
-                    <>
-                      <option value='DINHEIRO'>Dinheiro</option>
-                      <option value='CARTAO'>Cartão</option>
-                      {tipoCliente === 'FUNCIONARIO' && (
-                        <option value='CONTA_FUNCIONARIO'>Conta do funcionário</option>
-                      )}
-                    </>
-                  )}
-                </select>
+        )}
+        {msg && <div className='alert alert-info mb-3'>{msg}</div>}
+        <div className='row g-3'>
+          <div className='col-12'>
+            <div className='card mb-2'>
+              <div className='card-body d-flex flex-wrap gap-2 align-items-center'>
+                <div className='me-3'>
+                  <label className='form-label mb-0 me-2'>Tipo de cliente</label>
+                  <select
+                    className='form-select d-inline-block w-auto'
+                    value={tipoCliente}
+                    onChange={(e) => {
+                      const novo = e.target.value as 'ALUNO' | 'FUNCIONARIO' | 'GERAL';
+                      setTipoCliente(novo);
+                      setAluno(null);
+                      setFuncionario(null);
+                      setMsg('');
+                      setFormaPagamento(novo === 'ALUNO' ? 'SALDO' : 'DINHEIRO');
+                    }}
+                  >
+                    <option value='ALUNO'>Aluno</option>
+                    <option value='FUNCIONARIO'>Funcionário</option>
+                    <option value='GERAL'>Geral</option>
+                  </select>
+                </div>
+                <div>
+                  <label className='form-label mb-0 me-2'>Pagamento</label>
+                  <select
+                    className='form-select d-inline-block w-auto'
+                    value={formaPagamento}
+                    onChange={(e) => setFormaPagamento(e.target.value as any)}
+                  >
+                    {tipoCliente === 'ALUNO' && <option value='SALDO'>Saldo do aluno</option>}
+                    {tipoCliente !== 'ALUNO' && (
+                      <>
+                        <option value='DINHEIRO'>Dinheiro</option>
+                        <option value='CARTAO'>Cartão</option>
+                        {tipoCliente === 'FUNCIONARIO' && (
+                          <option value='CONTA_FUNCIONARIO'>Conta do funcionário</option>
+                        )}
+                      </>
+                    )}
+                  </select>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        <div className='col-md-4'>
-          <div className='card'>
-            <div className='card-body'>
-              <h5>Identificação</h5>
-              {tipoCliente === 'ALUNO' && (
-                <>
-                  <div className='input-group mb-2'>
-                    <input
-                      className='form-control'
-                      placeholder='RA do aluno'
-                      value={ra}
-                      onChange={(e) => setRa(e.target.value)}
-                    />
-                    <button className='btn btn-primary' onClick={buscarAluno}>
-                      Buscar
-                    </button>
-                  </div>
-                  <input
-                    className='form-control mb-2'
-                    placeholder='Buscar aluno por nome ou RA'
-                    value={buscaAluno}
-                    onChange={(e) => setBuscaAluno(e.target.value)}
-                  />
-                  {sugestoesAlunos.length > 0 && (
-                    <div className='list-group mb-2' style={{ maxHeight: 150, overflowY: 'auto' }}>
-                      {sugestoesAlunos.map((a) => (
-                        <button
-                          key={a.ra}
-                          className='list-group-item list-group-item-action'
-                          onClick={() => selecionarAluno(a)}
-                        >
-                          {a.nome} (RA {a.ra})
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-              {tipoCliente === 'FUNCIONARIO' && (
-                <>
-                  <input
-                    className='form-control mb-2'
-                    placeholder='Buscar funcionário por nome ou código'
-                    value={buscaFunc}
-                    onChange={(e) => setBuscaFunc(e.target.value)}
-                  />
-                  {sugestoesFunc.length > 0 && (
-                    <div className='list-group mb-2' style={{ maxHeight: 150, overflowY: 'auto' }}>
-                      {sugestoesFunc.map((f) => (
-                        <button
-                          key={f.codigo}
-                          className='list-group-item list-group-item-action'
-                          onClick={() => selecionarFuncionario(f)}
-                        >
-                          {f.nome} (cód. {f.codigo}) {f.cargo ? `- ${f.cargo}` : ''}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-              {aluno && tipoCliente === 'ALUNO' && (
-                <div>
-                  <div>
-                    <strong>{aluno.nome}</strong>
-                  </div>
-                  <div>Saldo: R$ {Number(saldo).toFixed(2)}</div>
-                  <div className='mt-2'>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={`https://sistema.santanna.g12.br/carometr/${aluno.ra}.jpg`}
-                      alt='Foto'
-                      width={120}
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  </div>
-                </div>
-              )}
-              {funcionario && tipoCliente === 'FUNCIONARIO' && (
-                <div>
-                  <div>
-                    <strong>{funcionario.nome}</strong>
-                  </div>
-                  <div>Código: {funcionario.codigo}</div>
-                  {funcionario.cargo && <div>Cargo: {funcionario.cargo}</div>}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className='col-md-4'>
-          <div className='card'>
-            <div className='card-body'>
-              <h5>Produtos</h5>
-              <input
-                className='form-control mb-2'
-                placeholder='Buscar produto por nome ou código de barras'
-                value={busca}
-                onChange={async (e) => {
-                  const val = e.target.value;
-                  setBusca(val);
-                  // Busca dinâmica simples (debounce leve pode ser adicionado)
-                  const q = val.trim();
-                  if (q.length >= 2) {
-                    try {
-                      const r = await fetch(`/api/produtos?q=${encodeURIComponent(q)}&ativo=1`);
-                      const d = await r.json();
-                      if (d?.data) setProdutos(d.data);
-                    } catch {}
-                  } else {
-                    // recarrega lista base
-                    try {
-                      const r = await fetch(`/api/produtos?ativo=1`);
-                      const d = await r.json();
-                      if (d?.data) setProdutos(d.data);
-                    } catch {}
-                  }
-                }}
-              />
-              <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-                {produtos
-                  .filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase()))
-                  .map((p) => (
-                    <div
-                      key={p.id}
-                      className='d-flex justify-content-between align-items-center border-bottom py-1'
-                    >
-                      <div>
-                        <div>{p.nome}</div>
-                        <small className='text-muted'>
-                          {p.tipo_nome} • R$ {Number(p.preco_venda).toFixed(2)}
-                          {p.por_quilo ? ' /kg' : ''}
-                        </small>
-                      </div>
-                      <button className='btn btn-sm btn-outline-primary' onClick={() => addItem(p)}>
-                        Adicionar
+          <div className='col-md-4'>
+            <div className='card'>
+              <div className='card-body'>
+                <h5>Identificação</h5>
+                {tipoCliente === 'ALUNO' && (
+                  <>
+                    <div className='input-group mb-2'>
+                      <input
+                        className='form-control'
+                        placeholder='RA do aluno'
+                        value={ra}
+                        onChange={(e) => setRa(e.target.value)}
+                      />
+                      <button className='btn btn-primary' onClick={buscarAluno}>
+                        Buscar
                       </button>
                     </div>
-                  ))}
+                    <input
+                      className='form-control mb-2'
+                      placeholder='Buscar aluno por nome ou RA'
+                      value={buscaAluno}
+                      onChange={(e) => setBuscaAluno(e.target.value)}
+                    />
+                    {sugestoesAlunos.length > 0 && (
+                      <div
+                        className='list-group mb-2'
+                        style={{ maxHeight: 150, overflowY: 'auto' }}
+                      >
+                        {sugestoesAlunos.map((a) => (
+                          <button
+                            key={a.ra}
+                            className='list-group-item list-group-item-action'
+                            onClick={() => selecionarAluno(a)}
+                          >
+                            {a.nome} (RA {a.ra})
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+                {tipoCliente === 'FUNCIONARIO' && (
+                  <>
+                    <input
+                      className='form-control mb-2'
+                      placeholder='Buscar funcionário por nome ou código'
+                      value={buscaFunc}
+                      onChange={(e) => setBuscaFunc(e.target.value)}
+                    />
+                    {sugestoesFunc.length > 0 && (
+                      <div
+                        className='list-group mb-2'
+                        style={{ maxHeight: 150, overflowY: 'auto' }}
+                      >
+                        {sugestoesFunc.map((f) => (
+                          <button
+                            key={f.codigo}
+                            className='list-group-item list-group-item-action'
+                            onClick={() => selecionarFuncionario(f)}
+                          >
+                            {f.nome} (cód. {f.codigo}) {f.cargo ? `- ${f.cargo}` : ''}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+                {aluno && tipoCliente === 'ALUNO' && (
+                  <div>
+                    <div>
+                      <strong>{aluno.nome}</strong>
+                    </div>
+                    <div>Saldo: R$ {Number(saldo).toFixed(2)}</div>
+                    <div className='mt-2'>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`https://sistema.santanna.g12.br/carometr/${aluno.ra}.jpg`}
+                        alt='Foto'
+                        width={120}
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {funcionario && tipoCliente === 'FUNCIONARIO' && (
+                  <div>
+                    <div>
+                      <strong>{funcionario.nome}</strong>
+                    </div>
+                    <div>Código: {funcionario.codigo}</div>
+                    {funcionario.cargo && <div>Cargo: {funcionario.cargo}</div>}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-        </div>
-        <div className='col-md-4'>
-          <div className='card'>
-            <div className='card-body'>
-              <h5>Carrinho</h5>
-              <div style={{ maxHeight: 260, overflowY: 'auto' }}>
-                {itens.map((i) => {
-                  const p = produtos.find((pr) => pr.id === i.id_produto);
-                  if (!p) return null;
-                  return (
-                    <div key={i.id_produto} className='border-bottom pb-2 mb-2'>
-                      <div className='d-flex justify-content-between'>
-                        <strong>{p.nome}</strong>
+          <div className='col-md-4'>
+            <div className='card'>
+              <div className='card-body'>
+                <h5>Produtos</h5>
+                <input
+                  className='form-control mb-2'
+                  placeholder='Buscar produto por nome ou código de barras'
+                  value={busca}
+                  onChange={async (e) => {
+                    const val = e.target.value;
+                    setBusca(val);
+                    // Busca dinâmica simples (debounce leve pode ser adicionado)
+                    const q = val.trim();
+                    if (q.length >= 2) {
+                      try {
+                        const r = await fetch(`/api/produtos?q=${encodeURIComponent(q)}&ativo=1`);
+                        const d = await r.json();
+                        if (d?.data) setProdutos(d.data);
+                      } catch {}
+                    } else {
+                      // recarrega lista base
+                      try {
+                        const r = await fetch(`/api/produtos?ativo=1`);
+                        const d = await r.json();
+                        if (d?.data) setProdutos(d.data);
+                      } catch {}
+                    }
+                  }}
+                />
+                <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                  {produtos
+                    .filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase()))
+                    .map((p) => (
+                      <div
+                        key={p.id}
+                        className='d-flex justify-content-between align-items-center border-bottom py-1'
+                      >
+                        <div>
+                          <div>{p.nome}</div>
+                          <small className='text-muted'>
+                            {p.tipo_nome} • R$ {Number(p.preco_venda).toFixed(2)}
+                            {p.por_quilo ? ' /kg' : ''}
+                          </small>
+                        </div>
                         <button
-                          className='btn btn-sm btn-link text-danger'
-                          onClick={() => removerItem(i.id_produto)}
+                          className='btn btn-sm btn-outline-primary'
+                          onClick={() => addItem(p)}
                         >
-                          remover
+                          Adicionar
                         </button>
                       </div>
-                      {p.por_quilo ? (
-                        <div className='input-group input-group-sm'>
-                          <span className='input-group-text'>Peso (kg)</span>
-                          <input
-                            className='form-control'
-                            value={i.peso ?? ''}
-                            onChange={(e) => updateItem(i.id_produto, 'peso', e.target.value)}
-                          />
-                        </div>
-                      ) : (
-                        <div className='input-group input-group-sm'>
-                          <span className='input-group-text'>Qtd</span>
-                          <input
-                            className='form-control'
-                            value={i.quantidade ?? 1}
-                            onChange={(e) => updateItem(i.id_produto, 'quantidade', e.target.value)}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                    ))}
+                </div>
               </div>
-              <div className='d-flex justify-content-between align-items-center mt-2'>
-                <strong>Total:</strong>
-                <span>R$ {total.toFixed(2)}</span>
+            </div>
+          </div>
+          <div className='col-md-4'>
+            <div className='card'>
+              <div className='card-body'>
+                <h5>Carrinho</h5>
+                <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+                  {itens.map((i) => {
+                    const p = produtos.find((pr) => pr.id === i.id_produto);
+                    if (!p) return null;
+                    return (
+                      <div key={i.id_produto} className='border-bottom pb-2 mb-2'>
+                        <div className='d-flex justify-content-between'>
+                          <strong>{p.nome}</strong>
+                          <button
+                            className='btn btn-sm btn-link text-danger'
+                            onClick={() => removerItem(i.id_produto)}
+                          >
+                            remover
+                          </button>
+                        </div>
+                        {p.por_quilo ? (
+                          <div className='input-group input-group-sm'>
+                            <span className='input-group-text'>Peso (kg)</span>
+                            <input
+                              className='form-control'
+                              value={i.peso ?? ''}
+                              onChange={(e) => updateItem(i.id_produto, 'peso', e.target.value)}
+                            />
+                          </div>
+                        ) : (
+                          <div className='input-group input-group-sm'>
+                            <span className='input-group-text'>Qtd</span>
+                            <input
+                              className='form-control'
+                              value={i.quantidade ?? 1}
+                              onChange={(e) =>
+                                updateItem(i.id_produto, 'quantidade', e.target.value)
+                              }
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className='d-flex justify-content-between align-items-center mt-2'>
+                  <strong>Total:</strong>
+                  <span>R$ {total.toFixed(2)}</span>
+                </div>
+                <button
+                  className='btn btn-success w-100 mt-2'
+                  onClick={finalizarVenda}
+                  disabled={
+                    (tipoCliente === 'ALUNO' && !aluno) ||
+                    (tipoCliente === 'FUNCIONARIO' && !funcionario) ||
+                    itens.length === 0
+                  }
+                >
+                  Finalizar
+                </button>
               </div>
-              <button
-                className='btn btn-success w-100 mt-2'
-                onClick={finalizarVenda}
-                disabled={
-                  (tipoCliente === 'ALUNO' && !aluno) ||
-                  (tipoCliente === 'FUNCIONARIO' && !funcionario) ||
-                  itens.length === 0
-                }
-              >
-                Finalizar
-              </button>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </MainLayout>
   );
 }

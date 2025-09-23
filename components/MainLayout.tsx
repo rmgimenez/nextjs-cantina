@@ -103,6 +103,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
       permission: [1, 2], // Admin e Operador
     },
     {
+      id: 'caixa',
+      label: 'Caixa',
+      icon: '💰',
+      path: '/caixa',
+      permission: [1, 2], // Admin e Operador
+    },
+    {
       id: 'vendas',
       label: 'Vendas',
       icon: '🛒',
