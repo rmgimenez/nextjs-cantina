@@ -283,7 +283,7 @@ CREATE TABLE `cant_vendas` (
     `id` int NOT NULL AUTO_INCREMENT,
     `ra_aluno` int DEFAULT NULL,
     `codigo_funcionario` int DEFAULT NULL,
-    `tipo_cliente` enum('ALUNO','FUNCIONARIO') NOT NULL,
+    `tipo_cliente` enum('ALUNO','FUNCIONARIO','GERAL') NOT NULL,
     `valor_total` decimal(10,2) NOT NULL,
     `forma_pagamento` enum('SALDO','DINHEIRO','CARTAO','CONTA_FUNCIONARIO') NOT NULL,
     `status` enum('CONCLUIDA','CANCELADA','ESTORNADA') DEFAULT 'CONCLUIDA',

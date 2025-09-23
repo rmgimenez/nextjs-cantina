@@ -5,7 +5,8 @@ import { query } from '../../../lib/db';
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
-    const search = url.searchParams.get('search') || '';
+    // aceitar tanto 'search' quanto 'q' como termo
+    const search = url.searchParams.get('search') || url.searchParams.get('q') || '';
     const idTipo = url.searchParams.get('id_tipo');
     const ativo = url.searchParams.get('ativo');
 
@@ -33,7 +34,12 @@ export async function GET(req: Request) {
     sql += ` ORDER BY p.nome ASC`;
 
     const rows = await query(sql, params);
-    return NextResponse.json({ success: true, data: rows });
+    const parsed = (rows as any[]).map((r) => ({
+      ...r,
+      preco_venda: r.preco_venda != null ? Number(r.preco_venda) : r.preco_venda,
+      por_quilo: r.por_quilo != null ? Number(r.por_quilo) : r.por_quilo,
+    }));
+    return NextResponse.json({ success: true, data: parsed });
   } catch (error) {
     console.error('Erro ao listar produtos:', error);
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
@@ -97,8 +103,14 @@ export async function POST(req: Request) {
        WHERE p.id = LAST_INSERT_ID()`
     );
 
+    const parsedNovo = (novo as any[]).map((r) => ({
+      ...r,
+      preco_venda: r.preco_venda != null ? Number(r.preco_venda) : r.preco_venda,
+      por_quilo: r.por_quilo != null ? Number(r.por_quilo) : r.por_quilo,
+    }));
+
     return NextResponse.json(
-      { success: true, message: 'Produto criado com sucesso', data: novo[0] },
+      { success: true, message: 'Produto criado com sucesso', data: parsedNovo[0] },
       { status: 201 }
     );
   } catch (error) {
