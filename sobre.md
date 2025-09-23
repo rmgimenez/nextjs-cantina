@@ -514,7 +514,7 @@ Os requisitos funcionais deverão ser separados por códigos, exemplo RF-001, RF
 **Regras de Negócio**:
 
 - Buscar aluno por RA
-- Exibir foto do aluno (URL: https://sistema.santanna.g12.br/carometr/$ra.jpg)
+- Exibir foto do aluno (URL: <https://sistema.santanna.g12.br/carometr/$ra.jpg>)
 - Exibir saldo atual e dados básicos do aluno
 - Adicionar produtos ao carrinho de compras
 - Calcular total da venda
@@ -899,7 +899,7 @@ Os requisitos funcionais deverão ser separados por códigos, exemplo RF-001, RF
 
 ## Dependências entre Requisitos
 
-```
+```bash
 RF-007 (Produtos) ─┐
                    ├─→ RF-009 (PDV) ─┐
 RF-004 (Contas)  ──┘                ├─→ RF-010 (Caixa)

@@ -95,3 +95,40 @@ a {
 .shadow-sm {
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
 }
+
+/* ===== Login Page Styles ===== */
+.login-bg {
+  background: radial-gradient(1200px circle at 0% 0%, rgba(37, 50, 135, 0.08), transparent 40%),
+    radial-gradient(1000px circle at 100% 0%, rgba(178, 0, 0, 0.08), transparent 40%),
+    linear-gradient(180deg, #f7f9fc 0%, #ffffff 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .login-bg {
+    background: radial-gradient(1200px circle at 0% 0%, rgba(37, 50, 135, 0.25), transparent 40%),
+      radial-gradient(1000px circle at 100% 0%, rgba(178, 0, 0, 0.2), transparent 40%),
+      linear-gradient(180deg, #0b1026 0%, #0a0a0a 100%);
+  }
+}
+
+.login-card {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.login-card .card-body {
+  position: relative;
+}
+
+.brand-mark {
+  width: 56px;
+  height: 56px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--azul-principal), #1a237e);
+  color: #fff;
+  font-size: 24px;
+  box-shadow: 0 8px 24px rgba(37, 50, 135, 0.25);
+}
