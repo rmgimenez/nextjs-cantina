@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
-import { query } from "../../../lib/db";
+import { NextResponse } from 'next/server';
+import { query } from '../../../lib/db';
 
 interface ContaPagar {
   id: number;
@@ -9,7 +9,7 @@ interface ContaPagar {
   dt_vencimento: string;
   dt_pagamento: string;
   valor_pago: number;
-  status: "PENDENTE" | "PAGO" | "VENCIDO" | "PARCIAL";
+  status: 'PENDENTE' | 'PAGO' | 'VENCIDO' | 'PARCIAL';
   categoria: string;
   numero_documento: string;
   observacoes: string;
@@ -21,11 +21,11 @@ interface ContaPagar {
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
-    const search = url.searchParams.get("search") || "";
-    const status = url.searchParams.get("status");
-    const fornecedor = url.searchParams.get("fornecedor");
-    const dt_inicio = url.searchParams.get("dt_inicio");
-    const dt_fim = url.searchParams.get("dt_fim");
+    const search = url.searchParams.get('search') || '';
+    const status = url.searchParams.get('status');
+    const fornecedor = url.searchParams.get('fornecedor');
+    const dt_inicio = url.searchParams.get('dt_inicio');
+    const dt_fim = url.searchParams.get('dt_fim');
 
     let sql = `
       SELECT cp.*, f.nome as fornecedor_nome, f.razao_social as fornecedor_razao_social,
@@ -67,10 +67,14 @@ export async function GET(req: Request) {
     const rows = await query(sql, params);
 
     // Converter valores numéricos de string para number
-    const processedRows = rows.map((row: any) => ({
+    type Row = Record<string, unknown> & {
+      valor?: string | number | null;
+      valor_pago?: string | number | null;
+    };
+    const processedRows = (rows as Row[]).map((row) => ({
       ...row,
-      valor: row.valor ? parseFloat(row.valor) : 0,
-      valor_pago: row.valor_pago ? parseFloat(row.valor_pago) : 0,
+      valor: Number(row.valor ?? 0),
+      valor_pago: Number(row.valor_pago ?? 0),
     }));
 
     return NextResponse.json({
@@ -78,11 +82,8 @@ export async function GET(req: Request) {
       data: processedRows,
     });
   } catch (error) {
-    console.error("Erro ao listar contas a pagar:", error);
-    return NextResponse.json(
-      { error: "Erro interno do servidor" },
-      { status: 500 }
-    );
+    console.error('Erro ao listar contas a pagar:', error);
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
 }
 
@@ -104,46 +105,36 @@ export async function POST(req: Request) {
     if (!id_fornecedor || !descricao || !valor || !dt_vencimento) {
       return NextResponse.json(
         {
-          error:
-            "Fornecedor, descrição, valor e data de vencimento são obrigatórios",
+          error: 'Fornecedor, descrição, valor e data de vencimento são obrigatórios',
         },
         { status: 400 }
       );
     }
 
     if (valor <= 0) {
-      return NextResponse.json(
-        { error: "Valor deve ser maior que zero" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Valor deve ser maior que zero' }, { status: 400 });
     }
 
     // Validar data de vencimento
     const dataVencimento = new Date(dt_vencimento);
     if (isNaN(dataVencimento.getTime())) {
-      return NextResponse.json(
-        { error: "Data de vencimento inválida" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Data de vencimento inválida' }, { status: 400 });
     }
 
     // Verificar se fornecedor existe e está ativo
     const fornecedorExists = await query(
-      "SELECT id FROM cant_fornecedores WHERE id = ? AND ativo = 1",
+      'SELECT id FROM cant_fornecedores WHERE id = ? AND ativo = 1',
       [id_fornecedor]
     );
 
     if (!fornecedorExists || fornecedorExists.length === 0) {
-      return NextResponse.json(
-        { error: "Fornecedor não encontrado ou inativo" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Fornecedor não encontrado ou inativo' }, { status: 400 });
     }
 
     // Determinar status inicial baseado na data de vencimento
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    const status = dataVencimento < hoje ? "VENCIDO" : "PENDENTE";
+    const status = dataVencimento < hoje ? 'VENCIDO' : 'PENDENTE';
 
     // Inserir conta a pagar
     const result = await query(
@@ -176,16 +167,13 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         success: true,
-        message: "Conta a pagar criada com sucesso",
+        message: 'Conta a pagar criada com sucesso',
         data: newConta[0],
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error("Erro ao criar conta a pagar:", error);
-    return NextResponse.json(
-      { error: "Erro interno do servidor" },
-      { status: 500 }
-    );
+    console.error('Erro ao criar conta a pagar:', error);
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
 }

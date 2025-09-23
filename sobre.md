@@ -454,7 +454,7 @@ Os requisitos funcionais deverão ser separados por códigos, exemplo RF-001, RF
 - Permitir recarga de saldo manualmente
 - Saldo não pode ficar negativo
   **Tabelas Relacionadas**: `alunos`, `cant_contas_alunos`, `cant_movimentacoes_alunos`
-  **Status**: Não iniciado
+  **Status**: ✅ **Concluído**
 
 ### RF-005 - Restrições de Consumo para Alunos
 
@@ -492,7 +492,7 @@ Os requisitos funcionais deverão ser separados por códigos, exemplo RF-001, RF
 - Controlar preço histórico do produto
 - Não permitir exclusão de produtos com movimentação
   **Tabelas Relacionadas**: `cant_produtos`, `cant_tipos_produtos`
-  **Status**: Não iniciado
+  **Status**: ✅ **Concluído**
 
 ### RF-008 - Controle de Estoque
 
@@ -506,7 +506,7 @@ Os requisitos funcionais deverão ser separados por códigos, exemplo RF-001, RF
 - Relatório de produtos com estoque baixo
 - Não permitir venda de produtos sem estoque
   **Tabelas Relacionadas**: `cant_estoque`, `cant_movimentacoes_estoque`
-  **Status**: Não iniciado
+  **Status**: ✅ **Concluído**
 
 ### RF-009 - PDV (Ponto de Venda)
 

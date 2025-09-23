@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
-import { query } from "../../../lib/db";
+import { NextResponse } from 'next/server';
+import { query } from '../../../lib/db';
 
 interface ContaReceber {
   id: number;
-  tipo_cliente: "FUNCIONARIO" | "ALUNO" | "TERCEIRO";
+  tipo_cliente: 'FUNCIONARIO' | 'ALUNO' | 'TERCEIRO';
   codigo_funcionario: number;
   ra_aluno: number;
   nome_terceiro: string;
@@ -12,7 +12,7 @@ interface ContaReceber {
   dt_vencimento: string;
   dt_recebimento: string;
   valor_recebido: number;
-  status: "PENDENTE" | "RECEBIDO" | "VENCIDO" | "PARCIAL";
+  status: 'PENDENTE' | 'RECEBIDO' | 'VENCIDO' | 'PARCIAL';
   categoria: string;
   numero_documento: string;
   observacoes: string;
@@ -24,11 +24,11 @@ interface ContaReceber {
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
-    const search = url.searchParams.get("search") || "";
-    const status = url.searchParams.get("status");
-    const tipo_cliente = url.searchParams.get("tipo_cliente");
-    const dt_inicio = url.searchParams.get("dt_inicio");
-    const dt_fim = url.searchParams.get("dt_fim");
+    const search = url.searchParams.get('search') || '';
+    const status = url.searchParams.get('status');
+    const tipo_cliente = url.searchParams.get('tipo_cliente');
+    const dt_inicio = url.searchParams.get('dt_inicio');
+    const dt_fim = url.searchParams.get('dt_fim');
 
     let sql = `
       SELECT cr.*,
@@ -81,10 +81,14 @@ export async function GET(req: Request) {
     const rows = await query(sql, params);
 
     // Converter valores numéricos de string para number
-    const processedRows = rows.map((row: any) => ({
+    type Row = Record<string, unknown> & {
+      valor?: string | number | null;
+      valor_recebido?: string | number | null;
+    };
+    const processedRows = (rows as Row[]).map((row) => ({
       ...row,
-      valor: row.valor ? parseFloat(row.valor) : 0,
-      valor_recebido: row.valor_recebido ? parseFloat(row.valor_recebido) : 0,
+      valor: Number(row.valor ?? 0),
+      valor_recebido: Number(row.valor_recebido ?? 0),
     }));
 
     return NextResponse.json({
@@ -92,11 +96,8 @@ export async function GET(req: Request) {
       data: processedRows,
     });
   } catch (error) {
-    console.error("Erro ao listar contas a receber:", error);
-    return NextResponse.json(
-      { error: "Erro interno do servidor" },
-      { status: 500 }
-    );
+    console.error('Erro ao listar contas a receber:', error);
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
 }
 
@@ -121,94 +122,77 @@ export async function POST(req: Request) {
     if (!tipo_cliente || !descricao || !valor || !dt_vencimento) {
       return NextResponse.json(
         {
-          error:
-            "Tipo de cliente, descrição, valor e data de vencimento são obrigatórios",
+          error: 'Tipo de cliente, descrição, valor e data de vencimento são obrigatórios',
         },
         { status: 400 }
       );
     }
 
-    if (!["FUNCIONARIO", "ALUNO", "TERCEIRO"].includes(tipo_cliente)) {
+    if (!['FUNCIONARIO', 'ALUNO', 'TERCEIRO'].includes(tipo_cliente)) {
       return NextResponse.json(
-        { error: "Tipo de cliente deve ser FUNCIONARIO, ALUNO ou TERCEIRO" },
+        { error: 'Tipo de cliente deve ser FUNCIONARIO, ALUNO ou TERCEIRO' },
         { status: 400 }
       );
     }
 
     if (valor <= 0) {
-      return NextResponse.json(
-        { error: "Valor deve ser maior que zero" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Valor deve ser maior que zero' }, { status: 400 });
     }
 
     // Validar data de vencimento
     const dataVencimento = new Date(dt_vencimento);
     if (isNaN(dataVencimento.getTime())) {
-      return NextResponse.json(
-        { error: "Data de vencimento inválida" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Data de vencimento inválida' }, { status: 400 });
     }
 
     // Validações específicas por tipo de cliente
-    if (tipo_cliente === "FUNCIONARIO" && !codigo_funcionario) {
+    if (tipo_cliente === 'FUNCIONARIO' && !codigo_funcionario) {
       return NextResponse.json(
         {
-          error:
-            "Código do funcionário é obrigatório para contas de funcionários",
+          error: 'Código do funcionário é obrigatório para contas de funcionários',
         },
         { status: 400 }
       );
     }
 
-    if (tipo_cliente === "ALUNO" && !ra_aluno) {
+    if (tipo_cliente === 'ALUNO' && !ra_aluno) {
       return NextResponse.json(
-        { error: "RA do aluno é obrigatório para contas de alunos" },
+        { error: 'RA do aluno é obrigatório para contas de alunos' },
         { status: 400 }
       );
     }
 
-    if (tipo_cliente === "TERCEIRO" && !nome_terceiro) {
+    if (tipo_cliente === 'TERCEIRO' && !nome_terceiro) {
       return NextResponse.json(
-        { error: "Nome do terceiro é obrigatório para contas de terceiros" },
+        { error: 'Nome do terceiro é obrigatório para contas de terceiros' },
         { status: 400 }
       );
     }
 
     // Verificar se funcionário existe (se aplicável)
-    if (tipo_cliente === "FUNCIONARIO") {
-      const funcionarioExists = await query(
-        "SELECT codigo FROM funcionarios WHERE codigo = ?",
-        [codigo_funcionario]
-      );
+    if (tipo_cliente === 'FUNCIONARIO') {
+      const funcionarioExists = await query('SELECT codigo FROM funcionarios WHERE codigo = ?', [
+        codigo_funcionario,
+      ]);
 
       if (!funcionarioExists || funcionarioExists.length === 0) {
-        return NextResponse.json(
-          { error: "Funcionário não encontrado" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'Funcionário não encontrado' }, { status: 400 });
       }
     }
 
     // Verificar se aluno existe (se aplicável)
-    if (tipo_cliente === "ALUNO") {
-      const alunoExists = await query("SELECT ra FROM alunos WHERE ra = ?", [
-        ra_aluno,
-      ]);
+    if (tipo_cliente === 'ALUNO') {
+      const alunoExists = await query('SELECT ra FROM alunos WHERE ra = ?', [ra_aluno]);
 
       if (!alunoExists || alunoExists.length === 0) {
-        return NextResponse.json(
-          { error: "Aluno não encontrado" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'Aluno não encontrado' }, { status: 400 });
       }
     }
 
     // Determinar status inicial baseado na data de vencimento
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    const status = dataVencimento < hoje ? "VENCIDO" : "PENDENTE";
+    const status = dataVencimento < hoje ? 'VENCIDO' : 'PENDENTE';
 
     // Inserir conta a receber
     const result = await query(
@@ -217,9 +201,9 @@ export async function POST(req: Request) {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
       [
         tipo_cliente,
-        tipo_cliente === "FUNCIONARIO" ? codigo_funcionario : null,
-        tipo_cliente === "ALUNO" ? ra_aluno : null,
-        tipo_cliente === "TERCEIRO" ? nome_terceiro.trim() : null,
+        tipo_cliente === 'FUNCIONARIO' ? codigo_funcionario : null,
+        tipo_cliente === 'ALUNO' ? ra_aluno : null,
+        tipo_cliente === 'TERCEIRO' ? nome_terceiro.trim() : null,
         descricao.trim(),
         valor,
         dt_vencimento,
@@ -250,16 +234,13 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         success: true,
-        message: "Conta a receber criada com sucesso",
+        message: 'Conta a receber criada com sucesso',
         data: newConta[0],
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error("Erro ao criar conta a receber:", error);
-    return NextResponse.json(
-      { error: "Erro interno do servidor" },
-      { status: 500 }
-    );
+    console.error('Erro ao criar conta a receber:', error);
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
 }
