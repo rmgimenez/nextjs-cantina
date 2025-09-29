@@ -31,6 +31,21 @@ interface ItemCarrinho {
   peso?: number;
 }
 
+type FormaPagamento = 'SALDO' | 'DINHEIRO' | 'CARTAO' | 'CONTA_FUNCIONARIO';
+type PrioridadeObs = 'BAIXA' | 'MEDIA' | 'ALTA' | 'CRITICA';
+
+interface ObservacaoAluno {
+  id: number;
+  tipo_observacao: 'MEDICA' | 'ALIMENTAR' | 'COMPORTAMENTAL' | 'GERAL';
+  prioridade: PrioridadeObs;
+  observacao: string;
+  dt_validade_formatada: string | null;
+  expirada: boolean;
+  destaque: boolean;
+  dias_restantes: number | null;
+  ativo: number;
+}
+
 export default function PDVPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -39,6 +54,7 @@ export default function PDVPage() {
   const [ra, setRa] = useState('');
   const [aluno, setAluno] = useState<AlunoConta | null>(null);
   const [saldo, setSaldo] = useState<number>(0);
+  const [observacoes, setObservacoes] = useState<ObservacaoAluno[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [busca, setBusca] = useState('');
   const [itens, setItens] = useState<ItemCarrinho[]>([]);
@@ -56,9 +72,7 @@ export default function PDVPage() {
   const [buscaFunc, setBuscaFunc] = useState('');
   const [sugestoesFunc, setSugestoesFunc] = useState<Funcionario[]>([]);
   const [funcionario, setFuncionario] = useState<Funcionario | null>(null);
-  const [formaPagamento, setFormaPagamento] = useState<
-    'SALDO' | 'DINHEIRO' | 'CARTAO' | 'CONTA_FUNCIONARIO'
-  >('SALDO');
+  const [formaPagamento, setFormaPagamento] = useState<FormaPagamento>('SALDO');
 
   useEffect(() => {
     async function checkAuth() {
@@ -153,6 +167,7 @@ export default function PDVPage() {
   async function buscarAluno() {
     setAluno(null);
     setSaldo(0);
+    setObservacoes([]);
     setMsg('');
     if (!ra) return;
     const res = await fetch(`/api/alunos/contas/${encodeURIComponent(ra)}`);
@@ -160,6 +175,8 @@ export default function PDVPage() {
     if (d?.data) {
       setAluno(d.data);
       setSaldo(Number(d.data.saldo_atual || 0));
+      const raNum = Number(ra);
+      if (!Number.isNaN(raNum)) carregarObservacoesAluno(raNum);
     } else {
       setMsg(d?.error || 'Aluno não encontrado');
     }
@@ -181,6 +198,25 @@ export default function PDVPage() {
     setRa(String(a.ra));
     setSugestoesAlunos([]);
     setBuscaAluno('');
+    carregarObservacoesAluno(a.ra);
+  }
+
+  async function carregarObservacoesAluno(ra: number) {
+    try {
+      const res = await fetch(`/api/alunos/observacoes/${encodeURIComponent(String(ra))}?ativo=1`);
+      if (!res.ok) {
+        setObservacoes([]);
+        return;
+      }
+      const d = await res.json();
+      if (d?.success) {
+        setObservacoes(d.data as ObservacaoAluno[]);
+      } else {
+        setObservacoes([]);
+      }
+    } catch {
+      setObservacoes([]);
+    }
   }
 
   function selecionarFuncionario(f: Funcionario) {
@@ -225,7 +261,17 @@ export default function PDVPage() {
       setMsg('Adicione itens');
       return;
     }
-    let payload: any = {
+    const payload: {
+      tipo_cliente: typeof tipoCliente;
+      forma_pagamento: FormaPagamento;
+      itens: {
+        id_produto: number;
+        quantidade: number;
+        peso?: number;
+      }[];
+      ra_aluno?: number;
+      codigo_funcionario?: number;
+    } = {
       tipo_cliente: tipoCliente,
       forma_pagamento: formaPagamento,
       itens: itens.map((i) => ({
@@ -328,6 +374,7 @@ export default function PDVPage() {
                       setTipoCliente(novo);
                       setAluno(null);
                       setFuncionario(null);
+                      setObservacoes([]);
                       setMsg('');
                       setFormaPagamento(
                         novo === 'ALUNO'
@@ -348,7 +395,7 @@ export default function PDVPage() {
                   <select
                     className='form-select d-inline-block w-auto'
                     value={formaPagamento}
-                    onChange={(e) => setFormaPagamento(e.target.value as any)}
+                    onChange={(e) => setFormaPagamento(e.target.value as FormaPagamento)}
                     disabled={tipoCliente === 'FUNCIONARIO'}
                   >
                     {tipoCliente === 'ALUNO' && <option value='SALDO'>Saldo do aluno</option>}
@@ -449,6 +496,57 @@ export default function PDVPage() {
                           (e.currentTarget as HTMLImageElement).style.display = 'none';
                         }}
                       />
+                    </div>
+                    <div className='mt-3'>
+                      <h6 className='fw-semibold text-primary'>Observações importantes</h6>
+                      {observacoes.length > 0 ? (
+                        <div className='d-flex flex-column gap-2'>
+                          {observacoes.map((obs) => {
+                            const alertClass =
+                              obs.prioridade === 'CRITICA'
+                                ? 'alert-danger'
+                                : obs.prioridade === 'ALTA'
+                                ? 'alert-warning text-dark'
+                                : 'alert-info text-dark';
+                            return (
+                              <div key={obs.id} className={`alert ${alertClass} mb-0 py-2 px-3`}>
+                                <div className='d-flex justify-content-between align-items-start gap-2'>
+                                  <div>
+                                    <div className='fw-semibold'>
+                                      {obs.tipo_observacao} • Prioridade {obs.prioridade}
+                                    </div>
+                                    <div>{obs.observacao}</div>
+                                  </div>
+                                  <span className='badge bg-secondary'>#{obs.id}</span>
+                                </div>
+                                <div className='small mt-1'>
+                                  {obs.dt_validade_formatada ? (
+                                    <>
+                                      Válido até {obs.dt_validade_formatada}
+                                      {obs.expirada && (
+                                        <span className='badge bg-danger ms-1'>Vencida</span>
+                                      )}
+                                      {!obs.expirada && obs.dias_restantes !== null && (
+                                        <span className='badge bg-dark text-white ms-1'>
+                                          {obs.dias_restantes === 0
+                                            ? 'Expira hoje'
+                                            : `${obs.dias_restantes} dia(s)`}
+                                        </span>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <span className='text-muted'>Sem validade definida</span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className='alert alert-light border mb-0 py-2 px-3'>
+                          Nenhuma observação ativa para este aluno.
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

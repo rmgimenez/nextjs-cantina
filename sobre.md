@@ -641,7 +641,7 @@ Os requisitos funcionais deverão ser separados por códigos, exemplo RF-001, RF
 - Permitir múltiplas observações por aluno
 - Alertas visuais para observações importantes
   **Tabelas Relacionadas**: `cant_observacoes_alunos`
-  **Status**: Não iniciado
+  **Status**: ✅ **Concluído** — APIs REST, tela administrativa e alertas no PDV ativos
 
 ### RF-019 - Relatório de Consumo Mensal
 
@@ -862,7 +862,7 @@ Os requisitos funcionais deverão ser separados por códigos, exemplo RF-001, RF
 
 1. **RF-005 - Restrições de Consumo para Alunos** - Segurança e controle médico
 2. **RF-010 - Controle de Caixa** - Gestão financeira essencial
-3. **RF-018 - Observações dos Alunos** - Importante para operação diária
+3. ✅ **RF-018 - Observações dos Alunos** - Entregue (gestão via portal e alertas no PDV)
 4. **RF-003 - Controle de Perfis de Acesso** - Segurança do sistema
 5. **RF-011 - Vendas para Funcionários da Escola** - Funcionalidade diferencial
 
