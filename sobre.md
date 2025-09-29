@@ -849,6 +849,19 @@ Os requisitos funcionais deverão ser separados por códigos, exemplo RF-001, RF
   **Tabelas Relacionadas**: `cant_alertas`, `cant_notificacoes`
   **Status**: Não iniciado
 
+### RF-034 - Importação de Saldo de Alunos
+
+**Descrição**: O sistema deve disponibilizar uma tela para importar, por arquivo CSV, os saldos das contas dos alunos.
+**Regras de Negócio**:
+
+- Aceitar upload de arquivo CSV sem cabeçalho, utilizando `;` como separador e formato `RA_DO_ALUNO;SALDO`, suportando valores monetários com vírgula ou ponto como separador decimal
+- Validar existência do RA na view `alunos`; registros inválidos devem ser exibidos no resumo final com motivo do erro sem interromper a importação dos demais
+- Atualizar o saldo da conta para o valor informado quando o aluno já possuir conta ativa; quando não houver conta, criar automaticamente uma nova com o saldo importado
+- Registrar movimentação de ajuste por aluno com saldo anterior, preservando o valor antes da importação e gerando log de auditoria com usuário, data, nome do arquivo e totais processados
+- Exibir, ao término da importação, relatório com totais importados, quantidade de contas criadas, atualizadas e rejeitadas, além da lista dos alunos afetados mostrando saldo anterior e saldo final
+  **Tabelas Relacionadas**: `cant_contas_alunos`, `cant_movimentacoes_alunos`, `cant_log_acoes`
+  **Status**: Não iniciado
+
 ## Prioridade de Desenvolvimento
 
 ### 🔥 **ALTA PRIORIDADE** - Funcionalidades Críticas (Próximas 2-4 semanas)
