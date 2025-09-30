@@ -68,6 +68,7 @@ export default function HistoricoVendasPage() {
 
   useEffect(() => {
     buscarVendas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, status]);
 
   async function buscarVendas() {

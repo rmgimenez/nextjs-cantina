@@ -35,17 +35,7 @@ interface ContaFuncionario {
   total_em_aberto: number;
   limite_disponivel: number | null;
 }
-interface ConsumoFuncionario {
-  id: number;
-  id_venda: number;
-  valor_original: number;
-  valor_aplicado: number;
-  desconto_aplicado: number;
-  mes_referencia: string;
-  dt_venda: string;
-  pago: number;
-  usuario_nome?: string;
-}
+
 interface ItemCarrinho {
   id_produto: number;
   quantidade?: number;
@@ -72,7 +62,6 @@ export default function PDVPage() {
   const [user, setUser] = useState<User | null>(null);
   const [carregando, setCarregando] = useState(true);
 
-  const [ra, setRa] = useState('');
   const [aluno, setAluno] = useState<AlunoConta | null>(null);
   const [saldo, setSaldo] = useState<number>(0);
   const [observacoes, setObservacoes] = useState<ObservacaoAluno[]>([]);
@@ -95,7 +84,6 @@ export default function PDVPage() {
   const [funcionario, setFuncionario] = useState<Funcionario | null>(null);
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamento>('SALDO');
   const [contaFuncionarioInfo, setContaFuncionarioInfo] = useState<ContaFuncionario | null>(null);
-  const [consumoFuncionario, setConsumoFuncionario] = useState<ConsumoFuncionario[]>([]);
   const [precosCargo, setPrecosCargo] = useState<Record<number, number>>({});
   const [resumoVenda, setResumoVenda] = useState<{
     id_venda: number;
@@ -258,24 +246,6 @@ export default function PDVPage() {
 
   const total = totais.aplicado;
 
-  async function buscarAluno() {
-    setAluno(null);
-    setSaldo(0);
-    setObservacoes([]);
-    setMsg('');
-    if (!ra) return;
-    const res = await fetch(`/api/alunos/contas/${encodeURIComponent(ra)}`);
-    const d = await res.json();
-    if (d?.data) {
-      setAluno(d.data);
-      setSaldo(Number(d.data.saldo_atual || 0));
-      const raNum = Number(ra);
-      if (!Number.isNaN(raNum)) carregarObservacoesAluno(raNum);
-    } else {
-      setMsg(d?.error || 'Aluno não encontrado');
-    }
-  }
-
   async function selecionarAluno(a: AlunoConta) {
     try {
       const res = await fetch(`/api/alunos/contas/${encodeURIComponent(String(a.ra))}`);
@@ -289,7 +259,6 @@ export default function PDVPage() {
     } catch {
       setAluno({ ra: a.ra, nome: a.nome });
     }
-    setRa(String(a.ra));
     setSugestoesAlunos([]);
     setBuscaAluno('');
     carregarObservacoesAluno(a.ra);
@@ -388,14 +357,12 @@ export default function PDVPage() {
         `/api/funcionarios/consumo?codigo_funcionario=${encodeURIComponent(String(codigo))}&limit=5`
       );
       if (res.ok) {
-        const d = await res.json();
-        const dados = (d?.data || []) as ConsumoFuncionario[];
-        setConsumoFuncionario(dados.slice(0, 5));
+        // Consumo carregado com sucesso (não está sendo exibido no momento)
       } else {
-        setConsumoFuncionario([]);
+        // Erro ao carregar consumo
       }
     } catch {
-      setConsumoFuncionario([]);
+      // Erro ao carregar consumo
     }
 
     setCarregandoFuncionario(false);
@@ -443,13 +410,11 @@ export default function PDVPage() {
     setItens([]);
     setAluno(null);
     setFuncionario(null);
-    setRa('');
     setBuscaAluno('');
     setBuscaFunc('');
     setSaldo(0);
     setObservacoes([]);
     setContaFuncionarioInfo(null);
-    setConsumoFuncionario([]);
     setPrecosCargo({});
     setAvisoConta('');
     setResumoVenda(null);
@@ -838,6 +803,7 @@ export default function PDVPage() {
 
               {aluno && tipoCliente === 'ALUNO' && (
                 <div className={styles.clienteInfo}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={`https://sistema.santanna.g12.br/carometr/${aluno.ra}.jpg`}
                     alt={aluno.nome}
@@ -890,6 +856,7 @@ export default function PDVPage() {
 
               {funcionario && tipoCliente === 'FUNCIONARIO' && (
                 <div className={styles.clienteInfo}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={`https://sistema.santanna.g12.br/carometr/f${funcionario.codigo}.jpg`}
                     alt={funcionario.nome}

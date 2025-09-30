@@ -16,17 +16,6 @@ interface VendaHistorico extends RowDataPacket {
   quantidade_itens: number;
 }
 
-interface ItemVenda extends RowDataPacket {
-  id: number;
-  id_produto: number;
-  produto_nome: string;
-  tipo_produto: string;
-  quantidade: number;
-  peso: number | null;
-  preco_unitario: number;
-  valor_total: number;
-}
-
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -42,8 +31,8 @@ export async function GET(req: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Construir a query dinamicamente
-    let whereConditions: string[] = [];
-    let queryParams: any[] = [];
+    const whereConditions: string[] = [];
+    const queryParams: (string | number)[] = [];
 
     if (status) {
       whereConditions.push('v.status = ?');
