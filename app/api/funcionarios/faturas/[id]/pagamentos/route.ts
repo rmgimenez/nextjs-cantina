@@ -1,6 +1,26 @@
+import type { RowDataPacket } from 'mysql2/promise';
 import { NextResponse } from 'next/server';
 import { getUserFromRequest } from '../../../../../../lib/auth';
-import pool, { query } from '../../../../../../lib/db';
+import pool, { QueryRow, query } from '../../../../../../lib/db';
+
+type FaturaResumoRow = QueryRow<{
+  id: number;
+  codigo_funcionario: number | null;
+  valor_total: number | string;
+  status: string;
+  total_pago: number | string;
+}>;
+
+type PagamentoDetalheRow = QueryRow<{
+  id: number;
+  id_fatura: number;
+  valor_pago: number | string;
+  forma_pagamento: string;
+  dt_pagamento: string;
+  observacoes: string | null;
+  usuario: number;
+  usuario_nome: string | null;
+}>;
 
 function parseValor(value: unknown) {
   if (value === null || value === undefined || value === '') return null;
@@ -11,13 +31,13 @@ function parseValor(value: unknown) {
 }
 
 async function carregarResumoFatura(id: number) {
-  const rows = (await query(
+  const rows = await query<FaturaResumoRow[]>(
     `SELECT f.*, COALESCE((SELECT SUM(valor_pago) FROM cant_pagamentos_funcionarios pg WHERE pg.id_fatura = f.id), 0) AS total_pago
      FROM cant_faturas_funcionarios f
      WHERE f.id = ?`,
     [id]
-  )) as any[];
-  return Array.isArray(rows) ? rows[0] : null;
+  );
+  return rows[0] ?? null;
 }
 
 const FORMAS = ['DINHEIRO', 'CARTAO', 'TRANSFERENCIA', 'DESCONTO_FOLHA'];
@@ -52,11 +72,14 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
 
     await conn.beginTransaction();
 
-    const [faturaRows] = await conn.query(
-      `SELECT * FROM cant_faturas_funcionarios WHERE id = ? FOR UPDATE`,
-      [id]
-    );
-    const fatura = Array.isArray(faturaRows) ? (faturaRows as any[])[0] : null;
+    const [faturaRows] = await conn.query<
+      (RowDataPacket & {
+        valor_total: number | string;
+        status: string;
+        codigo_funcionario: number | null;
+      })[]
+    >(`SELECT * FROM cant_faturas_funcionarios WHERE id = ? FOR UPDATE`, [id]);
+    const fatura = faturaRows[0] ?? null;
     if (!fatura) {
       await conn.rollback();
       return NextResponse.json({ error: 'Fatura não encontrada' }, { status: 404 });
@@ -69,15 +92,11 @@ export async function POST(req: Request, context: { params: Promise<{ id: string
       [id, valor_pago, forma_pagamento, observacoes, user.id]
     );
 
-    const [totalPagoRows] = await conn.query(
+    const [totalPagoRows] = await conn.query<(RowDataPacket & { total_pago: number | string })[]>(
       `SELECT COALESCE(SUM(valor_pago), 0) AS total_pago FROM cant_pagamentos_funcionarios WHERE id_fatura = ?`,
       [id]
     );
-    const totalPago = Number(
-      Array.isArray(totalPagoRows)
-        ? (totalPagoRows as { total_pago: number | string }[])[0]?.total_pago ?? 0
-        : 0
-    );
+    const totalPago = Number(totalPagoRows[0]?.total_pago ?? 0);
     const valorFatura = Number(fatura.valor_total);
     const saldoRestante = Number((valorFatura - totalPago).toFixed(2));
 
@@ -148,7 +167,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
       return NextResponse.json({ error: 'Identificador inválido' }, { status: 400 });
     }
 
-    const pagamentos = await query(
+    const pagamentos = await query<PagamentoDetalheRow[]>(
       `SELECT pg.*, u.nome AS usuario_nome
        FROM cant_pagamentos_funcionarios pg
        LEFT JOIN cant_usuarios_cantina u ON u.id = pg.usuario

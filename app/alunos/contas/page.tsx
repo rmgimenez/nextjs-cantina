@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import MainLayout from '../../../components/MainLayout';
 
@@ -50,6 +51,7 @@ export default function ContasAlunosPage() {
   const [busy, setBusy] = useState(false);
   const [sugestoes, setSugestoes] = useState<AlunoBusca[]>([]);
   const [showSugestoes, setShowSugestoes] = useState(false);
+  const [fotoDisponivel, setFotoDisponivel] = useState(true);
   const debounceRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -70,6 +72,10 @@ export default function ContasAlunosPage() {
     }
     checkAuth();
   }, []);
+
+  useEffect(() => {
+    setFotoDisponivel(true);
+  }, [aluno?.ra]);
 
   async function buscarPorRa(raParam: string | number) {
     const raStr = String(raParam).trim();
@@ -261,16 +267,30 @@ export default function ContasAlunosPage() {
               <div className='card border-0 shadow-sm h-100'>
                 <div className='card-body'>
                   <div className='d-flex gap-3 align-items-center'>
-                    <img
-                      src={`https://sistema.santanna.g12.br/carometr/${aluno.ra}.jpg`}
-                      alt='Foto do aluno'
-                      width={72}
-                      height={72}
-                      style={{ borderRadius: 8, objectFit: 'cover', border: '1px solid #eee' }}
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
-                      }}
-                    />
+                    {fotoDisponivel ? (
+                      <Image
+                        src={`https://sistema.santanna.g12.br/carometr/${aluno.ra}.jpg`}
+                        alt='Foto do aluno'
+                        width={72}
+                        height={72}
+                        unoptimized
+                        style={{ borderRadius: 8, objectFit: 'cover', border: '1px solid #eee' }}
+                        onError={() => setFotoDisponivel(false)}
+                      />
+                    ) : (
+                      <div
+                        className='d-flex align-items-center justify-content-center bg-light text-muted'
+                        style={{
+                          width: 72,
+                          height: 72,
+                          borderRadius: 8,
+                          border: '1px solid #eee',
+                          fontSize: 12,
+                        }}
+                      >
+                        Sem foto
+                      </div>
+                    )}
                     <div>
                       <h5 className='mb-1'>{aluno.nome}</h5>
                       <div className='text-muted small'>

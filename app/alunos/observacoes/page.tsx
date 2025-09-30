@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import MainLayout from '../../../components/MainLayout';
 
@@ -78,6 +79,7 @@ export default function ObservacoesAlunosPage() {
   const [filtroAtivo, setFiltroAtivo] = useState<'ativos' | 'inativos' | 'todos'>('ativos');
   const [filtroPrioridade, setFiltroPrioridade] = useState<PrioridadeObs | 'todas'>('todas');
   const [tipoNova, setTipoNova] = useState<TipoObs>('MEDICA');
+  const [fotoDisponivel, setFotoDisponivel] = useState(true);
   const [prioridadeNova, setPrioridadeNova] = useState<PrioridadeObs>('MEDIA');
   const [validadeNova, setValidadeNova] = useState('');
   const [textoNovo, setTextoNovo] = useState('');
@@ -141,6 +143,10 @@ export default function ObservacoesAlunosPage() {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
   }, [termo]);
+
+  useEffect(() => {
+    setFotoDisponivel(true);
+  }, [aluno?.ra]);
 
   async function carregarObservacoes(ra: number) {
     const params = new URLSearchParams();
@@ -364,16 +370,24 @@ export default function ObservacoesAlunosPage() {
               <div className='card border-0 shadow-sm h-100'>
                 <div className='card-body'>
                   <div className='d-flex gap-3 align-items-center'>
-                    <img
-                      src={`https://sistema.santanna.g12.br/carometr/${aluno.ra}.jpg`}
-                      alt='Foto do aluno'
-                      width={72}
-                      height={72}
-                      style={{ borderRadius: 8, objectFit: 'cover', border: '1px solid #eee' }}
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
-                      }}
-                    />
+                    {fotoDisponivel ? (
+                      <Image
+                        src={`https://sistema.santanna.g12.br/carometr/${aluno.ra}.jpg`}
+                        alt='Foto do aluno'
+                        width={72}
+                        height={72}
+                        className='border rounded'
+                        style={{ objectFit: 'cover', borderRadius: 8, border: '1px solid #eee' }}
+                        onError={() => setFotoDisponivel(false)}
+                      />
+                    ) : (
+                      <div
+                        className='d-flex flex-column justify-content-center align-items-center bg-light text-secondary border rounded'
+                        style={{ width: 72, height: 72, borderRadius: 8, border: '1px solid #eee' }}
+                      >
+                        <span className='small text-center px-1'>Sem foto</span>
+                      </div>
+                    )}
                     <div>
                       <h5 className='mb-1'>{aluno.nome}</h5>
                       <div className='text-muted small'>

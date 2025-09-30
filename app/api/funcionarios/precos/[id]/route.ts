@@ -1,6 +1,21 @@
+import type { Pool, PoolConnection } from 'mysql2/promise';
 import { NextResponse } from 'next/server';
 import { getUserFromRequest } from '../../../../../lib/auth';
-import pool from '../../../../../lib/db';
+import pool, { QueryRow } from '../../../../../lib/db';
+
+type PrecoCargoRow = QueryRow<{
+  id: number;
+  cargo: string;
+  id_produto: number;
+  preco_especial: number | string;
+  ativo: number;
+  dt_inicio_vigencia: string | null;
+  dt_fim_vigencia: string | null;
+  produto_nome: string;
+  preco_padrao: number | string;
+}>;
+
+type QueryExecutor = Pool | PoolConnection;
 
 function parseDecimal(value: unknown) {
   if (value === null || value === undefined || value === '') return null;
@@ -10,15 +25,15 @@ function parseDecimal(value: unknown) {
   return Number.isFinite(num) ? Number(num.toFixed(2)) : null;
 }
 
-async function obterPreco(id: number, executor: any = pool) {
-  const [rows] = await executor.query(
+async function obterPreco(id: number, executor: QueryExecutor = pool) {
+  const [rows] = await executor.query<PrecoCargoRow[]>(
     `SELECT pc.*, p.nome AS produto_nome, p.preco_venda AS preco_padrao
      FROM cant_precos_por_cargo pc
      INNER JOIN cant_produtos p ON p.id = pc.id_produto
      WHERE pc.id = ?`,
     [id]
   );
-  return Array.isArray(rows) ? (rows as any[])[0] : null;
+  return rows.length > 0 ? rows[0] : null;
 }
 
 export async function GET(_req: Request, context: { params: { id: string } }) {

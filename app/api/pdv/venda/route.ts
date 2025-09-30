@@ -1,3 +1,4 @@
+import type { ResultSetHeader } from 'mysql2/promise';
 import { NextResponse } from 'next/server';
 import { getUserFromRequest } from '../../../../lib/auth';
 import pool, { query } from '../../../../lib/db';
@@ -374,7 +375,7 @@ export async function POST(req: Request) {
       ]);
     }
 
-    const [resVenda] = await conn.query(
+    const [resVenda] = await conn.query<ResultSetHeader>(
       `INSERT INTO cant_vendas (ra_aluno, codigo_funcionario, tipo_cliente, valor_total, forma_pagamento, status, id_caixa, dt_venda, usuario, observacoes)
          VALUES (?, ?, ?, ?, ?, 'CONCLUIDA', ?, NOW(), ?, ?)`,
       [
@@ -388,7 +389,7 @@ export async function POST(req: Request) {
         observacoes || null,
       ]
     );
-    const idVenda = (resVenda as any).insertId as number;
+    const idVenda = resVenda.insertId;
 
     for (const linha of itensProcessados) {
       const produto = mapProdutos.get(linha.produto.id);

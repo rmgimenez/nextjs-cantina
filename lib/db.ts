@@ -1,18 +1,23 @@
-import mysql from "mysql2/promise";
+import mysql, { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 
 const pool = mysql.createPool({
-  host: process.env.MYSQL_HOST || "localhost",
-  user: process.env.MYSQL_USER || "root",
-  password: process.env.MYSQL_PASSWORD || "",
-  database: process.env.MYSQL_DATABASE || "sant31br",
+  host: process.env.MYSQL_HOST || 'localhost',
+  user: process.env.MYSQL_USER || 'root',
+  password: process.env.MYSQL_PASSWORD || '',
+  database: process.env.MYSQL_DATABASE || 'sant31br',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
 });
 
-export async function query(sql: string, params?: unknown[]) {
-  const [rows] = await pool.query(sql, params);
-  return rows as unknown[];
+export type QueryRow<T> = T & RowDataPacket;
+
+export async function query<T extends RowDataPacket[] | ResultSetHeader = RowDataPacket[]>(
+  sql: string,
+  params?: unknown[]
+): Promise<T> {
+  const [rows] = await pool.query<T>(sql, params);
+  return rows;
 }
 
 export default pool;

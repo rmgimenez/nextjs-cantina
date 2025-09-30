@@ -1,6 +1,52 @@
+import type { RowDataPacket } from 'mysql2/promise';
 import { NextResponse } from 'next/server';
 import { getUserFromRequest } from '../../../../../lib/auth';
-import pool, { query } from '../../../../../lib/db';
+import pool, { QueryRow, query } from '../../../../../lib/db';
+
+type FaturaDetalheRow = QueryRow<{
+  id: number;
+  codigo_funcionario: number;
+  mes_referencia: string;
+  valor_total: number | string;
+  quantidade_itens: number;
+  status: string;
+  dt_vencimento: string;
+  dt_pagamento: Date | string | null;
+  funcionario_nome: string | null;
+  cargo: string | null;
+  total_pago: number | string;
+}>;
+
+type ItemFaturaRow = QueryRow<{
+  id: number;
+  id_venda: number;
+  valor_original: number | string;
+  valor_aplicado: number | string;
+  desconto_aplicado: number | string;
+  mes_referencia: string;
+  pago: number;
+  dt_lancamento: string;
+  dt_venda: string;
+  usuario: number;
+  usuario_nome: string | null;
+}>;
+
+type PagamentoRow = QueryRow<{
+  id: number;
+  valor_pago: number | string;
+  forma_pagamento: string;
+  dt_pagamento: string;
+  usuario: number;
+  usuario_nome: string | null;
+}>;
+
+type FaturaBaseRow = RowDataPacket & {
+  status: string;
+  dt_vencimento: Date | string | null;
+  dt_pagamento: Date | string | null;
+  dt_envio_email: Date | string | null;
+  observacoes: string | null;
+};
 
 function parseDate(value: unknown) {
   if (!value) return null;
@@ -14,18 +60,18 @@ function formatDate(date: Date | null) {
 }
 
 async function carregarFatura(id: number) {
-  const faturas = (await query(
+  const faturas = await query<FaturaDetalheRow[]>(
     `SELECT f.*, func.nome AS funcionario_nome, func.cargo,
             COALESCE((SELECT SUM(valor_pago) FROM cant_pagamentos_funcionarios pg WHERE pg.id_fatura = f.id), 0) AS total_pago
      FROM cant_faturas_funcionarios f
      LEFT JOIN funcionarios func ON func.codigo = f.codigo_funcionario
      WHERE f.id = ?`,
     [id]
-  )) as any[];
-  const fatura = Array.isArray(faturas) ? faturas[0] : null;
+  );
+  const fatura = faturas[0] ?? null;
   if (!fatura) return null;
 
-  const itens = await query(
+  const itens = await query<ItemFaturaRow[]>(
     `SELECT vf.id, vf.id_venda, vf.valor_original, vf.valor_aplicado, vf.desconto_aplicado, vf.mes_referencia,
             vf.pago, vf.dt_lancamento, v.dt_venda, v.usuario, u.nome AS usuario_nome
      FROM cant_vendas_funcionarios vf
@@ -36,7 +82,7 @@ async function carregarFatura(id: number) {
     [id]
   );
 
-  const pagamentos = await query(
+  const pagamentos = await query<PagamentoRow[]>(
     `SELECT pg.*, u.nome AS usuario_nome
      FROM cant_pagamentos_funcionarios pg
      LEFT JOIN cant_usuarios_cantina u ON u.id = pg.usuario
@@ -50,8 +96,16 @@ async function carregarFatura(id: number) {
 
   return {
     ...fatura,
-    itens,
-    pagamentos,
+    itens: itens.map((item) => ({
+      ...item,
+      valor_original: Number(item.valor_original),
+      valor_aplicado: Number(item.valor_aplicado),
+      desconto_aplicado: Number(item.desconto_aplicado),
+    })),
+    pagamentos: pagamentos.map((pgto) => ({
+      ...pgto,
+      valor_pago: Number(pgto.valor_pago),
+    })),
     saldo_aberto: Number((valorTotal - totalPago).toFixed(2)),
   };
 }
@@ -108,11 +162,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
     await conn.beginTransaction();
 
-    const [existentes] = await conn.query(
+    const [existentes] = await conn.query<FaturaBaseRow[]>(
       `SELECT * FROM cant_faturas_funcionarios WHERE id = ? LIMIT 1 FOR UPDATE`,
       [id]
     );
-    const atual = Array.isArray(existentes) ? (existentes as any[])[0] : null;
+    const atual = existentes[0] ?? null;
     if (!atual) {
       await conn.rollback();
       return NextResponse.json({ error: 'Fatura não encontrada' }, { status: 404 });

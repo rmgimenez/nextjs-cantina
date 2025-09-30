@@ -1,5 +1,22 @@
 import { NextResponse } from 'next/server';
-import { query } from '../../../../../../lib/db';
+import { QueryRow, query } from '../../../../../../lib/db';
+
+type RestricaoAlunoRow = QueryRow<{
+  id: number;
+  ra_aluno: number;
+  tipo_restricao: 'PRODUTO' | 'TIPO_PRODUTO';
+  id_produto: number | null;
+  id_tipo_produto: number | null;
+  motivo: string | null;
+  ativo: number;
+  produto_nome: string | null;
+  tipo_produto_nome: string | null;
+}>;
+
+interface AtualizarRestricaoPayload {
+  motivo?: string | null;
+  ativo?: boolean | number | null;
+}
 
 // Helper para validar RA e ID
 function parseIds(params: Promise<{ ra: string; id: string }>) {
@@ -19,7 +36,7 @@ export async function GET(
 ) {
   try {
     const { raNum, idNum } = await parseIds(params);
-    const rows = await query(
+    const rows = await query<RestricaoAlunoRow[]>(
       `SELECT r.*, p.nome AS produto_nome, tp.nome AS tipo_produto_nome
        FROM cant_restricoes_alunos r
        LEFT JOIN cant_produtos p ON r.id_produto = p.id
@@ -32,8 +49,8 @@ export async function GET(
       return NextResponse.json({ error: 'Restrição não encontrada' }, { status: 404 });
     }
     return NextResponse.json({ success: true, data: rows[0] });
-  } catch (error: any) {
-    if (error?.message?.includes('inválido')) {
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('inválido')) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     console.error('Erro ao buscar restrição:', error);
@@ -48,11 +65,11 @@ export async function PUT(
 ) {
   try {
     const { raNum, idNum } = await parseIds(params);
-    const body = await req.json();
-    const { motivo, ativo } = body || {};
+    const body = (await req.json()) as AtualizarRestricaoPayload | null;
+    const { motivo, ativo } = body ?? {};
 
     // Verificar existência
-    const exists = await query(
+    const exists = await query<QueryRow<{ id: number }>[]>(
       'SELECT id FROM cant_restricoes_alunos WHERE id = ? AND ra_aluno = ?',
       [idNum, raNum]
     );
@@ -78,10 +95,10 @@ export async function PUT(
 
     await query(
       `UPDATE cant_restricoes_alunos SET ${sets.join(', ')} WHERE id = ? AND ra_aluno = ?`,
-      args as any[]
+      args
     );
 
-    const updated = await query(
+    const updated = await query<RestricaoAlunoRow[]>(
       `SELECT r.*, p.nome AS produto_nome, tp.nome AS tipo_produto_nome
        FROM cant_restricoes_alunos r
        LEFT JOIN cant_produtos p ON r.id_produto = p.id
@@ -90,8 +107,8 @@ export async function PUT(
       [idNum]
     );
     return NextResponse.json({ success: true, message: 'Restrição atualizada', data: updated[0] });
-  } catch (error: any) {
-    if (error?.message?.includes('inválido')) {
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('inválido')) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     console.error('Erro ao atualizar restrição:', error);
@@ -108,7 +125,7 @@ export async function DELETE(
     const { raNum, idNum } = await parseIds(params);
 
     // Verificar existência
-    const exists = await query(
+    const exists = await query<QueryRow<{ id: number }>[]>(
       'SELECT id FROM cant_restricoes_alunos WHERE id = ? AND ra_aluno = ?',
       [idNum, raNum]
     );
@@ -121,8 +138,8 @@ export async function DELETE(
       raNum,
     ]);
     return NextResponse.json({ success: true, message: 'Restrição desativada' });
-  } catch (error: any) {
-    if (error?.message?.includes('inválido')) {
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('inválido')) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     console.error('Erro ao desativar restrição:', error);

@@ -1,5 +1,43 @@
 import { NextResponse } from 'next/server';
-import { query } from '../../../../../lib/db';
+import { QueryRow, query } from '../../../../../lib/db';
+
+type AlunoResumoRow = QueryRow<{
+  ra: number;
+  nome: string;
+  turma: string | null;
+  serie: string | null;
+  curso_nome: string | null;
+  saldo_atual: number | null;
+  limite_credito: number | null;
+  conta_ativa: number | null;
+}>;
+
+type ConsumoPeriodoRow = QueryRow<{
+  periodo: string;
+  data_inicio: string;
+  data_fim: string;
+  total_vendas: number;
+  quantidade_itens: number;
+  valor_total_periodo: number;
+}>;
+
+type VendaDetalheRow = QueryRow<{
+  id: number;
+  dt_venda: string;
+  valor_total: number;
+  itens_str: string | null;
+}>;
+
+type MovimentacaoFinanceiraRow = QueryRow<{
+  id: number;
+  tipo_movimentacao: 'CREDITO' | 'DEBITO' | 'ESTORNO';
+  valor: number;
+  saldo_anterior: number;
+  saldo_posterior: number;
+  descricao: string;
+  dt_movimentacao: string;
+  id_venda: number | null;
+}>;
 
 interface ConsumoPeriodo {
   periodo: string;
@@ -61,7 +99,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ ra: stri
       WHERE a.ra = ? AND a.status = 'MAT'
     `;
 
-    const alunoRows = await query(alunoQuery, [raNum]);
+    const alunoRows = await query<AlunoResumoRow[]>(alunoQuery, [raNum]);
     if (!alunoRows || alunoRows.length === 0) {
       return NextResponse.json({ error: 'Aluno não encontrado' }, { status: 404 });
     }
@@ -104,12 +142,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ ra: stri
       LIMIT ?
     `;
 
-    const consumoRows = await query(consumoQuery, [raNum, limit]);
+    const consumoRows = await query<ConsumoPeriodoRow[]>(consumoQuery, [raNum, limit]);
 
     // 3. Para cada período, buscar as vendas detalhadas
     const consumoDetalhado: ConsumoPeriodo[] = [];
 
-    for (const periodoRow of consumoRows as any[]) {
+    for (const periodoRow of consumoRows) {
       const vendasQuery = `
         SELECT
           v.id,
@@ -133,13 +171,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ ra: stri
         ORDER BY v.dt_venda DESC
       `;
 
-      const vendasRows = await query(vendasQuery, [
+      const vendasRows = await query<VendaDetalheRow[]>(vendasQuery, [
         raNum,
         periodoRow.data_inicio,
         periodoRow.data_fim,
       ]);
 
-      const vendas = (vendasRows as any[]).map((venda) => ({
+      const vendas = vendasRows.map((venda) => ({
         id: venda.id,
         dt_venda: venda.dt_venda,
         valor_total: Number(venda.valor_total),
@@ -184,9 +222,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ ra: stri
       LIMIT ?
     `;
 
-    const movimentacoesRows = await query(movimentacoesQuery, [raNum, limit * 10]); // Mais movimentações que períodos
+    const movimentacoesRows = await query<MovimentacaoFinanceiraRow[]>(movimentacoesQuery, [
+      raNum,
+      limit * 10,
+    ]); // Mais movimentações que períodos
 
-    const movimentacoes: MovimentacaoFinanceira[] = (movimentacoesRows as any[]).map((mov) => ({
+    const movimentacoes: MovimentacaoFinanceira[] = movimentacoesRows.map((mov) => ({
       id: mov.id,
       tipo_movimentacao: mov.tipo_movimentacao,
       valor: Number(mov.valor),
@@ -194,7 +235,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ ra: stri
       saldo_posterior: Number(mov.saldo_posterior),
       descricao: mov.descricao,
       dt_movimentacao: mov.dt_movimentacao,
-      id_venda: mov.id_venda,
+      id_venda: mov.id_venda ?? undefined,
     }));
 
     return NextResponse.json({

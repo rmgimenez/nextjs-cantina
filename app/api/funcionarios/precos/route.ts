@@ -1,6 +1,23 @@
+import type { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import { NextResponse } from 'next/server';
 import { getUserFromRequest } from '../../../../lib/auth';
-import pool, { query } from '../../../../lib/db';
+import pool, { QueryRow, query } from '../../../../lib/db';
+
+type PrecoCargoRow = QueryRow<{
+  id: number;
+  cargo: string;
+  id_produto: number;
+  preco_especial: number | string;
+  ativo: number;
+  dt_inicio_vigencia: string | null;
+  dt_fim_vigencia: string | null;
+  dt_criacao: string;
+  dt_alteracao: string;
+  produto_nome: string;
+  preco_padrao: number | string;
+}>;
+
+type ProdutoPrecoRow = RowDataPacket & { id: number; preco_venda: number | string };
 
 function parseDecimal(value: unknown) {
   if (value === null || value === undefined || value === '') return null;
@@ -55,8 +72,13 @@ export async function GET(req: Request) {
 
     sql += ` ORDER BY pc.cargo ASC, p.nome ASC`;
 
-    const rows = await query(sql, params);
-    return NextResponse.json({ success: true, data: rows });
+    const rows = await query<PrecoCargoRow[]>(sql, params);
+    const data = rows.map((row) => ({
+      ...row,
+      preco_especial: Number(row.preco_especial),
+      preco_padrao: Number(row.preco_padrao),
+    }));
+    return NextResponse.json({ success: true, data });
   } catch (error) {
     console.error('Erro ao listar preços por cargo:', error);
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
@@ -92,19 +114,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Período de vigência inválido' }, { status: 400 });
     }
 
-    const produtos = await conn.query(`SELECT id, preco_venda FROM cant_produtos WHERE id = ?`, [
-      id_produto,
-    ]);
-    if (!Array.isArray(produtos[0]) || (produtos[0] as any[]).length === 0) {
+    const [produtosRows] = await conn.query<ProdutoPrecoRow[]>(
+      `SELECT id, preco_venda FROM cant_produtos WHERE id = ?`,
+      [id_produto]
+    );
+    if (produtosRows.length === 0) {
       return NextResponse.json({ error: 'Produto não encontrado' }, { status: 404 });
     }
-    const produto = (produtos[0] as { id: number; preco_venda: number }[])[0];
+    const produto = produtosRows[0];
 
-    const existentes = await conn.query(
+    const [existentes] = await conn.query<RowDataPacket[]>(
       `SELECT id FROM cant_precos_por_cargo WHERE cargo = ? AND id_produto = ? LIMIT 1`,
       [cargo, id_produto]
     );
-    if (Array.isArray(existentes[0]) && (existentes[0] as any[]).length > 0) {
+    if (existentes.length > 0) {
       return NextResponse.json(
         { error: 'Já existe preço para este cargo e produto' },
         { status: 409 }
@@ -113,7 +136,7 @@ export async function POST(req: Request) {
 
     await conn.beginTransaction();
 
-    const [insertResult] = await conn.query(
+    const [insertResult] = await conn.query<ResultSetHeader>(
       `INSERT INTO cant_precos_por_cargo
        (cargo, id_produto, preco_especial, ativo, dt_inicio_vigencia, dt_fim_vigencia, dt_criacao, dt_alteracao, criado_por)
        VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW(), ?)`,
@@ -127,7 +150,7 @@ export async function POST(req: Request) {
         user.id,
       ]
     );
-    const idPreco = (insertResult as any).insertId as number;
+    const idPreco = Number(insertResult.insertId);
 
     await conn.query(
       `INSERT INTO cant_precos_por_cargo_historico
@@ -138,7 +161,7 @@ export async function POST(req: Request) {
 
     await conn.commit();
 
-    const [rowsPreco] = await conn.query(
+    const [rowsPreco] = await conn.query<PrecoCargoRow[]>(
       `SELECT pc.*, p.nome AS produto_nome, p.preco_venda AS preco_padrao
        FROM cant_precos_por_cargo pc
        INNER JOIN cant_produtos p ON p.id = pc.id_produto
@@ -148,7 +171,14 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      data: Array.isArray(rowsPreco) ? rowsPreco[0] : null,
+      data:
+        rowsPreco.length > 0
+          ? {
+              ...rowsPreco[0],
+              preco_especial: Number(rowsPreco[0].preco_especial),
+              preco_padrao: Number(rowsPreco[0].preco_padrao),
+            }
+          : null,
     });
   } catch (error) {
     try {
