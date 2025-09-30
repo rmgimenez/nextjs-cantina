@@ -81,6 +81,7 @@ São consumidores que podem marcar na conta da cantina suas compras e depois a c
 - Os funcionários da cantina poderão verificar se o aluno possui pacote de refeição comprada.
 - Os funcionários da cantina poderão verificar o histórico de vendas e consumo dos alunos.
 - As fotos dos alunos deverão ser obtidas através da URL <https://sistema.santanna.g12.br/carometr/$ra.jpg>. O RA do aluno será utilizado para substituir o `$ra` na URL.
+- As fotos dos funcionários deverão ser obtidas através da URL <https://sistema.santanna.g12.br/carometr/$codigo.jpg>. O código do funcionário será utilizado para substituir o `$codigo` na URL.
 - Os produtos deverão possuir um tipo para classificação (ex: salgados, doces, etc).
 - Deverá existir um tipo de refeição que é por quilo.
 - Possibilidade de informar qual será o valor cobrado pelo almoço para cada funcionário da escola. Esse valor varia de acordo com o cargo do funcionário.

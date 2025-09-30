@@ -95,6 +95,10 @@ export default function PDVPage() {
   const [avisoConta, setAvisoConta] = useState('');
   const [carregandoFuncionario, setCarregandoFuncionario] = useState(false);
 
+  // Estados para pacotes de alimentação
+  const [pacotesAluno, setPacotesAluno] = useState<any[]>([]);
+  const [temPacoteValido, setTemPacoteValido] = useState(false);
+
   // Refs para controle de foco e atalhos
   const buscaProdutoRef = useRef<HTMLInputElement>(null);
   const buscaClienteRef = useRef<HTMLInputElement>(null);
@@ -280,6 +284,30 @@ export default function PDVPage() {
     } catch {
       setObservacoes([]);
     }
+    // Carregar pacotes do aluno
+    await carregarPacotesAluno(ra);
+  }
+
+  async function carregarPacotesAluno(ra: number) {
+    try {
+      const res = await fetch(`/api/alunos/pacotes/verificar/${encodeURIComponent(String(ra))}`);
+      if (res.ok) {
+        const d = await res.json();
+        if (d?.success) {
+          setPacotesAluno(d.pacotes || []);
+          setTemPacoteValido(d.temPacoteValido || false);
+        } else {
+          setPacotesAluno([]);
+          setTemPacoteValido(false);
+        }
+      } else {
+        setPacotesAluno([]);
+        setTemPacoteValido(false);
+      }
+    } catch {
+      setPacotesAluno([]);
+      setTemPacoteValido(false);
+    }
   }
 
   async function carregarContaFuncionario(codigo: number, cargo?: string) {
@@ -414,6 +442,8 @@ export default function PDVPage() {
     setBuscaFunc('');
     setSaldo(0);
     setObservacoes([]);
+    setPacotesAluno([]);
+    setTemPacoteValido(false);
     setContaFuncionarioInfo(null);
     setPrecosCargo({});
     setAvisoConta('');
@@ -849,6 +879,56 @@ export default function PDVPage() {
                           </div>
                         );
                       })}
+                    </div>
+                  )}
+
+                  {/* Pacotes de Alimentação */}
+                  {temPacoteValido && pacotesAluno.length > 0 && (
+                    <div className='mt-3 border border-success rounded p-2 bg-light'>
+                      <h6 className='fw-bold text-success mb-2'>
+                        <i className='bi bi-box-seam me-1'></i>
+                        Pacotes Disponíveis
+                      </h6>
+                      {pacotesAluno.map((pacote) => {
+                        const getTipoLabel = (tipo: string) => {
+                          const tipos: Record<string, string> = {
+                            LANCHE_MANHA: 'Lanche Manhã',
+                            ALMOCO: 'Almoço',
+                            LANCHE_TARDE: 'Lanche Tarde',
+                            JANTAR: 'Jantar',
+                            PERSONALIZADO: 'Personalizado',
+                          };
+                          return tipos[tipo] || tipo;
+                        };
+
+                        return (
+                          <div key={pacote.id} className='small mb-2 pb-2 border-bottom'>
+                            <div className='fw-semibold'>{pacote.pacote_nome}</div>
+                            <div className='text-muted'>{getTipoLabel(pacote.tipo_refeicao)}</div>
+                            <div className='d-flex justify-content-between mt-1'>
+                              <span>Restante:</span>
+                              <strong className='text-success'>
+                                {pacote.quantidade_restante} refeições
+                              </strong>
+                            </div>
+                            {pacote.data_fim && (
+                              <div className='text-muted' style={{ fontSize: '0.7rem' }}>
+                                Válido até: {new Date(pacote.data_fim).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      <div className='text-center mt-2'>
+                        <a
+                          href={`/alunos/pacotes/consultar`}
+                          className='btn btn-sm btn-outline-success'
+                          target='_blank'
+                        >
+                          <i className='bi bi-clipboard-check me-1'></i>
+                          Usar Pacote
+                        </a>
+                      </div>
                     </div>
                   )}
                 </div>
