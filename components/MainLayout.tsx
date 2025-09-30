@@ -104,24 +104,24 @@ export default function MainLayout({ children }: MainLayoutProps) {
       permission: [1, 2], // Admin e Operador
     },
     {
-      id: 'caixa',
-      label: 'Caixa',
-      icon: '💰',
-      path: '/caixa',
-      permission: [1, 2], // Admin e Operador
-    },
-    {
-      id: 'vendas',
-      label: 'Vendas',
-      icon: '🛒',
-      path: '/vendas',
+      id: 'operacional',
+      label: 'OPERACIONAL',
+      icon: '⚡',
+      path: '#',
       permission: [1, 2],
       children: [
         {
           id: 'pdv',
-          label: 'PDV',
-          icon: '💰',
+          label: 'PDV - Ponto de Venda',
+          icon: '🛒',
           path: '/vendas/pdv',
+          permission: [1, 2],
+        },
+        {
+          id: 'caixa',
+          label: 'Caixa',
+          icon: '💰',
+          path: '/caixa',
           permission: [1, 2],
         },
         {
@@ -134,56 +134,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
       ],
     },
     {
-      id: 'produtos',
-      label: 'Produtos',
-      icon: '📦',
-      path: '/produtos',
-      permission: [1, 2],
-      children: [
-        {
-          id: 'cadastro-produtos',
-          label: 'Cadastro de Produtos',
-          icon: '➕',
-          path: '/produtos',
-          permission: [1, 2],
-        },
-        {
-          id: 'tipos-produtos',
-          label: 'Tipos de Produtos',
-          icon: '🏷️',
-          path: '/produtos/tipos',
-          permission: [1, 2],
-        },
-      ],
-    },
-    {
-      id: 'estoque',
-      label: 'Estoque',
-      icon: '📦',
-      path: '/estoque',
-      permission: [1, 2],
-      children: [
-        {
-          id: 'controle-estoque',
-          label: 'Controle de Estoque',
-          icon: '📊',
-          path: '/estoque',
-          permission: [1, 2],
-        },
-        {
-          id: 'movimentacoes',
-          label: 'Movimentações',
-          icon: '🔄',
-          path: '/estoque/movimentacoes',
-          permission: [1, 2],
-        },
-      ],
-    },
-    {
       id: 'alunos',
-      label: 'Alunos',
+      label: 'ALUNOS',
       icon: '👨‍🎓',
-      path: '/alunos',
+      path: '#',
       permission: [1, 2],
       children: [
         {
@@ -194,63 +148,114 @@ export default function MainLayout({ children }: MainLayoutProps) {
           permission: [1, 2],
         },
         {
+          id: 'historico-aluno',
+          label: 'Histórico de Consumo',
+          icon: '📊',
+          path: '/alunos/historico',
+          permission: [1, 2],
+        },
+        {
+          id: 'pacotes',
+          label: 'Pacotes de Alimentação',
+          icon: '🍱',
+          path: '/alunos/pacotes',
+          permission: [1, 2],
+        },
+        {
+          id: 'restricoes',
+          label: 'Restrições Alimentares',
+          icon: '🍽️',
+          path: '/alunos/restricoes',
+          permission: [1, 2],
+        },
+        {
+          id: 'observacoes',
+          label: 'Observações',
+          icon: '📝',
+          path: '/alunos/observacoes',
+          permission: [1, 2],
+        },
+        {
           id: 'importar-saldos',
           label: 'Importar Saldos',
           icon: '📥',
           path: '/alunos/importar-saldos',
           permission: [1], // Apenas Admin
         },
+      ],
+    },
+    {
+      id: 'produtos-estoque',
+      label: 'PRODUTOS & ESTOQUE',
+      icon: '📦',
+      path: '#',
+      permission: [1, 2],
+      children: [
         {
-          id: 'historico-aluno',
-          label: 'Histórico do Aluno',
-          icon: '📊',
-          path: '/alunos/historico',
+          id: 'cadastro-produtos',
+          label: 'Cadastro de Produtos',
+          icon: '🏷️',
+          path: '/produtos',
           permission: [1, 2],
         },
         {
-          id: 'restricoes',
-          label: 'Restrições',
-          icon: '🚫',
-          path: '/alunos/restricoes',
-          permission: [1, 2],
-        },
-        {
-          id: 'pacotes',
-          label: 'Pacotes de Alimentação',
+          id: 'tipos-produtos',
+          label: 'Tipos de Produtos',
           icon: '📦',
-          path: '/alunos/pacotes',
+          path: '/produtos/tipos',
+          permission: [1, 2],
+        },
+        {
+          id: 'controle-estoque',
+          label: 'Controle de Estoque',
+          icon: '📦',
+          path: '/estoque',
+          permission: [1, 2],
+        },
+        {
+          id: 'movimentacoes',
+          label: 'Movimentações',
+          icon: '📦',
+          path: '/estoque/movimentacoes',
           permission: [1, 2],
         },
       ],
     },
     {
-      id: 'funcionarios',
-      label: 'Funcionários',
-      icon: '👥',
-      path: '/funcionarios',
+      id: 'funcionarios-escola',
+      label: 'FUNCIONÁRIOS ESCOLA',
+      icon: '👨‍🏫',
+      path: '#',
       permission: [1, 2],
       children: [
         {
-          id: 'funcionarios-cantina',
-          label: 'Funcionários da Cantina',
-          icon: '👨‍💼',
-          path: '/funcionarios-cantina',
-          permission: [1], // Apenas Admin
+          id: 'contas-funcionarios-escola',
+          label: 'Contas de Funcionários',
+          icon: '💼',
+          path: '/financeiro/funcionarios/contas',
+          permission: [1, 2],
         },
         {
-          id: 'funcionarios-escola',
-          label: 'Funcionários da Escola',
-          icon: '👨‍🏫',
-          path: '/funcionarios-escola',
+          id: 'faturas',
+          label: 'Faturas',
+          icon: '📄',
+          path: '/financeiro/faturas',
           permission: [1, 2],
+        },
+        {
+          id: 'precos-cargo',
+          label: 'Preços por Cargo',
+          icon: '💰',
+          path: '/financeiro/funcionarios/precos',
+          permission: [1],
         },
       ],
     },
     {
       id: 'relatorios',
-      label: 'Relatórios',
-      icon: '📊',
-      path: '/relatorios',
+      label: 'RELATÓRIOS',
+      icon: '�',
+      path: '#',
       permission: [1, 2],
       children: [
         {
@@ -263,7 +268,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         {
           id: 'relatorio-consumo',
           label: 'Relatório de Consumo',
-          icon: '📈',
+          icon: '📊',
           path: '/relatorios/consumo',
           permission: [1, 2],
         },
@@ -274,13 +279,20 @@ export default function MainLayout({ children }: MainLayoutProps) {
           path: '/relatorios/estoque',
           permission: [1, 2],
         },
+        {
+          id: 'relatorio-faturas-pdf',
+          label: 'Relatório de Faturas',
+          icon: '📄',
+          path: '/financeiro/relatorios/faturas',
+          permission: [1],
+        },
       ],
     },
     {
       id: 'financeiro',
-      label: 'Financeiro',
+      label: 'FINANCEIRO',
       icon: '💰',
-      path: '/financeiro',
+      path: '#',
       permission: [1], // Apenas Admin
       children: [
         {
@@ -300,7 +312,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         {
           id: 'contas-pagar',
           label: 'Contas a Pagar',
-          icon: '📤',
+          icon: '📄',
           path: '/financeiro/contas-pagar',
           permission: [1],
         },
@@ -312,49 +324,28 @@ export default function MainLayout({ children }: MainLayoutProps) {
           permission: [1],
         },
         {
-          id: 'contas-funcionarios',
-          label: 'Contas de Funcionários',
-          icon: '💳',
-          path: '/financeiro/funcionarios/contas',
-          permission: [1],
-        },
-        {
-          id: 'precos-cargo',
-          label: 'Preços por Cargo',
-          icon: '🏷️',
-          path: '/financeiro/funcionarios/precos',
-          permission: [1],
-        },
-        {
           id: 'relatorios-financeiros',
           label: 'Relatórios Financeiros',
           icon: '📈',
           path: '/financeiro/relatorios',
           permission: [1],
         },
-        {
-          id: 'faturas',
-          label: 'Faturas de Funcionários',
-          icon: '📄',
-          path: '/financeiro/faturas',
-          permission: [1],
-        },
-        {
-          id: 'relatorio-faturas-pdf',
-          label: 'Relatório de Faturas (PDF)',
-          icon: '📑',
-          path: '/financeiro/relatorios/faturas',
-          permission: [1],
-        },
       ],
     },
     {
-      id: 'configuracoes',
-      label: 'Configurações',
+      id: 'administracao',
+      label: 'ADMINISTRAÇÃO',
       icon: '⚙️',
-      path: '/configuracoes',
+      path: '#',
       permission: [1], // Apenas Admin
       children: [
+        {
+          id: 'funcionarios-cantina',
+          label: 'Funcionários da Cantina',
+          icon: '👨‍�',
+          path: '/funcionarios-cantina',
+          permission: [1],
+        },
         {
           id: 'usuarios-sistema',
           label: 'Usuários do Sistema',
@@ -423,29 +414,55 @@ export default function MainLayout({ children }: MainLayoutProps) {
         }}
       >
         {/* Logo e Toggle */}
-        <div className='d-flex align-items-center justify-content-between p-3 border-bottom border-secondary'>
-          <div className={`d-flex align-items-center ${!sidebarOpen && 'justify-content-center'}`}>
+        <div
+          className='d-flex align-items-center justify-content-between p-3 border-bottom border-secondary'
+          style={{ minHeight: '70px' }}
+        >
+          <div
+            className={`d-flex align-items-center ${
+              !sidebarOpen && 'justify-content-center w-100'
+            }`}
+          >
             <div
-              className='bg-primary rounded-circle d-flex align-items-center justify-content-center'
-              style={{ width: '40px', height: '40px', fontSize: '1.2rem' }}
+              className='bg-primary rounded d-flex align-items-center justify-content-center'
+              style={{ width: '45px', height: '45px', fontSize: '1.5rem', flexShrink: 0 }}
             >
               🍽️
             </div>
             {sidebarOpen && (
               <div className='ms-3'>
-                <h6 className='mb-0 text-white'>Cantina Escolar</h6>
-                <small className='text-muted'>Sistema de Controle</small>
+                <h5 className='mb-0 text-white fw-bold'>Cantina Escolar</h5>
+                <small className='text-muted' style={{ fontSize: '0.75rem' }}>
+                  Sistema de Controle
+                </small>
               </div>
             )}
           </div>
-          <button
-            className='btn btn-link text-white p-0'
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            style={{ fontSize: '1.2rem' }}
-          >
-            {sidebarOpen ? '◁' : '▷'}
-          </button>
+          {sidebarOpen && (
+            <button
+              className='btn btn-link text-white p-0'
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              style={{ fontSize: '1.2rem', minWidth: '30px' }}
+              title='Recolher menu'
+            >
+              ◁
+            </button>
+          )}
         </div>
+
+        {/* Toggle button quando fechado */}
+        {!sidebarOpen && (
+          <div className='text-center py-2 border-bottom border-secondary'>
+            <button
+              className='btn btn-link text-white p-0'
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              style={{ fontSize: '1.2rem' }}
+              title='Expandir menu'
+            >
+              ▷
+            </button>
+          </div>
+        )}
 
         {/* Menu Items */}
         <div
@@ -463,15 +480,20 @@ export default function MainLayout({ children }: MainLayoutProps) {
             const hasChildren = item.children && item.children.length > 0;
             const isExpanded = expandedMenus.has(item.id);
 
+            // Separador de seção visual
+            const isSection = item.label.toUpperCase() === item.label && hasChildren;
+
             return (
               <div key={item.id} className='mb-1'>
                 <div
-                  className={`d-flex align-items-center text-decoration-none text-white p-3 rounded mb-1 ${
-                    active ? 'bg-primary' : 'hover-bg-secondary'
+                  className={`d-flex align-items-center text-decoration-none text-white p-3 rounded mb-1 position-relative ${
+                    active && !hasChildren ? 'bg-primary' : 'hover-bg-secondary'
                   }`}
                   style={{
                     transition: 'all 0.2s ease',
-                    cursor: hasChildren ? 'pointer' : 'pointer',
+                    cursor: 'pointer',
+                    marginLeft: '4px',
+                    marginRight: '4px',
                   }}
                   onClick={() => {
                     if (hasChildren) {
@@ -481,17 +503,28 @@ export default function MainLayout({ children }: MainLayoutProps) {
                     }
                   }}
                 >
-                  <span className='me-3' style={{ fontSize: '1.2rem', minWidth: '30px' }}>
+                  <span
+                    className='me-3'
+                    style={{ fontSize: '1.2rem', minWidth: '30px', textAlign: 'center' }}
+                  >
                     {item.icon}
                   </span>
                   {sidebarOpen && (
                     <>
-                      <span className='flex-grow-1'>{item.label}</span>
+                      <span
+                        className='flex-grow-1'
+                        style={{
+                          fontSize: '0.95rem',
+                          fontWeight: isSection ? '600' : '400',
+                        }}
+                      >
+                        {item.label}
+                      </span>
                       {hasChildren && (
                         <span
                           style={{
-                            fontSize: '0.8rem',
-                            transition: 'transform 0.2s ease',
+                            fontSize: '0.7rem',
+                            transition: 'transform 0.25s ease',
                             transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                           }}
                         >
@@ -500,19 +533,33 @@ export default function MainLayout({ children }: MainLayoutProps) {
                       )}
                     </>
                   )}
+                  {!sidebarOpen && hasChildren && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        right: '4px',
+                        top: '4px',
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--amarelo-principal)',
+                      }}
+                    />
+                  )}
                 </div>
 
                 {/* Submenu */}
                 {sidebarOpen && hasChildren && (
                   <div
-                    className='ms-4 mb-2'
+                    className='mb-2'
                     style={{
-                      maxHeight: isExpanded ? '500px' : '0px',
+                      maxHeight: isExpanded ? '1000px' : '0px',
                       overflow: 'hidden',
-                      transition: 'max-height 0.3s ease-in-out',
+                      transition: 'max-height 0.35s ease-in-out',
+                      paddingLeft: '8px',
                     }}
                   >
-                    {item.children!.map((child) => {
+                    {item.children!.map((child, index) => {
                       if (!hasPermission(child)) return null;
 
                       const childActive = isActive(child.path);
@@ -521,21 +568,43 @@ export default function MainLayout({ children }: MainLayoutProps) {
                         <Link
                           key={child.id}
                           href={child.path}
-                          className={`d-flex align-items-center text-decoration-none text-white p-2 rounded mb-1 ${
+                          className={`d-flex align-items-center text-decoration-none text-white p-2 ps-3 rounded mb-1 position-relative ${
                             childActive ? 'bg-primary' : 'hover-bg-secondary'
                           }`}
                           style={{
-                            fontSize: '0.9rem',
-                            marginLeft: '0px',
+                            fontSize: '0.875rem',
+                            marginLeft: '4px',
+                            marginRight: '4px',
                             opacity: isExpanded ? 1 : 0,
                             transform: isExpanded ? 'translateY(0)' : 'translateY(-10px)',
-                            transition: 'all 0.3s ease-in-out',
+                            transition: `all 0.3s ease-in-out ${index * 0.05}s`,
+                            borderLeft: childActive
+                              ? '3px solid var(--amarelo-principal)'
+                              : '3px solid transparent',
                           }}
                         >
-                          <span className='me-3' style={{ fontSize: '1rem', minWidth: '25px' }}>
+                          <span
+                            className='me-2'
+                            style={{
+                              fontSize: '0.9rem',
+                              minWidth: '25px',
+                              textAlign: 'center',
+                              opacity: 0.9,
+                            }}
+                          >
                             {child.icon}
                           </span>
-                          <span>{child.label}</span>
+                          <span style={{ fontWeight: childActive ? '500' : '400' }}>
+                            {child.label}
+                          </span>
+                          {childActive && (
+                            <span
+                              className='ms-auto'
+                              style={{ fontSize: '0.6rem', color: 'var(--amarelo-principal)' }}
+                            >
+                              ●
+                            </span>
+                          )}
                         </Link>
                       );
                     })}
