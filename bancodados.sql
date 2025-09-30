@@ -591,6 +591,28 @@ INSERT INTO `cant_tipos_produtos` (`nome`, `descricao`, `criado_por`) VALUES
 ('REFEICOES', 'Pratos feitos, marmitas, etc.', 1),
 ('LANCHES', 'Sanduíches, hambúrgueres, etc.', 1);
 
+-- inserir produtos básicos com estoque inicial de 10000 unidades
+INSERT INTO `cant_produtos` (`nome`, `id_tipo`, `preco_venda`, `preco_custo`, `ativo`, `criado_por`) VALUES
+('Coxinha', 1, 5.00, 2.00, 1, 1),
+('Brigadeiro', 2, 3.00, 1.00, 1, 1),
+('Refrigerante Lata', 3, 4.00, 2.50, 1, 1),
+('Água Mineral 500ml', 3, 2.00, 1.00, 1, 1),
+('Marmita Simples', 4, 15.00, 8.00, 1, 1),
+('Batata Frita', 5, 7.00, 3.50, 1, 1),
+('X-Salada', 5, 10.00, 5.00, 1, 1),
+('Hambúrguer Simples', 5, 7.00, 3.50, 1, 1);
+
+-- Inserir estoque inicial para os produtos
+INSERT INTO `cant_estoque` (`id_produto`, `quantidade_atual`, `quantidade_minima`, `dt_ultima_movimentacao`, `criado_por`) VALUES
+(1, 10000, 50, NOW(), 1),
+(2, 10000, 50, NOW(), 1),
+(3, 10000, 100, NOW(), 1),
+(4, 10000, 100, NOW(), 1),
+(5, 10000, 20, NOW(), 1),
+(6, 10000, 30, NOW(), 1),
+(7, 10000, 30, NOW(), 1),
+(8, 10000, 30, NOW(), 1);
+
 -- =====================================================
 -- VIEWS AUXILIARES
 -- =====================================================
@@ -756,3 +778,4 @@ CREATE INDEX `idx_cant_contas_funcionario_codigo` ON `cant_contas_funcionarios` 
 -- =====================================================
 -- FIM DO SCRIPT DE CRIAÇÃO DO BANCO DE DADOS
 -- =====================================================
+COMMIT;
