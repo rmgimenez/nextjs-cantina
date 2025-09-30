@@ -126,7 +126,6 @@ export default function PrecosPorCargoPage() {
   useEffect(() => {
     if (!user) return;
     loadProdutos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   useEffect(() => {
@@ -141,7 +140,13 @@ export default function PrecosPorCargoPage() {
       const res = await fetch('/api/produtos?ativo=1');
       const data = await res.json();
       if (res.ok && data.success) {
-        const options = (data.data as any[]).map((produto) => ({
+        const options = (
+          data.data as Array<{
+            id: number;
+            nome: string;
+            preco_venda: number;
+          }>
+        ).map((produto) => ({
           id: Number(produto.id),
           nome: produto.nome as string,
           preco_venda: Number(produto.preco_venda ?? 0),
@@ -168,7 +173,21 @@ export default function PrecosPorCargoPage() {
       const res = await fetch(`/api/funcionarios/precos?${params.toString()}`);
       const data = await res.json();
       if (res.ok && data.success) {
-        const rows = (data.data as any[]).map((row) => ({
+        const rows = (
+          data.data as Array<{
+            id: number;
+            cargo: string;
+            id_produto: number;
+            produto_nome: string;
+            preco_padrao: number;
+            preco_especial: number;
+            ativo: number;
+            dt_inicio_vigencia: string | null;
+            dt_fim_vigencia: string | null;
+            dt_criacao: string;
+            dt_alteracao: string;
+          }>
+        ).map((row) => ({
           id: Number(row.id),
           cargo: row.cargo,
           id_produto: Number(row.id_produto),
@@ -253,7 +272,16 @@ export default function PrecosPorCargoPage() {
       const res = await fetch(`/api/funcionarios/precos/${preco.id}/historico`);
       const data = await res.json();
       if (res.ok && data.success) {
-        const lista = (data.data as any[]).map((item) => ({
+        const lista = (
+          data.data as Array<{
+            id: number;
+            cargo: string;
+            preco_anterior: number;
+            preco_novo: number;
+            dt_alteracao: string;
+            usuario_nome: string | null;
+          }>
+        ).map((item) => ({
           id: Number(item.id),
           cargo: item.cargo,
           preco_anterior: Number(item.preco_anterior ?? 0),

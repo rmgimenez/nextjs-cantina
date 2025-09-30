@@ -69,6 +69,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
     });
 
     setExpandedMenus(newExpandedMenus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   const handleLogout = async () => {

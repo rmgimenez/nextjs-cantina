@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import MainLayout from "../../../components/MainLayout";
+import { useCallback, useEffect, useState } from 'react';
+import MainLayout from '../../../components/MainLayout';
 
 interface User {
   id: number;
@@ -29,28 +29,26 @@ export default function FornecedoresPage() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [editingFornecedor, setEditingFornecedor] = useState<Fornecedor | null>(
-    null
-  );
+  const [editingFornecedor, setEditingFornecedor] = useState<Fornecedor | null>(null);
 
   useEffect(() => {
     async function checkAuth() {
       try {
-        const res = await fetch("/api/auth/me");
+        const res = await fetch('/api/auth/me');
         const data = await res.json();
 
         if (data.authenticated) {
           setUser(data.user);
         } else {
-          window.location.href = "/login";
+          window.location.href = '/login';
           return;
         }
       } catch (error) {
-        console.error("Erro ao verificar autenticação:", error);
-        window.location.href = "/login";
+        console.error('Erro ao verificar autenticação:', error);
+        window.location.href = '/login';
         return;
       } finally {
         setLoading(false);
@@ -60,17 +58,11 @@ export default function FornecedoresPage() {
     checkAuth();
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      loadFornecedores();
-    }
-  }, [user, searchTerm, statusFilter]);
-
-  const loadFornecedores = async () => {
+  const loadFornecedores = useCallback(async () => {
     try {
       const params = new URLSearchParams();
-      if (searchTerm) params.append("search", searchTerm);
-      if (statusFilter) params.append("ativo", statusFilter);
+      if (searchTerm) params.append('search', searchTerm);
+      if (statusFilter) params.append('ativo', statusFilter);
 
       const res = await fetch(`/api/fornecedores?${params}`);
       const data = await res.json();
@@ -78,40 +70,46 @@ export default function FornecedoresPage() {
       if (data.success) {
         setFornecedores(data.data);
       } else {
-        console.error("Erro ao carregar fornecedores:", data.error);
+        console.error('Erro ao carregar fornecedores:', data.error);
       }
     } catch (error) {
-      console.error("Erro ao carregar fornecedores:", error);
+      console.error('Erro ao carregar fornecedores:', error);
     }
-  };
+  }, [searchTerm, statusFilter]);
+
+  useEffect(() => {
+    if (user) {
+      loadFornecedores();
+    }
+  }, [user, loadFornecedores]);
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Tem certeza que deseja desativar este fornecedor?")) {
+    if (!confirm('Tem certeza que deseja desativar este fornecedor?')) {
       return;
     }
 
     try {
       const res = await fetch(`/api/fornecedores/${id}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
 
       const data = await res.json();
 
       if (data.success) {
-        alert("Fornecedor desativado com sucesso!");
+        alert('Fornecedor desativado com sucesso!');
         loadFornecedores();
       } else {
-        alert("Erro: " + data.error);
+        alert('Erro: ' + data.error);
       }
     } catch (error) {
-      console.error("Erro ao desativar fornecedor:", error);
-      alert("Erro interno do servidor");
+      console.error('Erro ao desativar fornecedor:', error);
+      alert('Erro interno do servidor');
     }
   };
 
   const handleToggleStatus = async (id: number, currentStatus: number) => {
     const newStatus = currentStatus ? 0 : 1;
-    const action = newStatus ? "ativar" : "desativar";
+    const action = newStatus ? 'ativar' : 'desativar';
 
     if (!confirm(`Tem certeza que deseja ${action} este fornecedor?`)) {
       return;
@@ -119,9 +117,9 @@ export default function FornecedoresPage() {
 
     try {
       const res = await fetch(`/api/fornecedores/${id}`, {
-        method: "PUT",
+        method: 'PUT',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({ ativo: newStatus }),
       });
@@ -132,19 +130,19 @@ export default function FornecedoresPage() {
         alert(`Fornecedor ${action}do com sucesso!`);
         loadFornecedores();
       } else {
-        alert("Erro: " + data.error);
+        alert('Erro: ' + data.error);
       }
     } catch (error) {
-      console.error("Erro ao alterar status do fornecedor:", error);
-      alert("Erro interno do servidor");
+      console.error('Erro ao alterar status do fornecedor:', error);
+      alert('Erro interno do servidor');
     }
   };
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Carregando...</span>
+      <div className='d-flex justify-content-center align-items-center vh-100'>
+        <div className='spinner-border text-primary' role='status'>
+          <span className='visually-hidden'>Carregando...</span>
         </div>
       </div>
     );
@@ -156,44 +154,41 @@ export default function FornecedoresPage() {
 
   return (
     <MainLayout>
-      <div className="container-fluid">
+      <div className='container-fluid'>
         {/* Header */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className='d-flex justify-content-between align-items-center mb-4'>
           <div>
-            <h1 className="h3 mb-0">Fornecedores</h1>
-            <p className="text-muted">Gerencie os fornecedores da cantina</p>
+            <h1 className='h3 mb-0'>Fornecedores</h1>
+            <p className='text-muted'>Gerencie os fornecedores da cantina</p>
           </div>
         </div>
 
         {/* Filtros e Busca */}
-        <div className="card border-0 shadow-sm mb-4">
-          <div className="card-body">
-            <div className="row g-3">
-              <div className="col-md-6">
+        <div className='card border-0 shadow-sm mb-4'>
+          <div className='card-body'>
+            <div className='row g-3'>
+              <div className='col-md-6'>
                 <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Buscar por nome, CNPJ, CPF ou email..."
+                  type='text'
+                  className='form-control'
+                  placeholder='Buscar por nome, CNPJ, CPF ou email...'
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <div className="col-md-4">
+              <div className='col-md-4'>
                 <select
-                  className="form-select"
+                  className='form-select'
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
-                  <option value="">Todos os status</option>
-                  <option value="1">Ativo</option>
-                  <option value="0">Inativo</option>
+                  <option value=''>Todos os status</option>
+                  <option value='1'>Ativo</option>
+                  <option value='0'>Inativo</option>
                 </select>
               </div>
-              <div className="col-md-2">
-                <button
-                  className="btn btn-primary w-100"
-                  onClick={() => setShowModal(true)}
-                >
+              <div className='col-md-2'>
+                <button className='btn btn-primary w-100' onClick={() => setShowModal(true)}>
                   Novo Fornecedor
                 </button>
               </div>
@@ -202,11 +197,11 @@ export default function FornecedoresPage() {
         </div>
 
         {/* Tabela de Fornecedores */}
-        <div className="card border-0 shadow-sm">
-          <div className="card-body">
-            <div className="table-responsive table-responsive-custom">
-              <table className="table table-hover">
-                <thead className="table-light">
+        <div className='card border-0 shadow-sm'>
+          <div className='card-body'>
+            <div className='table-responsive table-responsive-custom'>
+              <table className='table table-hover'>
+                <thead className='table-light'>
                   <tr>
                     <th>Nome</th>
                     <th>CNPJ/CPF</th>
@@ -221,12 +216,10 @@ export default function FornecedoresPage() {
                 <tbody>
                   {fornecedores.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="text-center py-4">
-                        <div className="empty-state">
-                          <div className="empty-state-icon">🏢</div>
-                          <p className="text-muted">
-                            Nenhum fornecedor encontrado
-                          </p>
+                      <td colSpan={8} className='text-center py-4'>
+                        <div className='empty-state'>
+                          <div className='empty-state-icon'>🏢</div>
+                          <p className='text-muted'>Nenhum fornecedor encontrado</p>
                         </div>
                       </td>
                     </tr>
@@ -235,52 +228,44 @@ export default function FornecedoresPage() {
                       <tr key={fornecedor.id}>
                         <td>
                           <div>
-                            <div className="fw-bold">{fornecedor.nome}</div>
+                            <div className='fw-bold'>{fornecedor.nome}</div>
                             {fornecedor.razao_social && (
-                              <small className="text-muted">
-                                {fornecedor.razao_social}
-                              </small>
+                              <small className='text-muted'>{fornecedor.razao_social}</small>
                             )}
                           </div>
                         </td>
                         <td>
                           {fornecedor.cnpj && (
                             <div>
-                              <small className="text-muted">CNPJ:</small>
+                              <small className='text-muted'>CNPJ:</small>
                               <br />
                               {formatarCNPJ(fornecedor.cnpj)}
                             </div>
                           )}
                           {fornecedor.cpf && (
                             <div>
-                              <small className="text-muted">CPF:</small>
+                              <small className='text-muted'>CPF:</small>
                               <br />
                               {formatarCPF(fornecedor.cpf)}
                             </div>
                           )}
-                          {!fornecedor.cnpj && !fornecedor.cpf && "-"}
+                          {!fornecedor.cnpj && !fornecedor.cpf && '-'}
                         </td>
-                        <td>{fornecedor.contato || "-"}</td>
-                        <td>{fornecedor.email || "-"}</td>
-                        <td>{fornecedor.telefone || "-"}</td>
+                        <td>{fornecedor.contato || '-'}</td>
+                        <td>{fornecedor.email || '-'}</td>
+                        <td>{fornecedor.telefone || '-'}</td>
                         <td>
                           <span
-                            className={`badge ${
-                              fornecedor.ativo ? "bg-success" : "bg-secondary"
-                            }`}
+                            className={`badge ${fornecedor.ativo ? 'bg-success' : 'bg-secondary'}`}
                           >
-                            {fornecedor.ativo ? "Ativo" : "Inativo"}
+                            {fornecedor.ativo ? 'Ativo' : 'Inativo'}
                           </span>
                         </td>
+                        <td>{new Date(fornecedor.dt_criacao).toLocaleDateString('pt-BR')}</td>
                         <td>
-                          {new Date(fornecedor.dt_criacao).toLocaleDateString(
-                            "pt-BR"
-                          )}
-                        </td>
-                        <td>
-                          <div className="btn-group btn-group-sm">
+                          <div className='btn-group btn-group-sm'>
                             <button
-                              className="btn btn-outline-primary"
+                              className='btn btn-outline-primary'
                               onClick={() => {
                                 setEditingFornecedor(fornecedor);
                                 setShowModal(true);
@@ -289,18 +274,13 @@ export default function FornecedoresPage() {
                               Editar
                             </button>
                             <button
-                              className="btn btn-outline-warning"
-                              onClick={() =>
-                                handleToggleStatus(
-                                  fornecedor.id,
-                                  fornecedor.ativo
-                                )
-                              }
+                              className='btn btn-outline-warning'
+                              onClick={() => handleToggleStatus(fornecedor.id, fornecedor.ativo)}
                             >
-                              {fornecedor.ativo ? "Desativar" : "Ativar"}
+                              {fornecedor.ativo ? 'Desativar' : 'Ativar'}
                             </button>
                             <button
-                              className="btn btn-outline-danger"
+                              className='btn btn-outline-danger'
                               onClick={() => handleDelete(fornecedor.id)}
                             >
                               Excluir
@@ -343,21 +323,17 @@ interface FornecedorModalProps {
   onSave: () => void;
 }
 
-function FornecedorModal({
-  fornecedor,
-  onClose,
-  onSave,
-}: FornecedorModalProps) {
+function FornecedorModal({ fornecedor, onClose, onSave }: FornecedorModalProps) {
   const [formData, setFormData] = useState({
-    nome: fornecedor?.nome || "",
-    razao_social: fornecedor?.razao_social || "",
-    cnpj: fornecedor?.cnpj || "",
-    cpf: fornecedor?.cpf || "",
-    endereco: fornecedor?.endereco || "",
-    telefone: fornecedor?.telefone || "",
-    email: fornecedor?.email || "",
-    contato: fornecedor?.contato || "",
-    ativo: fornecedor ? fornecedor.ativo.toString() : "1",
+    nome: fornecedor?.nome || '',
+    razao_social: fornecedor?.razao_social || '',
+    cnpj: fornecedor?.cnpj || '',
+    cpf: fornecedor?.cpf || '',
+    endereco: fornecedor?.endereco || '',
+    telefone: fornecedor?.telefone || '',
+    email: fornecedor?.email || '',
+    contato: fornecedor?.contato || '',
+    ativo: fornecedor ? fornecedor.ativo.toString() : '1',
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -365,21 +341,21 @@ function FornecedorModal({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.nome.trim()) newErrors.nome = "Nome é obrigatório";
+    if (!formData.nome.trim()) newErrors.nome = 'Nome é obrigatório';
 
     // Validar CNPJ se fornecido
     if (formData.cnpj && !validarCNPJ(formData.cnpj)) {
-      newErrors.cnpj = "CNPJ inválido";
+      newErrors.cnpj = 'CNPJ inválido';
     }
 
     // Validar CPF se fornecido
     if (formData.cpf && !validarCPF(formData.cpf)) {
-      newErrors.cpf = "CPF inválido";
+      newErrors.cpf = 'CPF inválido';
     }
 
     // Verificar se pelo menos CNPJ ou CPF foi fornecido
     if (!formData.cnpj && !formData.cpf) {
-      newErrors.documento = "CNPJ ou CPF deve ser informado";
+      newErrors.documento = 'CNPJ ou CPF deve ser informado';
     }
 
     setErrors(newErrors);
@@ -399,15 +375,13 @@ function FornecedorModal({
         ativo: parseInt(formData.ativo),
       };
 
-      const url = fornecedor
-        ? `/api/fornecedores/${fornecedor.id}`
-        : "/api/fornecedores";
-      const method = fornecedor ? "PUT" : "POST";
+      const url = fornecedor ? `/api/fornecedores/${fornecedor.id}` : '/api/fornecedores';
+      const method = fornecedor ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
         method,
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(submitData),
       });
@@ -415,77 +389,54 @@ function FornecedorModal({
       const data = await res.json();
 
       if (data.success) {
-        alert(
-          fornecedor
-            ? "Fornecedor atualizado com sucesso!"
-            : "Fornecedor criado com sucesso!"
-        );
+        alert(fornecedor ? 'Fornecedor atualizado com sucesso!' : 'Fornecedor criado com sucesso!');
         onSave();
       } else {
-        alert("Erro: " + data.error);
+        alert('Erro: ' + data.error);
       }
     } catch (error) {
-      console.error("Erro ao salvar fornecedor:", error);
-      alert("Erro interno do servidor");
+      console.error('Erro ao salvar fornecedor:', error);
+      alert('Erro interno do servidor');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      className="modal show d-block"
-      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-    >
-      <div className="modal-dialog modal-xl">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">
-              {fornecedor ? "Editar Fornecedor" : "Novo Fornecedor"}
-            </h5>
-            <button
-              type="button"
-              className="btn-close"
-              onClick={onClose}
-            ></button>
+    <div className='modal show d-block' style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <div className='modal-dialog modal-xl'>
+        <div className='modal-content'>
+          <div className='modal-header'>
+            <h5 className='modal-title'>{fornecedor ? 'Editar Fornecedor' : 'Novo Fornecedor'}</h5>
+            <button type='button' className='btn-close' onClick={onClose}></button>
           </div>
           <form onSubmit={handleSubmit}>
-            <div className="modal-body">
-              <div className="row g-3">
-                <div className="col-md-6">
-                  <label className="form-label">Nome *</label>
+            <div className='modal-body'>
+              <div className='row g-3'>
+                <div className='col-md-6'>
+                  <label className='form-label'>Nome *</label>
                   <input
-                    type="text"
-                    className={`form-control ${
-                      errors.nome ? "is-invalid" : ""
-                    }`}
+                    type='text'
+                    className={`form-control ${errors.nome ? 'is-invalid' : ''}`}
                     value={formData.nome}
-                    onChange={(e) =>
-                      setFormData({ ...formData, nome: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                   />
-                  {errors.nome && (
-                    <div className="invalid-feedback">{errors.nome}</div>
-                  )}
+                  {errors.nome && <div className='invalid-feedback'>{errors.nome}</div>}
                 </div>
-                <div className="col-md-6">
-                  <label className="form-label">Razão Social</label>
+                <div className='col-md-6'>
+                  <label className='form-label'>Razão Social</label>
                   <input
-                    type="text"
-                    className="form-control"
+                    type='text'
+                    className='form-control'
                     value={formData.razao_social}
-                    onChange={(e) =>
-                      setFormData({ ...formData, razao_social: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, razao_social: e.target.value })}
                   />
                 </div>
-                <div className="col-md-6">
-                  <label className="form-label">CNPJ</label>
+                <div className='col-md-6'>
+                  <label className='form-label'>CNPJ</label>
                   <input
-                    type="text"
-                    className={`form-control ${
-                      errors.cnpj ? "is-invalid" : ""
-                    }`}
+                    type='text'
+                    className={`form-control ${errors.cnpj ? 'is-invalid' : ''}`}
                     value={formData.cnpj}
                     onChange={(e) =>
                       setFormData({
@@ -493,17 +444,15 @@ function FornecedorModal({
                         cnpj: formatarCNPJ(e.target.value),
                       })
                     }
-                    placeholder="00.000.000/0000-00"
+                    placeholder='00.000.000/0000-00'
                   />
-                  {errors.cnpj && (
-                    <div className="invalid-feedback">{errors.cnpj}</div>
-                  )}
+                  {errors.cnpj && <div className='invalid-feedback'>{errors.cnpj}</div>}
                 </div>
-                <div className="col-md-6">
-                  <label className="form-label">CPF</label>
+                <div className='col-md-6'>
+                  <label className='form-label'>CPF</label>
                   <input
-                    type="text"
-                    className={`form-control ${errors.cpf ? "is-invalid" : ""}`}
+                    type='text'
+                    className={`form-control ${errors.cpf ? 'is-invalid' : ''}`}
                     value={formData.cpf}
                     onChange={(e) =>
                       setFormData({
@@ -511,92 +460,70 @@ function FornecedorModal({
                         cpf: formatarCPF(e.target.value),
                       })
                     }
-                    placeholder="000.000.000-00"
+                    placeholder='000.000.000-00'
                   />
-                  {errors.cpf && (
-                    <div className="invalid-feedback">{errors.cpf}</div>
-                  )}
+                  {errors.cpf && <div className='invalid-feedback'>{errors.cpf}</div>}
                 </div>
                 {errors.documento && (
-                  <div className="col-12">
-                    <div className="alert alert-danger py-2">
-                      {errors.documento}
-                    </div>
+                  <div className='col-12'>
+                    <div className='alert alert-danger py-2'>{errors.documento}</div>
                   </div>
                 )}
-                <div className="col-md-6">
-                  <label className="form-label">Contato</label>
+                <div className='col-md-6'>
+                  <label className='form-label'>Contato</label>
                   <input
-                    type="text"
-                    className="form-control"
+                    type='text'
+                    className='form-control'
                     value={formData.contato}
-                    onChange={(e) =>
-                      setFormData({ ...formData, contato: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, contato: e.target.value })}
                   />
                 </div>
-                <div className="col-md-6">
-                  <label className="form-label">Telefone</label>
+                <div className='col-md-6'>
+                  <label className='form-label'>Telefone</label>
                   <input
-                    type="tel"
-                    className="form-control"
+                    type='tel'
+                    className='form-control'
                     value={formData.telefone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, telefone: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
                   />
                 </div>
-                <div className="col-md-8">
-                  <label className="form-label">Email</label>
+                <div className='col-md-8'>
+                  <label className='form-label'>Email</label>
                   <input
-                    type="email"
-                    className="form-control"
+                    type='email'
+                    className='form-control'
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   />
                 </div>
-                <div className="col-md-4">
-                  <label className="form-label">Status</label>
+                <div className='col-md-4'>
+                  <label className='form-label'>Status</label>
                   <select
-                    className="form-select"
+                    className='form-select'
                     value={formData.ativo}
-                    onChange={(e) =>
-                      setFormData({ ...formData, ativo: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, ativo: e.target.value })}
                   >
-                    <option value="1">Ativo</option>
-                    <option value="0">Inativo</option>
+                    <option value='1'>Ativo</option>
+                    <option value='0'>Inativo</option>
                   </select>
                 </div>
-                <div className="col-12">
-                  <label className="form-label">Endereço</label>
+                <div className='col-12'>
+                  <label className='form-label'>Endereço</label>
                   <textarea
-                    className="form-control"
+                    className='form-control'
                     rows={3}
                     value={formData.endereco}
-                    onChange={(e) =>
-                      setFormData({ ...formData, endereco: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
                   />
                 </div>
               </div>
             </div>
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={onClose}
-              >
+            <div className='modal-footer'>
+              <button type='button' className='btn btn-secondary' onClick={onClose}>
                 Cancelar
               </button>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={loading}
-              >
-                {loading ? "Salvando..." : fornecedor ? "Atualizar" : "Criar"}
+              <button type='submit' className='btn btn-primary' disabled={loading}>
+                {loading ? 'Salvando...' : fornecedor ? 'Atualizar' : 'Criar'}
               </button>
             </div>
           </form>
@@ -608,20 +535,17 @@ function FornecedorModal({
 
 // Funções auxiliares para formatação e validação
 function formatarCNPJ(cnpj: string): string {
-  const apenasNumeros = cnpj.replace(/\D/g, "");
-  return apenasNumeros.replace(
-    /(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,
-    "$1.$2.$3/$4-$5"
-  );
+  const apenasNumeros = cnpj.replace(/\D/g, '');
+  return apenasNumeros.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
 }
 
 function formatarCPF(cpf: string): string {
-  const apenasNumeros = cpf.replace(/\D/g, "");
-  return apenasNumeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  const apenasNumeros = cpf.replace(/\D/g, '');
+  return apenasNumeros.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
 }
 
 function validarCNPJ(cnpj: string): boolean {
-  const cnpjLimpo = cnpj.replace(/\D/g, "");
+  const cnpjLimpo = cnpj.replace(/\D/g, '');
 
   if (cnpjLimpo.length !== 14) return false;
 
@@ -654,7 +578,7 @@ function validarCNPJ(cnpj: string): boolean {
 }
 
 function validarCPF(cpf: string): boolean {
-  const cpfLimpo = cpf.replace(/\D/g, "");
+  const cpfLimpo = cpf.replace(/\D/g, '');
 
   if (cpfLimpo.length !== 11) return false;
 

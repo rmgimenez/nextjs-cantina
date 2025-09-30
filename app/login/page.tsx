@@ -32,7 +32,7 @@ export default function LoginPage() {
       }
       // redireciona para home
       router.push('/');
-    } catch (err) {
+    } catch {
       setError('Erro de rede');
     } finally {
       setLoading(false);

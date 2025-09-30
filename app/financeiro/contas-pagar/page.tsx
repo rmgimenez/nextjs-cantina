@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import MainLayout from "../../../components/MainLayout";
+import { useCallback, useEffect, useState } from 'react';
+import MainLayout from '../../../components/MainLayout';
 
 interface User {
   id: number;
@@ -19,7 +19,7 @@ interface ContaPagar {
   dt_vencimento: string;
   dt_pagamento: string;
   valor_pago: number;
-  status: "PENDENTE" | "PAGO" | "VENCIDO" | "PARCIAL";
+  status: 'PENDENTE' | 'PAGO' | 'VENCIDO' | 'PARCIAL';
   categoria: string;
   numero_documento: string;
   observacoes: string;
@@ -38,11 +38,11 @@ export default function ContasPagarPage() {
   const [loading, setLoading] = useState(true);
   const [contas, setContas] = useState<ContaPagar[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [fornecedorFilter, setFornecedorFilter] = useState("");
-  const [dtInicioFilter, setDtInicioFilter] = useState("");
-  const [dtFimFilter, setDtFimFilter] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [fornecedorFilter, setFornecedorFilter] = useState('');
+  const [dtInicioFilter, setDtInicioFilter] = useState('');
+  const [dtFimFilter, setDtFimFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingConta, setEditingConta] = useState<ContaPagar | null>(null);
   const [showPagamentoModal, setShowPagamentoModal] = useState(false);
@@ -51,18 +51,18 @@ export default function ContasPagarPage() {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const res = await fetch("/api/auth/me");
+        const res = await fetch('/api/auth/me');
         const data = await res.json();
 
         if (data.authenticated) {
           setUser(data.user);
         } else {
-          window.location.href = "/login";
+          window.location.href = '/login';
           return;
         }
       } catch (error) {
-        console.error("Erro ao verificar autenticação:", error);
-        window.location.href = "/login";
+        console.error('Erro ao verificar autenticação:', error);
+        window.location.href = '/login';
         return;
       } finally {
         setLoading(false);
@@ -72,28 +72,14 @@ export default function ContasPagarPage() {
     checkAuth();
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      loadContas();
-      loadFornecedores();
-    }
-  }, [
-    user,
-    searchTerm,
-    statusFilter,
-    fornecedorFilter,
-    dtInicioFilter,
-    dtFimFilter,
-  ]);
-
-  const loadContas = async () => {
+  const loadContas = useCallback(async () => {
     try {
       const params = new URLSearchParams();
-      if (searchTerm) params.append("search", searchTerm);
-      if (statusFilter) params.append("status", statusFilter);
-      if (fornecedorFilter) params.append("fornecedor", fornecedorFilter);
-      if (dtInicioFilter) params.append("dt_inicio", dtInicioFilter);
-      if (dtFimFilter) params.append("dt_fim", dtFimFilter);
+      if (searchTerm) params.append('search', searchTerm);
+      if (statusFilter) params.append('status', statusFilter);
+      if (fornecedorFilter) params.append('fornecedor', fornecedorFilter);
+      if (dtInicioFilter) params.append('dt_inicio', dtInicioFilter);
+      if (dtFimFilter) params.append('dt_fim', dtFimFilter);
 
       const res = await fetch(`/api/contas-pagar?${params}`);
       const data = await res.json();
@@ -101,75 +87,82 @@ export default function ContasPagarPage() {
       if (data.success) {
         setContas(data.data);
       } else {
-        console.error("Erro ao carregar contas a pagar:", data.error);
+        console.error('Erro ao carregar contas a pagar:', data.error);
       }
     } catch (error) {
-      console.error("Erro ao carregar contas a pagar:", error);
+      console.error('Erro ao carregar contas a pagar:', error);
     }
-  };
+  }, [searchTerm, statusFilter, fornecedorFilter, dtInicioFilter, dtFimFilter]);
+
+  useEffect(() => {
+    if (user) {
+      loadContas();
+      loadFornecedores();
+    }
+  }, [user, loadContas]);
 
   const loadFornecedores = async () => {
     try {
-      const res = await fetch("/api/fornecedores?ativo=1");
+      const res = await fetch('/api/fornecedores?ativo=1');
       const data = await res.json();
 
       if (data.success) {
         setFornecedores(data.data);
       }
     } catch (error) {
-      console.error("Erro ao carregar fornecedores:", error);
+      console.error('Erro ao carregar fornecedores:', error);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Tem certeza que deseja excluir esta conta a pagar?")) {
+    if (!confirm('Tem certeza que deseja excluir esta conta a pagar?')) {
       return;
     }
 
     try {
       const res = await fetch(`/api/contas-pagar/${id}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
 
       const data = await res.json();
 
       if (data.success) {
-        alert("Conta a pagar excluída com sucesso!");
+        alert('Conta a pagar excluída com sucesso!');
         loadContas();
       } else {
-        alert("Erro: " + data.error);
+        alert('Erro: ' + data.error);
       }
     } catch (error) {
-      console.error("Erro ao excluir conta a pagar:", error);
-      alert("Erro interno do servidor");
+      console.error('Erro ao excluir conta a pagar:', error);
+      alert('Erro interno do servidor');
     }
   };
 
   const getStatusBadge = (status: string) => {
     const badges = {
-      PENDENTE: "bg-warning text-dark",
-      PAGO: "bg-success",
-      VENCIDO: "bg-danger",
-      PARCIAL: "bg-info",
+      PENDENTE: 'bg-warning text-dark',
+      PAGO: 'bg-success',
+      VENCIDO: 'bg-danger',
+      PARCIAL: 'bg-info',
     };
-    return badges[status as keyof typeof badges] || "bg-secondary";
+    return badges[status as keyof typeof badges] || 'bg-secondary';
   };
 
   const getStatusText = (status: string) => {
     const texts = {
-      PENDENTE: "Pendente",
-      PAGO: "Pago",
-      VENCIDO: "Vencido",
-      PARCIAL: "Parcial",
+      PENDENTE: 'Pendente',
+      PAGO: 'Pago',
+      VENCIDO: 'Vencido',
+      PARCIAL: 'Parcial',
     };
     return texts[status as keyof typeof texts] || status;
   };
 
   if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center vh-100">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Carregando...</span>
+      <div className='d-flex justify-content-center align-items-center vh-100'>
+        <div className='spinner-border text-primary' role='status'>
+          <span className='visually-hidden'>Carregando...</span>
         </div>
       </div>
     );
@@ -181,48 +174,48 @@ export default function ContasPagarPage() {
 
   return (
     <MainLayout>
-      <div className="container-fluid">
+      <div className='container-fluid'>
         {/* Header */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className='d-flex justify-content-between align-items-center mb-4'>
           <div>
-            <h1 className="h3 mb-0">Contas a Pagar</h1>
-            <p className="text-muted">Gerencie as contas a pagar da cantina</p>
+            <h1 className='h3 mb-0'>Contas a Pagar</h1>
+            <p className='text-muted'>Gerencie as contas a pagar da cantina</p>
           </div>
         </div>
 
         {/* Filtros e Busca */}
-        <div className="card border-0 shadow-sm mb-4">
-          <div className="card-body">
-            <div className="row g-3">
-              <div className="col-md-3">
+        <div className='card border-0 shadow-sm mb-4'>
+          <div className='card-body'>
+            <div className='row g-3'>
+              <div className='col-md-3'>
                 <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Buscar por descrição ou documento..."
+                  type='text'
+                  className='form-control'
+                  placeholder='Buscar por descrição ou documento...'
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <div className="col-md-2">
+              <div className='col-md-2'>
                 <select
-                  className="form-select"
+                  className='form-select'
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
-                  <option value="">Todos os status</option>
-                  <option value="PENDENTE">Pendente</option>
-                  <option value="PAGO">Pago</option>
-                  <option value="VENCIDO">Vencido</option>
-                  <option value="PARCIAL">Parcial</option>
+                  <option value=''>Todos os status</option>
+                  <option value='PENDENTE'>Pendente</option>
+                  <option value='PAGO'>Pago</option>
+                  <option value='VENCIDO'>Vencido</option>
+                  <option value='PARCIAL'>Parcial</option>
                 </select>
               </div>
-              <div className="col-md-3">
+              <div className='col-md-3'>
                 <select
-                  className="form-select"
+                  className='form-select'
                   value={fornecedorFilter}
                   onChange={(e) => setFornecedorFilter(e.target.value)}
                 >
-                  <option value="">Todos os fornecedores</option>
+                  <option value=''>Todos os fornecedores</option>
                   {fornecedores.map((fornecedor) => (
                     <option key={fornecedor.id} value={fornecedor.id}>
                       {fornecedor.nome}
@@ -230,30 +223,27 @@ export default function ContasPagarPage() {
                   ))}
                 </select>
               </div>
-              <div className="col-md-2">
+              <div className='col-md-2'>
                 <input
-                  type="date"
-                  className="form-control"
-                  placeholder="Data início"
+                  type='date'
+                  className='form-control'
+                  placeholder='Data início'
                   value={dtInicioFilter}
                   onChange={(e) => setDtInicioFilter(e.target.value)}
                 />
               </div>
-              <div className="col-md-2">
-                <button
-                  className="btn btn-primary w-100"
-                  onClick={() => setShowModal(true)}
-                >
+              <div className='col-md-2'>
+                <button className='btn btn-primary w-100' onClick={() => setShowModal(true)}>
                   Nova Conta
                 </button>
               </div>
             </div>
-            <div className="row g-3 mt-2">
-              <div className="col-md-2 offset-md-8">
+            <div className='row g-3 mt-2'>
+              <div className='col-md-2 offset-md-8'>
                 <input
-                  type="date"
-                  className="form-control"
-                  placeholder="Data fim"
+                  type='date'
+                  className='form-control'
+                  placeholder='Data fim'
                   value={dtFimFilter}
                   onChange={(e) => setDtFimFilter(e.target.value)}
                 />
@@ -263,58 +253,55 @@ export default function ContasPagarPage() {
         </div>
 
         {/* Resumo */}
-        <div className="row mb-4">
-          <div className="col-md-3">
-            <div className="card border-0 shadow-sm">
-              <div className="card-body text-center">
-                <h6 className="text-muted">Total Pendente</h6>
-                <h4 className="text-warning mb-0">
-                  R${" "}
+        <div className='row mb-4'>
+          <div className='col-md-3'>
+            <div className='card border-0 shadow-sm'>
+              <div className='card-body text-center'>
+                <h6 className='text-muted'>Total Pendente</h6>
+                <h4 className='text-warning mb-0'>
+                  R${' '}
                   {contas
-                    .filter((c) => c.status === "PENDENTE")
+                    .filter((c) => c.status === 'PENDENTE')
                     .reduce((sum, c) => sum + (Number(c.valor) || 0), 0)
                     .toFixed(2)}
                 </h4>
               </div>
             </div>
           </div>
-          <div className="col-md-3">
-            <div className="card border-0 shadow-sm">
-              <div className="card-body text-center">
-                <h6 className="text-muted">Total Vencido</h6>
-                <h4 className="text-danger mb-0">
-                  R${" "}
+          <div className='col-md-3'>
+            <div className='card border-0 shadow-sm'>
+              <div className='card-body text-center'>
+                <h6 className='text-muted'>Total Vencido</h6>
+                <h4 className='text-danger mb-0'>
+                  R${' '}
                   {contas
-                    .filter((c) => c.status === "VENCIDO")
+                    .filter((c) => c.status === 'VENCIDO')
                     .reduce((sum, c) => sum + (Number(c.valor) || 0), 0)
                     .toFixed(2)}
                 </h4>
               </div>
             </div>
           </div>
-          <div className="col-md-3">
-            <div className="card border-0 shadow-sm">
-              <div className="card-body text-center">
-                <h6 className="text-muted">Total Pago</h6>
-                <h4 className="text-success mb-0">
-                  R${" "}
+          <div className='col-md-3'>
+            <div className='card border-0 shadow-sm'>
+              <div className='card-body text-center'>
+                <h6 className='text-muted'>Total Pago</h6>
+                <h4 className='text-success mb-0'>
+                  R${' '}
                   {contas
-                    .filter((c) => c.status === "PAGO")
+                    .filter((c) => c.status === 'PAGO')
                     .reduce((sum, c) => sum + (Number(c.valor) || 0), 0)
                     .toFixed(2)}
                 </h4>
               </div>
             </div>
           </div>
-          <div className="col-md-3">
-            <div className="card border-0 shadow-sm">
-              <div className="card-body text-center">
-                <h6 className="text-muted">Total Geral</h6>
-                <h4 className="text-primary mb-0">
-                  R${" "}
-                  {contas
-                    .reduce((sum, c) => sum + (Number(c.valor) || 0), 0)
-                    .toFixed(2)}
+          <div className='col-md-3'>
+            <div className='card border-0 shadow-sm'>
+              <div className='card-body text-center'>
+                <h6 className='text-muted'>Total Geral</h6>
+                <h4 className='text-primary mb-0'>
+                  R$ {contas.reduce((sum, c) => sum + (Number(c.valor) || 0), 0).toFixed(2)}
                 </h4>
               </div>
             </div>
@@ -322,11 +309,11 @@ export default function ContasPagarPage() {
         </div>
 
         {/* Tabela de Contas a Pagar */}
-        <div className="card border-0 shadow-sm">
-          <div className="card-body">
-            <div className="table-responsive table-responsive-custom">
-              <table className="table table-hover">
-                <thead className="table-light">
+        <div className='card border-0 shadow-sm'>
+          <div className='card-body'>
+            <div className='table-responsive table-responsive-custom'>
+              <table className='table table-hover'>
+                <thead className='table-light'>
                   <tr>
                     <th>Fornecedor</th>
                     <th>Descrição</th>
@@ -341,12 +328,10 @@ export default function ContasPagarPage() {
                 <tbody>
                   {contas.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="text-center py-4">
-                        <div className="empty-state">
-                          <div className="empty-state-icon">💰</div>
-                          <p className="text-muted">
-                            Nenhuma conta a pagar encontrada
-                          </p>
+                      <td colSpan={8} className='text-center py-4'>
+                        <div className='empty-state'>
+                          <div className='empty-state-icon'>💰</div>
+                          <p className='text-muted'>Nenhuma conta a pagar encontrada</p>
                         </div>
                       </td>
                     </tr>
@@ -355,50 +340,38 @@ export default function ContasPagarPage() {
                       <tr key={conta.id}>
                         <td>
                           <div>
-                            <div className="fw-bold">
-                              {conta.fornecedor_nome}
-                            </div>
+                            <div className='fw-bold'>{conta.fornecedor_nome}</div>
                             {conta.fornecedor_razao_social && (
-                              <small className="text-muted">
-                                {conta.fornecedor_razao_social}
-                              </small>
+                              <small className='text-muted'>{conta.fornecedor_razao_social}</small>
                             )}
                           </div>
                         </td>
                         <td>{conta.descricao}</td>
-                        <td className="fw-bold">
-                          R$ {(Number(conta.valor) || 0).toFixed(2)}
-                        </td>
+                        <td className='fw-bold'>R$ {(Number(conta.valor) || 0).toFixed(2)}</td>
+                        <td>{new Date(conta.dt_vencimento).toLocaleDateString('pt-BR')}</td>
                         <td>
-                          {new Date(conta.dt_vencimento).toLocaleDateString(
-                            "pt-BR"
-                          )}
-                        </td>
-                        <td>
-                          <span
-                            className={`badge ${getStatusBadge(conta.status)}`}
-                          >
+                          <span className={`badge ${getStatusBadge(conta.status)}`}>
                             {getStatusText(conta.status)}
                           </span>
                         </td>
-                        <td>{conta.categoria || "-"}</td>
-                        <td>{conta.numero_documento || "-"}</td>
+                        <td>{conta.categoria || '-'}</td>
+                        <td>{conta.numero_documento || '-'}</td>
                         <td>
-                          <div className="btn-group btn-group-sm">
-                            {conta.status !== "PAGO" && (
+                          <div className='btn-group btn-group-sm'>
+                            {conta.status !== 'PAGO' && (
                               <button
-                                className="btn btn-outline-success"
+                                className='btn btn-outline-success'
                                 onClick={() => {
                                   setPagamentoConta(conta);
                                   setShowPagamentoModal(true);
                                 }}
-                                title="Registrar Pagamento"
+                                title='Registrar Pagamento'
                               >
                                 Pagar
                               </button>
                             )}
                             <button
-                              className="btn btn-outline-primary"
+                              className='btn btn-outline-primary'
                               onClick={() => {
                                 setEditingConta(conta);
                                 setShowModal(true);
@@ -407,7 +380,7 @@ export default function ContasPagarPage() {
                               Editar
                             </button>
                             <button
-                              className="btn btn-outline-danger"
+                              className='btn btn-outline-danger'
                               onClick={() => handleDelete(conta.id)}
                             >
                               Excluir
@@ -468,20 +441,15 @@ interface ContaPagarModalProps {
   onSave: () => void;
 }
 
-function ContaPagarModal({
-  conta,
-  fornecedores,
-  onClose,
-  onSave,
-}: ContaPagarModalProps) {
+function ContaPagarModal({ conta, fornecedores, onClose, onSave }: ContaPagarModalProps) {
   const [formData, setFormData] = useState({
-    id_fornecedor: conta?.id_fornecedor.toString() || "",
-    descricao: conta?.descricao || "",
-    valor: conta?.valor.toString() || "",
-    dt_vencimento: conta ? conta.dt_vencimento.split("T")[0] : "",
-    categoria: conta?.categoria || "",
-    numero_documento: conta?.numero_documento || "",
-    observacoes: conta?.observacoes || "",
+    id_fornecedor: conta?.id_fornecedor.toString() || '',
+    descricao: conta?.descricao || '',
+    valor: conta?.valor.toString() || '',
+    dt_vencimento: conta ? conta.dt_vencimento.split('T')[0] : '',
+    categoria: conta?.categoria || '',
+    numero_documento: conta?.numero_documento || '',
+    observacoes: conta?.observacoes || '',
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -489,14 +457,11 @@ function ContaPagarModal({
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.id_fornecedor)
-      newErrors.id_fornecedor = "Fornecedor é obrigatório";
-    if (!formData.descricao.trim())
-      newErrors.descricao = "Descrição é obrigatória";
+    if (!formData.id_fornecedor) newErrors.id_fornecedor = 'Fornecedor é obrigatório';
+    if (!formData.descricao.trim()) newErrors.descricao = 'Descrição é obrigatória';
     if (!formData.valor || parseFloat(formData.valor) <= 0)
-      newErrors.valor = "Valor deve ser maior que zero";
-    if (!formData.dt_vencimento)
-      newErrors.dt_vencimento = "Data de vencimento é obrigatória";
+      newErrors.valor = 'Valor deve ser maior que zero';
+    if (!formData.dt_vencimento) newErrors.dt_vencimento = 'Data de vencimento é obrigatória';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -515,13 +480,13 @@ function ContaPagarModal({
         valor: parseFloat(formData.valor),
       };
 
-      const url = conta ? `/api/contas-pagar/${conta.id}` : "/api/contas-pagar";
-      const method = conta ? "PUT" : "POST";
+      const url = conta ? `/api/contas-pagar/${conta.id}` : '/api/contas-pagar';
+      const method = conta ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
         method,
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(submitData),
       });
@@ -530,48 +495,35 @@ function ContaPagarModal({
 
       if (data.success) {
         alert(
-          conta
-            ? "Conta a pagar atualizada com sucesso!"
-            : "Conta a pagar criada com sucesso!"
+          conta ? 'Conta a pagar atualizada com sucesso!' : 'Conta a pagar criada com sucesso!'
         );
         onSave();
       } else {
-        alert("Erro: " + data.error);
+        alert('Erro: ' + data.error);
       }
     } catch (error) {
-      console.error("Erro ao salvar conta a pagar:", error);
-      alert("Erro interno do servidor");
+      console.error('Erro ao salvar conta a pagar:', error);
+      alert('Erro interno do servidor');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      className="modal show d-block"
-      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-    >
-      <div className="modal-dialog modal-lg">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">
-              {conta ? "Editar Conta a Pagar" : "Nova Conta a Pagar"}
-            </h5>
-            <button
-              type="button"
-              className="btn-close"
-              onClick={onClose}
-            ></button>
+    <div className='modal show d-block' style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <div className='modal-dialog modal-lg'>
+        <div className='modal-content'>
+          <div className='modal-header'>
+            <h5 className='modal-title'>{conta ? 'Editar Conta a Pagar' : 'Nova Conta a Pagar'}</h5>
+            <button type='button' className='btn-close' onClick={onClose}></button>
           </div>
           <form onSubmit={handleSubmit}>
-            <div className="modal-body">
-              <div className="row g-3">
-                <div className="col-md-6">
-                  <label className="form-label">Fornecedor *</label>
+            <div className='modal-body'>
+              <div className='row g-3'>
+                <div className='col-md-6'>
+                  <label className='form-label'>Fornecedor *</label>
                   <select
-                    className={`form-select ${
-                      errors.id_fornecedor ? "is-invalid" : ""
-                    }`}
+                    className={`form-select ${errors.id_fornecedor ? 'is-invalid' : ''}`}
                     value={formData.id_fornecedor}
                     onChange={(e) =>
                       setFormData({
@@ -580,7 +532,7 @@ function ContaPagarModal({
                       })
                     }
                   >
-                    <option value="">Selecione um fornecedor</option>
+                    <option value=''>Selecione um fornecedor</option>
                     {fornecedores.map((fornecedor) => (
                       <option key={fornecedor.id} value={fornecedor.id}>
                         {fornecedor.nome}
@@ -588,39 +540,29 @@ function ContaPagarModal({
                     ))}
                   </select>
                   {errors.id_fornecedor && (
-                    <div className="invalid-feedback">
-                      {errors.id_fornecedor}
-                    </div>
+                    <div className='invalid-feedback'>{errors.id_fornecedor}</div>
                   )}
                 </div>
-                <div className="col-md-6">
-                  <label className="form-label">Valor *</label>
-                  <div className="input-group">
-                    <span className="input-group-text">R$</span>
+                <div className='col-md-6'>
+                  <label className='form-label'>Valor *</label>
+                  <div className='input-group'>
+                    <span className='input-group-text'>R$</span>
                     <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      className={`form-control ${
-                        errors.valor ? "is-invalid" : ""
-                      }`}
+                      type='number'
+                      step='0.01'
+                      min='0'
+                      className={`form-control ${errors.valor ? 'is-invalid' : ''}`}
                       value={formData.valor}
-                      onChange={(e) =>
-                        setFormData({ ...formData, valor: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
                     />
-                    {errors.valor && (
-                      <div className="invalid-feedback">{errors.valor}</div>
-                    )}
+                    {errors.valor && <div className='invalid-feedback'>{errors.valor}</div>}
                   </div>
                 </div>
-                <div className="col-md-6">
-                  <label className="form-label">Data de Vencimento *</label>
+                <div className='col-md-6'>
+                  <label className='form-label'>Data de Vencimento *</label>
                   <input
-                    type="date"
-                    className={`form-control ${
-                      errors.dt_vencimento ? "is-invalid" : ""
-                    }`}
+                    type='date'
+                    className={`form-control ${errors.dt_vencimento ? 'is-invalid' : ''}`}
                     value={formData.dt_vencimento}
                     onChange={(e) =>
                       setFormData({
@@ -630,28 +572,24 @@ function ContaPagarModal({
                     }
                   />
                   {errors.dt_vencimento && (
-                    <div className="invalid-feedback">
-                      {errors.dt_vencimento}
-                    </div>
+                    <div className='invalid-feedback'>{errors.dt_vencimento}</div>
                   )}
                 </div>
-                <div className="col-md-6">
-                  <label className="form-label">Categoria</label>
+                <div className='col-md-6'>
+                  <label className='form-label'>Categoria</label>
                   <input
-                    type="text"
-                    className="form-control"
+                    type='text'
+                    className='form-control'
                     value={formData.categoria}
-                    onChange={(e) =>
-                      setFormData({ ...formData, categoria: e.target.value })
-                    }
-                    placeholder="Ex: Material de limpeza, Alimentos..."
+                    onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                    placeholder='Ex: Material de limpeza, Alimentos...'
                   />
                 </div>
-                <div className="col-md-6">
-                  <label className="form-label">Número do Documento</label>
+                <div className='col-md-6'>
+                  <label className='form-label'>Número do Documento</label>
                   <input
-                    type="text"
-                    className="form-control"
+                    type='text'
+                    className='form-control'
                     value={formData.numero_documento}
                     onChange={(e) =>
                       setFormData({
@@ -659,52 +597,36 @@ function ContaPagarModal({
                         numero_documento: e.target.value,
                       })
                     }
-                    placeholder="NF, Recibo, etc."
+                    placeholder='NF, Recibo, etc.'
                   />
                 </div>
-                <div className="col-md-6">
-                  <label className="form-label">Descrição *</label>
+                <div className='col-md-6'>
+                  <label className='form-label'>Descrição *</label>
                   <input
-                    type="text"
-                    className={`form-control ${
-                      errors.descricao ? "is-invalid" : ""
-                    }`}
+                    type='text'
+                    className={`form-control ${errors.descricao ? 'is-invalid' : ''}`}
                     value={formData.descricao}
-                    onChange={(e) =>
-                      setFormData({ ...formData, descricao: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
                   />
-                  {errors.descricao && (
-                    <div className="invalid-feedback">{errors.descricao}</div>
-                  )}
+                  {errors.descricao && <div className='invalid-feedback'>{errors.descricao}</div>}
                 </div>
-                <div className="col-12">
-                  <label className="form-label">Observações</label>
+                <div className='col-12'>
+                  <label className='form-label'>Observações</label>
                   <textarea
-                    className="form-control"
+                    className='form-control'
                     rows={3}
                     value={formData.observacoes}
-                    onChange={(e) =>
-                      setFormData({ ...formData, observacoes: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
                   />
                 </div>
               </div>
             </div>
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={onClose}
-              >
+            <div className='modal-footer'>
+              <button type='button' className='btn btn-secondary' onClick={onClose}>
                 Cancelar
               </button>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={loading}
-              >
-                {loading ? "Salvando..." : conta ? "Atualizar" : "Criar"}
+              <button type='submit' className='btn btn-primary' disabled={loading}>
+                {loading ? 'Salvando...' : conta ? 'Atualizar' : 'Criar'}
               </button>
             </div>
           </form>
@@ -723,10 +645,10 @@ interface PagamentoModalProps {
 
 function PagamentoModal({ conta, onClose, onSave }: PagamentoModalProps) {
   const [formData, setFormData] = useState({
-    valor_pago: "",
-    dt_pagamento: new Date().toISOString().split("T")[0],
-    forma_pagamento: "DINHEIRO",
-    observacoes: "",
+    valor_pago: '',
+    dt_pagamento: new Date().toISOString().split('T')[0],
+    forma_pagamento: 'DINHEIRO',
+    observacoes: '',
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -739,7 +661,7 @@ function PagamentoModal({ conta, onClose, onSave }: PagamentoModalProps) {
 
     const valorPago = parseFloat(formData.valor_pago);
     if (!formData.valor_pago || valorPago <= 0) {
-      newErrors.valor_pago = "Valor pago deve ser maior que zero";
+      newErrors.valor_pago = 'Valor pago deve ser maior que zero';
     } else if (valorPago > valorRestante) {
       newErrors.valor_pago = `Valor pago não pode ser maior que o valor restante (R$ ${valorRestante.toFixed(
         2
@@ -747,11 +669,11 @@ function PagamentoModal({ conta, onClose, onSave }: PagamentoModalProps) {
     }
 
     if (!formData.dt_pagamento) {
-      newErrors.dt_pagamento = "Data de pagamento é obrigatória";
+      newErrors.dt_pagamento = 'Data de pagamento é obrigatória';
     }
 
     if (!formData.forma_pagamento) {
-      newErrors.forma_pagamento = "Forma de pagamento é obrigatória";
+      newErrors.forma_pagamento = 'Forma de pagamento é obrigatória';
     }
 
     setErrors(newErrors);
@@ -774,9 +696,9 @@ function PagamentoModal({ conta, onClose, onSave }: PagamentoModalProps) {
       };
 
       const res = await fetch(`/api/contas-pagar/${conta.id}/pagar`, {
-        method: "PATCH",
+        method: 'PATCH',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(submitData),
       });
@@ -784,102 +706,83 @@ function PagamentoModal({ conta, onClose, onSave }: PagamentoModalProps) {
       const data = await res.json();
 
       if (data.success) {
-        alert("Pagamento registrado com sucesso!");
+        alert('Pagamento registrado com sucesso!');
         onSave();
       } else {
-        alert("Erro: " + data.error);
+        alert('Erro: ' + data.error);
       }
     } catch (error) {
-      console.error("Erro ao registrar pagamento:", error);
-      alert("Erro interno do servidor");
+      console.error('Erro ao registrar pagamento:', error);
+      alert('Erro interno do servidor');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      className="modal show d-block"
-      style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-    >
-      <div className="modal-dialog modal-lg">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h5 className="modal-title">Registrar Pagamento</h5>
-            <button
-              type="button"
-              className="btn-close"
-              onClick={onClose}
-            ></button>
+    <div className='modal show d-block' style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <div className='modal-dialog modal-lg'>
+        <div className='modal-content'>
+          <div className='modal-header'>
+            <h5 className='modal-title'>Registrar Pagamento</h5>
+            <button type='button' className='btn-close' onClick={onClose}></button>
           </div>
           <form onSubmit={handleSubmit}>
-            <div className="modal-body">
+            <div className='modal-body'>
               {/* Informações da conta */}
-              <div className="card border-0 bg-light mb-3">
-                <div className="card-body">
-                  <h6 className="card-title">Informações da Conta</h6>
-                  <div className="row">
-                    <div className="col-md-6">
-                      <p className="mb-1">
+              <div className='card border-0 bg-light mb-3'>
+                <div className='card-body'>
+                  <h6 className='card-title'>Informações da Conta</h6>
+                  <div className='row'>
+                    <div className='col-md-6'>
+                      <p className='mb-1'>
                         <strong>Fornecedor:</strong> {conta.fornecedor_nome}
                       </p>
-                      <p className="mb-1">
+                      <p className='mb-1'>
                         <strong>Descrição:</strong> {conta.descricao}
                       </p>
                     </div>
-                    <div className="col-md-6">
-                      <p className="mb-1">
-                        <strong>Valor Total:</strong> R${" "}
-                        {(conta.valor || 0).toFixed(2)}
+                    <div className='col-md-6'>
+                      <p className='mb-1'>
+                        <strong>Valor Total:</strong> R$ {(conta.valor || 0).toFixed(2)}
                       </p>
-                      <p className="mb-1">
-                        <strong>Valor Pago:</strong> R${" "}
-                        {(conta.valor_pago || 0).toFixed(2)}
+                      <p className='mb-1'>
+                        <strong>Valor Pago:</strong> R$ {(conta.valor_pago || 0).toFixed(2)}
                       </p>
-                      <p className="mb-1">
-                        <strong>Valor Restante:</strong>{" "}
-                        <span className="text-primary fw-bold">
-                          R$ {valorRestante.toFixed(2)}
-                        </span>
+                      <p className='mb-1'>
+                        <strong>Valor Restante:</strong>{' '}
+                        <span className='text-primary fw-bold'>R$ {valorRestante.toFixed(2)}</span>
                       </p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="row g-3">
-                <div className="col-md-6">
-                  <label className="form-label">Valor a Pagar *</label>
-                  <div className="input-group">
-                    <span className="input-group-text">R$</span>
+              <div className='row g-3'>
+                <div className='col-md-6'>
+                  <label className='form-label'>Valor a Pagar *</label>
+                  <div className='input-group'>
+                    <span className='input-group-text'>R$</span>
                     <input
-                      type="number"
-                      step="0.01"
-                      min="0.01"
+                      type='number'
+                      step='0.01'
+                      min='0.01'
                       max={valorRestante}
-                      className={`form-control ${
-                        errors.valor_pago ? "is-invalid" : ""
-                      }`}
+                      className={`form-control ${errors.valor_pago ? 'is-invalid' : ''}`}
                       value={formData.valor_pago}
-                      onChange={(e) =>
-                        setFormData({ ...formData, valor_pago: e.target.value })
-                      }
+                      onChange={(e) => setFormData({ ...formData, valor_pago: e.target.value })}
                       placeholder={`Máx. ${valorRestante.toFixed(2)}`}
                     />
                     {errors.valor_pago && (
-                      <div className="invalid-feedback">
-                        {errors.valor_pago}
-                      </div>
+                      <div className='invalid-feedback'>{errors.valor_pago}</div>
                     )}
                   </div>
                 </div>
-                <div className="col-md-6">
-                  <label className="form-label">Data do Pagamento *</label>
+                <div className='col-md-6'>
+                  <label className='form-label'>Data do Pagamento *</label>
                   <input
-                    type="date"
-                    className={`form-control ${
-                      errors.dt_pagamento ? "is-invalid" : ""
-                    }`}
+                    type='date'
+                    className={`form-control ${errors.dt_pagamento ? 'is-invalid' : ''}`}
                     value={formData.dt_pagamento}
                     onChange={(e) =>
                       setFormData({
@@ -889,70 +792,54 @@ function PagamentoModal({ conta, onClose, onSave }: PagamentoModalProps) {
                     }
                   />
                   {errors.dt_pagamento && (
-                    <div className="invalid-feedback">
-                      {errors.dt_pagamento}
-                    </div>
+                    <div className='invalid-feedback'>{errors.dt_pagamento}</div>
                   )}
                 </div>
-                <div className="col-md-6">
-                  <label className="form-label">Forma de Pagamento *</label>
+                <div className='col-md-6'>
+                  <label className='form-label'>Forma de Pagamento *</label>
                   <select
-                    className={`form-select ${
-                      errors.forma_pagamento ? "is-invalid" : ""
-                    }`}
+                    className={`form-select ${errors.forma_pagamento ? 'is-invalid' : ''}`}
                     value={formData.forma_pagamento}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
                         forma_pagamento: e.target.value as
-                          | "DINHEIRO"
-                          | "CARTAO"
-                          | "TRANSFERENCIA"
-                          | "CHEQUE"
-                          | "PIX",
+                          | 'DINHEIRO'
+                          | 'CARTAO'
+                          | 'TRANSFERENCIA'
+                          | 'CHEQUE'
+                          | 'PIX',
                       })
                     }
                   >
-                    <option value="DINHEIRO">Dinheiro</option>
-                    <option value="CARTAO">Cartão</option>
-                    <option value="TRANSFERENCIA">Transferência</option>
-                    <option value="CHEQUE">Cheque</option>
-                    <option value="PIX">PIX</option>
+                    <option value='DINHEIRO'>Dinheiro</option>
+                    <option value='CARTAO'>Cartão</option>
+                    <option value='TRANSFERENCIA'>Transferência</option>
+                    <option value='CHEQUE'>Cheque</option>
+                    <option value='PIX'>PIX</option>
                   </select>
                   {errors.forma_pagamento && (
-                    <div className="invalid-feedback">
-                      {errors.forma_pagamento}
-                    </div>
+                    <div className='invalid-feedback'>{errors.forma_pagamento}</div>
                   )}
                 </div>
-                <div className="col-12">
-                  <label className="form-label">Observações</label>
+                <div className='col-12'>
+                  <label className='form-label'>Observações</label>
                   <textarea
-                    className="form-control"
+                    className='form-control'
                     rows={3}
                     value={formData.observacoes}
-                    onChange={(e) =>
-                      setFormData({ ...formData, observacoes: e.target.value })
-                    }
-                    placeholder="Observações sobre o pagamento..."
+                    onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                    placeholder='Observações sobre o pagamento...'
                   />
                 </div>
               </div>
             </div>
-            <div className="modal-footer">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={onClose}
-              >
+            <div className='modal-footer'>
+              <button type='button' className='btn btn-secondary' onClick={onClose}>
                 Cancelar
               </button>
-              <button
-                type="submit"
-                className="btn btn-success"
-                disabled={loading}
-              >
-                {loading ? "Registrando..." : "Registrar Pagamento"}
+              <button type='submit' className='btn btn-success' disabled={loading}>
+                {loading ? 'Registrando...' : 'Registrar Pagamento'}
               </button>
             </div>
           </form>

@@ -944,7 +944,6 @@ export default function PDVPage() {
                       tipoCliente === 'FUNCIONARIO' && precosCargo[p.id] != null
                         ? Number(precosCargo[p.id])
                         : precoBase;
-                    const valorBase = Number((precoBase * quantidade).toFixed(2));
                     const valorAplicado = Number((precoAplicado * quantidade).toFixed(2));
                     return (
                       <div key={i.id_produto} className='border-bottom pb-2 mb-2'>

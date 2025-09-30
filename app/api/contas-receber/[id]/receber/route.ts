@@ -1,65 +1,49 @@
-import { NextResponse } from "next/server";
-import { query } from "../../../../../lib/db";
+import { NextResponse } from 'next/server';
+import { query } from '../../../../../lib/db';
 
 interface RecebimentoRequest {
   valor_recebido: number;
   dt_recebimento: string;
-  forma_pagamento: "DINHEIRO" | "CARTAO" | "TRANSFERENCIA" | "CHEQUE" | "PIX";
+  forma_pagamento: 'DINHEIRO' | 'CARTAO' | 'TRANSFERENCIA' | 'CHEQUE' | 'PIX';
   observacoes?: string;
 }
 
 // PATCH - Registrar recebimento de conta a receber
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body: RecebimentoRequest = await req.json();
-
-    const { valor_recebido, dt_recebimento, forma_pagamento, observacoes } =
-      body;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { valor_recebido, dt_recebimento, forma_pagamento, observacoes } = body;
 
     if (!id || isNaN(Number(id))) {
-      return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+      return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
     }
 
     // Validações
     if (!valor_recebido || valor_recebido <= 0) {
       return NextResponse.json(
-        { error: "Valor recebido deve ser maior que zero" },
+        { error: 'Valor recebido deve ser maior que zero' },
         { status: 400 }
       );
     }
 
     if (!dt_recebimento) {
-      return NextResponse.json(
-        { error: "Data de recebimento é obrigatória" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Data de recebimento é obrigatória' }, { status: 400 });
     }
 
     if (!forma_pagamento) {
-      return NextResponse.json(
-        { error: "Forma de pagamento é obrigatória" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Forma de pagamento é obrigatória' }, { status: 400 });
     }
 
     // Validar data de recebimento
     const dataRecebimento = new Date(dt_recebimento);
     if (isNaN(dataRecebimento.getTime())) {
-      return NextResponse.json(
-        { error: "Data de recebimento inválida" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Data de recebimento inválida' }, { status: 400 });
     }
 
     // Verificar se conta existe
-    const conta = (await query(
-      "SELECT * FROM cant_contas_receber WHERE id = ?",
-      [id]
-    )) as Array<{
+    const conta = (await query('SELECT * FROM cant_contas_receber WHERE id = ?', [id])) as Array<{
       id: number;
       valor: number;
       valor_recebido: number;
@@ -67,20 +51,14 @@ export async function PATCH(
     }>;
 
     if (!conta || conta.length === 0) {
-      return NextResponse.json(
-        { error: "Conta a receber não encontrada" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Conta a receber não encontrada' }, { status: 404 });
     }
 
     const contaAtual = conta[0];
 
     // Verificar se a conta já foi totalmente recebida
-    if (contaAtual.status === "RECEBIDO") {
-      return NextResponse.json(
-        { error: "Esta conta já foi totalmente recebida" },
-        { status: 400 }
-      );
+    if (contaAtual.status === 'RECEBIDO') {
+      return NextResponse.json({ error: 'Esta conta já foi totalmente recebida' }, { status: 400 });
     }
 
     // Calcular novo valor recebido e status
@@ -90,15 +68,15 @@ export async function PATCH(
 
     let novoStatus: string;
     if (novoValorRecebido >= valorTotal) {
-      novoStatus = "RECEBIDO";
+      novoStatus = 'RECEBIDO';
     } else if (novoValorRecebido > 0) {
-      novoStatus = "PARCIAL";
+      novoStatus = 'PARCIAL';
     } else {
       novoStatus = contaAtual.status;
     }
 
     // Iniciar transação
-    await query("START TRANSACTION");
+    await query('START TRANSACTION');
 
     try {
       // Atualizar conta a receber
@@ -112,7 +90,7 @@ export async function PATCH(
       // Registrar o recebimento na tabela de movimentações (se necessário)
       // Por enquanto, vamos manter simples e só atualizar a conta
 
-      await query("COMMIT");
+      await query('COMMIT');
 
       // Buscar dados atualizados
       const contaAtualizada = await query(
@@ -133,18 +111,15 @@ export async function PATCH(
 
       return NextResponse.json({
         success: true,
-        message: "Recebimento registrado com sucesso",
+        message: 'Recebimento registrado com sucesso',
         data: contaAtualizada[0],
       });
     } catch (error) {
-      await query("ROLLBACK");
+      await query('ROLLBACK');
       throw error;
     }
   } catch (error) {
-    console.error("Erro ao registrar recebimento:", error);
-    return NextResponse.json(
-      { error: "Erro interno do servidor" },
-      { status: 500 }
-    );
+    console.error('Erro ao registrar recebimento:', error);
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import MainLayout from '../../components/MainLayout';
 
 interface User {
@@ -55,13 +55,6 @@ export default function ProdutosPage() {
     checkAuth();
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      loadTipos();
-      loadProdutos();
-    }
-  }, [user, searchTerm, tipoFilter, statusFilter]);
-
   async function loadTipos() {
     try {
       const res = await fetch('/api/tipos-produtos?ativo=1');
@@ -72,7 +65,7 @@ export default function ProdutosPage() {
     }
   }
 
-  async function loadProdutos() {
+  const loadProdutos = useCallback(async () => {
     try {
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
@@ -84,7 +77,14 @@ export default function ProdutosPage() {
     } catch (e) {
       console.error(e);
     }
-  }
+  }, [searchTerm, tipoFilter, statusFilter]);
+
+  useEffect(() => {
+    if (user) {
+      loadTipos();
+      loadProdutos();
+    }
+  }, [user, loadProdutos]);
 
   const tipoById = useMemo(() => Object.fromEntries(tipos.map((t) => [t.id, t.nome])), [tipos]);
 

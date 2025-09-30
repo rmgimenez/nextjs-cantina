@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
-import { query } from "../../../lib/db";
+import { NextResponse } from 'next/server';
+import { query } from '../../../lib/db';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface Fornecedor {
   id: number;
   nome: string;
@@ -21,8 +22,8 @@ interface Fornecedor {
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
-    const search = url.searchParams.get("search") || "";
-    const ativo = url.searchParams.get("ativo");
+    const search = url.searchParams.get('search') || '';
+    const ativo = url.searchParams.get('ativo');
 
     let sql = `
       SELECT f.*, uc.nome as criado_por_nome
@@ -34,13 +35,7 @@ export async function GET(req: Request) {
 
     if (search) {
       sql += ` AND (f.nome LIKE ? OR f.razao_social LIKE ? OR f.cnpj LIKE ? OR f.cpf LIKE ? OR f.email LIKE ?)`;
-      params.push(
-        `%${search}%`,
-        `%${search}%`,
-        `%${search}%`,
-        `%${search}%`,
-        `%${search}%`
-      );
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
     }
 
     if (ativo !== null) {
@@ -57,11 +52,8 @@ export async function GET(req: Request) {
       data: rows,
     });
   } catch (error) {
-    console.error("Erro ao listar fornecedores:", error);
-    return NextResponse.json(
-      { error: "Erro interno do servidor" },
-      { status: 500 }
-    );
+    console.error('Erro ao listar fornecedores:', error);
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
 }
 
@@ -69,45 +61,33 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const {
-      nome,
-      razao_social,
-      cnpj,
-      cpf,
-      endereco,
-      telefone,
-      email,
-      contato,
-    } = body;
+    const { nome, razao_social, cnpj, cpf, endereco, telefone, email, contato } = body;
 
     // Validações
     if (!nome || !nome.trim()) {
-      return NextResponse.json(
-        { error: "Nome é obrigatório" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 });
     }
 
     // Validar CNPJ se fornecido
     if (cnpj && !validarCNPJ(cnpj)) {
-      return NextResponse.json({ error: "CNPJ inválido" }, { status: 400 });
+      return NextResponse.json({ error: 'CNPJ inválido' }, { status: 400 });
     }
 
     // Validar CPF se fornecido
     if (cpf && !validarCPF(cpf)) {
-      return NextResponse.json({ error: "CPF inválido" }, { status: 400 });
+      return NextResponse.json({ error: 'CPF inválido' }, { status: 400 });
     }
 
     // Verificar se CNPJ já existe
     if (cnpj) {
       const existingCNPJ = await query(
-        "SELECT id FROM cant_fornecedores WHERE cnpj = ? AND ativo = 1",
-        [cnpj.replace(/\D/g, "")]
+        'SELECT id FROM cant_fornecedores WHERE cnpj = ? AND ativo = 1',
+        [cnpj.replace(/\D/g, '')]
       );
 
       if (existingCNPJ && existingCNPJ.length > 0) {
         return NextResponse.json(
-          { error: "Já existe um fornecedor ativo com este CNPJ" },
+          { error: 'Já existe um fornecedor ativo com este CNPJ' },
           { status: 400 }
         );
       }
@@ -116,28 +96,28 @@ export async function POST(req: Request) {
     // Verificar se CPF já existe
     if (cpf) {
       const existingCPF = await query(
-        "SELECT id FROM cant_fornecedores WHERE cpf = ? AND ativo = 1",
-        [cpf.replace(/\D/g, "")]
+        'SELECT id FROM cant_fornecedores WHERE cpf = ? AND ativo = 1',
+        [cpf.replace(/\D/g, '')]
       );
 
       if (existingCPF && existingCPF.length > 0) {
         return NextResponse.json(
-          { error: "Já existe um fornecedor ativo com este CPF" },
+          { error: 'Já existe um fornecedor ativo com este CPF' },
           { status: 400 }
         );
       }
     }
 
     // Inserir fornecedor
-    const result = await query(
+    await query(
       `INSERT INTO cant_fornecedores
        (nome, razao_social, cnpj, cpf, endereco, telefone, email, contato, ativo, criado_por)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 1)`,
       [
         nome.trim(),
         razao_social?.trim() || null,
-        cnpj ? cnpj.replace(/\D/g, "") : null,
-        cpf ? cpf.replace(/\D/g, "") : null,
+        cnpj ? cnpj.replace(/\D/g, '') : null,
+        cpf ? cpf.replace(/\D/g, '') : null,
         endereco?.trim() || null,
         telefone?.trim() || null,
         email?.trim() || null,
@@ -157,23 +137,20 @@ export async function POST(req: Request) {
     return NextResponse.json(
       {
         success: true,
-        message: "Fornecedor criado com sucesso",
+        message: 'Fornecedor criado com sucesso',
         data: newFornecedor[0],
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error("Erro ao criar fornecedor:", error);
-    return NextResponse.json(
-      { error: "Erro interno do servidor" },
-      { status: 500 }
-    );
+    console.error('Erro ao criar fornecedor:', error);
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
 }
 
 // Função para validar CNPJ
 function validarCNPJ(cnpj: string): boolean {
-  const cnpjLimpo = cnpj.replace(/\D/g, "");
+  const cnpjLimpo = cnpj.replace(/\D/g, '');
 
   if (cnpjLimpo.length !== 14) return false;
 
@@ -207,7 +184,7 @@ function validarCNPJ(cnpj: string): boolean {
 
 // Função para validar CPF
 function validarCPF(cpf: string): boolean {
-  const cpfLimpo = cpf.replace(/\D/g, "");
+  const cpfLimpo = cpf.replace(/\D/g, '');
 
   if (cpfLimpo.length !== 11) return false;
 

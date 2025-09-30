@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
-import { query } from "../../../../lib/db";
+import { NextResponse } from 'next/server';
+import { query } from '../../../../lib/db';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     // Resumo geral
     const resumoQuery = `
@@ -116,18 +116,18 @@ export async function GET(req: NextRequest) {
 
     // Formatar nomes dos meses
     const mesesMap: { [key: string]: string } = {
-      "01": "Jan",
-      "02": "Fev",
-      "03": "Mar",
-      "04": "Abr",
-      "05": "Mai",
-      "06": "Jun",
-      "07": "Jul",
-      "08": "Ago",
-      "09": "Set",
-      "10": "Out",
-      "11": "Nov",
-      "12": "Dez",
+      '01': 'Jan',
+      '02': 'Fev',
+      '03': 'Mar',
+      '04': 'Abr',
+      '05': 'Mai',
+      '06': 'Jun',
+      '07': 'Jul',
+      '08': 'Ago',
+      '09': 'Set',
+      '10': 'Out',
+      '11': 'Nov',
+      '12': 'Dez',
     };
 
     const fluxoMensal = fluxoMensalResult.map((row: unknown) => {
@@ -139,7 +139,7 @@ export async function GET(req: NextRequest) {
       };
       return {
         mes: (() => {
-          const [ano, mes] = typedRow.mes.split("-");
+          const [ano, mes] = typedRow.mes.split('-');
           return `${mesesMap[mes]}/${ano.slice(2)}`;
         })(),
         receber: parseFloat(typedRow.receber),
@@ -152,11 +152,9 @@ export async function GET(req: NextRequest) {
       resumo: {
         totalReceber: parseFloat(resumo.total_receber),
         totalPagar: parseFloat(resumo.total_pagar),
-        saldoLiquido:
-          parseFloat(resumo.total_receber) - parseFloat(resumo.total_pagar),
+        saldoLiquido: parseFloat(resumo.total_receber) - parseFloat(resumo.total_pagar),
         inadimplencia:
-          parseFloat(resumo.inadimplencia_receber) +
-          parseFloat(resumo.inadimplencia_pagar),
+          parseFloat(resumo.inadimplencia_receber) + parseFloat(resumo.inadimplencia_pagar),
       },
       porStatus: {
         receber: porStatusReceber,
@@ -186,10 +184,7 @@ export async function GET(req: NextRequest) {
       data: dashboardData,
     });
   } catch (error) {
-    console.error("Erro ao carregar dados do dashboard financeiro:", error);
-    return NextResponse.json(
-      { error: "Erro interno do servidor" },
-      { status: 500 }
-    );
+    console.error('Erro ao carregar dados do dashboard financeiro:', error);
+    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
   }
 }

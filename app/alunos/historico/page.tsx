@@ -69,8 +69,10 @@ interface AlunoBusca {
 }
 
 export default function HistoricoAlunoPage() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [ra, setRa] = useState('');
   const [termo, setTermo] = useState('');
   const [historico, setHistorico] = useState<HistoricoAluno | null>(null);

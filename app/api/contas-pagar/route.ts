@@ -1,24 +1,7 @@
-import { NextResponse } from 'next/server';
-import { query } from '../../../lib/db';
+import { query } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
 
-interface ContaPagar {
-  id: number;
-  id_fornecedor: number;
-  descricao: string;
-  valor: number;
-  dt_vencimento: string;
-  dt_pagamento: string;
-  valor_pago: number;
-  status: 'PENDENTE' | 'PAGO' | 'VENCIDO' | 'PARCIAL';
-  categoria: string;
-  numero_documento: string;
-  observacoes: string;
-  dt_criacao: string;
-  criado_por: number;
-}
-
-// GET - Listar contas a pagar
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const search = url.searchParams.get('search') || '';
@@ -137,7 +120,7 @@ export async function POST(req: Request) {
     const status = dataVencimento < hoje ? 'VENCIDO' : 'PENDENTE';
 
     // Inserir conta a pagar
-    const result = await query(
+    await query(
       `INSERT INTO cant_contas_pagar
        (id_fornecedor, descricao, valor, dt_vencimento, status, categoria, numero_documento, observacoes, criado_por)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,

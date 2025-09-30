@@ -44,9 +44,9 @@ export default function HomePage() {
         setAlertas(data.data.alertasEstoque);
         setUltimasVendas(data.data.ultimasVendas);
         setEstoqueBaixo(data.data.estoqueBaixo);
-      } catch (e: any) {
+      } catch (e: unknown) {
         console.error(e);
-        setErro(e.message || 'Falha ao carregar dashboard');
+        setErro(e instanceof Error ? e.message : 'Falha ao carregar dashboard');
       } finally {
         setLoading(false);
       }

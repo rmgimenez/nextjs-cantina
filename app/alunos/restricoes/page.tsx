@@ -124,7 +124,7 @@ export default function RestricoesAlunosPage() {
     };
   }, [termo]);
 
-  async function carregarRestricoes(ra: number, onlySelecionado = false) {
+  async function carregarRestricoes(ra: number) {
     const params = new URLSearchParams();
     if (filtroAtivo === 'ativos') params.set('ativo', '1');
     if (filtroAtivo === 'inativos') params.set('ativo', '0');
@@ -145,7 +145,12 @@ export default function RestricoesAlunosPage() {
     if (!aluno) return;
     setBusy(true);
     try {
-      const payload: any = { tipo_restricao: tipoNova, motivo: motivo?.trim() || null };
+      const payload: {
+        tipo_restricao: string;
+        motivo: string | null;
+        id_produto?: number;
+        id_tipo_produto?: number;
+      } = { tipo_restricao: tipoNova, motivo: motivo?.trim() || null };
       if (tipoNova === 'PRODUTO') payload.id_produto = Number(produtoSel) || undefined;
       else payload.id_tipo_produto = Number(tipoSel) || undefined;
 
@@ -288,6 +293,7 @@ export default function RestricoesAlunosPage() {
               <div className='card border-0 shadow-sm h-100'>
                 <div className='card-body'>
                   <div className='d-flex gap-3 align-items-center'>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={`https://sistema.santanna.g12.br/carometr/${aluno.ra}.jpg`}
                       alt='Foto do aluno'

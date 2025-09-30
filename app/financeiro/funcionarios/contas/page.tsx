@@ -134,7 +134,22 @@ export default function ContasFuncionariosPage() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        const parsed = (data.data as any[]).map((row) => ({
+        const parsed = (
+          data.data as Array<{
+            id: number;
+            codigo_funcionario: number;
+            funcionario_nome: string | null;
+            cargo_oficial: string | null;
+            limite_credito: number | null;
+            alerta_credito: number | null;
+            total_em_aberto: number;
+            limite_disponivel: number | null;
+            ativo: number;
+            dt_criacao: string;
+            dt_alteracao: string;
+            observacoes: string | null;
+          }>
+        ).map((row) => ({
           id: Number(row.id),
           codigo_funcionario: Number(row.codigo_funcionario),
           funcionario_nome: row.funcionario_nome ?? null,

@@ -146,7 +146,7 @@ export default function CaixaPage() {
                     <select
                       className='form-select'
                       value={tipoMov}
-                      onChange={(e) => setTipoMov(e.target.value as any)}
+                      onChange={(e) => setTipoMov(e.target.value as 'SUPRIMENTO' | 'SANGRIA')}
                     >
                       <option value='SUPRIMENTO'>Suprimento</option>
                       <option value='SANGRIA'>Sangria</option>
