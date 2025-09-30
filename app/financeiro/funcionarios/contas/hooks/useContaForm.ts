@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ContaFuncionario, FuncionarioBusca } from '../types';
-import { toDecimal, normalizeDecimalInput } from '../utils';
+import { toDecimal } from '../utils';
 
 /**
  * Hook para gerenciar o formulário de conta

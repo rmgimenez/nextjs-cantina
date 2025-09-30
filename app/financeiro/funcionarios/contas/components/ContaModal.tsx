@@ -1,5 +1,5 @@
-import type { ContaFuncionario } from '../types';
 import { useContaForm } from '../hooks';
+import type { ContaFuncionario } from '../types';
 import { normalizeDecimalInput } from '../utils';
 
 interface ContaModalProps {

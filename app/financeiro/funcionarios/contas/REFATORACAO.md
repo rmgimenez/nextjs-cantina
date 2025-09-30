@@ -57,14 +57,14 @@ app/financeiro/funcionarios/contas/
 
 ## 📈 Métricas de Melhoria
 
-| Métrica | Antes | Depois | Melhoria |
-|---------|-------|--------|----------|
-| Linhas por arquivo | 739 | ~80 (média) | 89% redução |
-| Arquivos | 1 | 13 | Melhor organização |
-| Responsabilidades | Misturadas | Separadas | 100% |
-| Testabilidade | Baixa | Alta | ⬆️ |
-| Reutilização | Impossível | Fácil | ⬆️ |
-| Manutenibilidade | Difícil | Fácil | ⬆️ |
+| Métrica            | Antes      | Depois      | Melhoria           |
+| ------------------ | ---------- | ----------- | ------------------ |
+| Linhas por arquivo | 739        | ~80 (média) | 89% redução        |
+| Arquivos           | 1          | 13          | Melhor organização |
+| Responsabilidades  | Misturadas | Separadas   | 100%               |
+| Testabilidade      | Baixa      | Alta        | ⬆️                  |
+| Reutilização       | Impossível | Fácil       | ⬆️                  |
+| Manutenibilidade   | Difícil    | Fácil       | ⬆️                  |
 
 ## 🎯 Detalhamento dos Arquivos
 

@@ -60,14 +60,14 @@ app/financeiro/funcionarios/contas/
 
 ## 📊 Métricas
 
-| Item | Antes | Depois |
-|------|-------|--------|
-| **Arquivos** | 1 | 16 |
-| **Linhas no arquivo principal** | 739 | 94 |
-| **Redução de complexidade** | - | 87% |
-| **Componentes reutilizáveis** | 0 | 5 |
-| **Hooks customizados** | 0 | 3 |
-| **Funções utilitárias** | Inline | 4 |
+| Item                            | Antes  | Depois |
+| ------------------------------- | ------ | ------ |
+| **Arquivos**                    | 1      | 16     |
+| **Linhas no arquivo principal** | 739    | 94     |
+| **Redução de complexidade**     | -      | 87%    |
+| **Componentes reutilizáveis**   | 0      | 5      |
+| **Hooks customizados**          | 0      | 3      |
+| **Funções utilitárias**         | Inline | 4      |
 
 ## 🚀 Como Usar
 

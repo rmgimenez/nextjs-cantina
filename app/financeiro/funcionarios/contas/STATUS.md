@@ -42,15 +42,15 @@ A página de **Contas de Funcionários** foi completamente refatorada seguindo o
 
 ## 📊 Métricas de Sucesso
 
-| Métrica | Antes | Depois | Melhoria |
-|---------|-------|--------|----------|
-| **Arquivos** | 1 | 16 | +1500% |
-| **Linhas no principal** | 739 | 94 | **-87%** ⬇️ |
-| **Componentes reutilizáveis** | 0 | 5 | ♻️ |
-| **Hooks customizados** | 0 | 3 | 🎣 |
-| **Funções utilitárias** | Inline | 4 | 🛠️ |
-| **Erros TypeScript** | 0 | 0 | ✅ |
-| **Documentação** | 0 | 4 arquivos | 📚 |
+| Métrica                       | Antes  | Depois     | Melhoria   |
+| ----------------------------- | ------ | ---------- | ---------- |
+| **Arquivos**                  | 1      | 16         | +1500%     |
+| **Linhas no principal**       | 739    | 94         | **-87%** ⬇️ |
+| **Componentes reutilizáveis** | 0      | 5          | ♻️          |
+| **Hooks customizados**        | 0      | 3          | 🎣          |
+| **Funções utilitárias**       | Inline | 4          | 🛠️          |
+| **Erros TypeScript**          | 0      | 0          | ✅          |
+| **Documentação**              | 0      | 4 arquivos | 📚          |
 
 ---
 
