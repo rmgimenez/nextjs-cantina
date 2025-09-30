@@ -99,6 +99,17 @@ export default function PDVPage() {
   const [pacotesAluno, setPacotesAluno] = useState<any[]>([]);
   const [temPacoteValido, setTemPacoteValido] = useState(false);
 
+  // Estados para restrições do aluno
+  const [restricoesAluno, setRestricoesAluno] = useState<any[]>([]);
+  const [showRestricaoModal, setShowRestricaoModal] = useState(false);
+  const [showBloqueioVendaModal, setShowBloqueioVendaModal] = useState(false);
+  const [produtosBloqueados, setProdutosBloqueados] = useState<
+    Array<{
+      produto: Produto;
+      restricao: any;
+    }>
+  >([]);
+
   // Refs para controle de foco e atalhos
   const buscaProdutoRef = useRef<HTMLInputElement>(null);
   const buscaClienteRef = useRef<HTMLInputElement>(null);
@@ -286,6 +297,28 @@ export default function PDVPage() {
     }
     // Carregar pacotes do aluno
     await carregarPacotesAluno(ra);
+    // Carregar restrições do aluno
+    await carregarRestricoesAluno(ra);
+  }
+
+  async function carregarRestricoesAluno(ra: number) {
+    try {
+      const res = await fetch(`/api/alunos/restricoes/${encodeURIComponent(String(ra))}?ativo=1`);
+      if (res.ok) {
+        const d = await res.json();
+        if (d?.success && d.data && d.data.length > 0) {
+          setRestricoesAluno(d.data);
+          // Mostrar modal automaticamente se houver restrições
+          setShowRestricaoModal(true);
+        } else {
+          setRestricoesAluno([]);
+        }
+      } else {
+        setRestricoesAluno([]);
+      }
+    } catch {
+      setRestricoesAluno([]);
+    }
   }
 
   async function carregarPacotesAluno(ra: number) {
@@ -434,6 +467,36 @@ export default function PDVPage() {
     setItens((cur) => cur.filter((i) => i.id_produto !== id_produto));
   }
 
+  function validarRestricoesVenda(): Array<{ produto: Produto; restricao: any }> {
+    const bloqueados: Array<{ produto: Produto; restricao: any }> = [];
+
+    // Verificar cada item do carrinho
+    for (const item of itens) {
+      const produto = produtos.find((p) => p.id === item.id_produto);
+      if (!produto) continue;
+
+      // Verificar restrições de produto específico
+      const restricaoProduto = restricoesAluno.find(
+        (r) => r.tipo_restricao === 'PRODUTO' && r.id_produto === produto.id
+      );
+      if (restricaoProduto) {
+        bloqueados.push({ produto, restricao: restricaoProduto });
+        continue;
+      }
+
+      // Verificar restrições de tipo de produto
+      // Precisamos buscar o id_tipo do produto
+      const restricaoTipo = restricoesAluno.find(
+        (r) => r.tipo_restricao === 'TIPO_PRODUTO' && r.tipo_produto_nome === produto.tipo_nome
+      );
+      if (restricaoTipo) {
+        bloqueados.push({ produto, restricao: restricaoTipo });
+      }
+    }
+
+    return bloqueados;
+  }
+
   function limparVenda() {
     setItens([]);
     setAluno(null);
@@ -444,6 +507,10 @@ export default function PDVPage() {
     setObservacoes([]);
     setPacotesAluno([]);
     setTemPacoteValido(false);
+    setRestricoesAluno([]);
+    setShowRestricaoModal(false);
+    setShowBloqueioVendaModal(false);
+    setProdutosBloqueados([]);
     setContaFuncionarioInfo(null);
     setPrecosCargo({});
     setAvisoConta('');
@@ -457,6 +524,16 @@ export default function PDVPage() {
     if (itens.length === 0) {
       setMsg('Adicione itens');
       return;
+    }
+
+    // Validar restrições para alunos
+    if (tipoCliente === 'ALUNO' && aluno && restricoesAluno.length > 0) {
+      const bloqueados = validarRestricoesVenda();
+      if (bloqueados.length > 0) {
+        setProdutosBloqueados(bloqueados);
+        setShowBloqueioVendaModal(true);
+        return;
+      }
     }
     const payload: {
       tipo_cliente: typeof tipoCliente;
@@ -847,6 +924,25 @@ export default function PDVPage() {
 
                   <div className={styles.clienteNome}>{aluno.nome}</div>
                   <div className='text-muted small mb-2'>RA: {aluno.ra}</div>
+
+                  {/* Badge de Restrições */}
+                  {restricoesAluno.length > 0 && (
+                    <div className='alert alert-danger py-2 px-2 mb-2 d-flex justify-content-between align-items-center'>
+                      <div>
+                        <i className='bi bi-exclamation-triangle-fill me-2'></i>
+                        <strong>{restricoesAluno.length}</strong>{' '}
+                        {restricoesAluno.length === 1 ? 'restrição ativa' : 'restrições ativas'}
+                      </div>
+                      <button
+                        className='btn btn-sm btn-outline-danger'
+                        onClick={() => setShowRestricaoModal(true)}
+                        title='Ver detalhes das restrições'
+                      >
+                        <i className='bi bi-eye'></i>
+                      </button>
+                    </div>
+                  )}
+
                   <div
                     className={`${styles.clienteSaldo} ${
                       saldo < 10 ? styles.clienteSaldoBaixo : ''
@@ -1256,6 +1352,239 @@ export default function PDVPage() {
             <kbd>ESC</kbd> Limpar venda
           </div>
         </div>
+
+        {/* Modal de Restrições do Aluno */}
+        {restricoesAluno.length > 0 && (
+          <div
+            className={`modal fade ${showRestricaoModal ? 'show' : ''}`}
+            style={{ display: showRestricaoModal ? 'block' : 'none' }}
+            tabIndex={-1}
+            role='dialog'
+          >
+            <div className='modal-dialog modal-dialog-centered'>
+              <div className='modal-content border-danger'>
+                <div className='modal-header bg-danger text-white'>
+                  <h5 className='modal-title'>
+                    <i className='bi bi-exclamation-triangle-fill me-2'></i>
+                    ⚠️ ATENÇÃO: Restrições de Consumo
+                  </h5>
+                  <button
+                    type='button'
+                    className='btn-close btn-close-white'
+                    onClick={() => setShowRestricaoModal(false)}
+                  ></button>
+                </div>
+                <div className='modal-body'>
+                  {aluno && (
+                    <div className='alert alert-warning mb-3'>
+                      <strong>Aluno:</strong> {aluno.nome} (RA: {aluno.ra})
+                    </div>
+                  )}
+
+                  <div className='mb-3'>
+                    <p className='fw-bold mb-2'>Este aluno possui as seguintes restrições:</p>
+                    <div className='list-group'>
+                      {restricoesAluno.map((restricao, index) => (
+                        <div key={restricao.id} className='list-group-item list-group-item-danger'>
+                          <div className='d-flex justify-content-between align-items-start'>
+                            <div className='flex-grow-1'>
+                              <div className='fw-bold mb-1'>
+                                {restricao.tipo_restricao === 'PRODUTO' ? (
+                                  <>
+                                    <i className='bi bi-ban text-danger me-2'></i>
+                                    Produto Restrito: {restricao.produto_nome || 'N/A'}
+                                  </>
+                                ) : (
+                                  <>
+                                    <i className='bi bi-exclamation-circle text-warning me-2'></i>
+                                    Tipo Restrito: {restricao.tipo_produto_nome || 'N/A'}
+                                  </>
+                                )}
+                              </div>
+                              {restricao.motivo && (
+                                <div className='text-muted small'>
+                                  <strong>Motivo:</strong> {restricao.motivo}
+                                </div>
+                              )}
+                            </div>
+                            <span className='badge bg-danger ms-2'>{index + 1}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className='alert alert-info mb-0'>
+                    <i className='bi bi-info-circle me-2'></i>
+                    <strong>Importante:</strong> O sistema bloqueará automaticamente a venda de
+                    produtos restritos para este aluno.
+                  </div>
+                </div>
+                <div className='modal-footer'>
+                  <button
+                    type='button'
+                    className='btn btn-primary'
+                    onClick={() => setShowRestricaoModal(false)}
+                  >
+                    <i className='bi bi-check-lg me-1'></i>
+                    Entendido
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Backdrop do modal */}
+        {showRestricaoModal && (
+          <div
+            className='modal-backdrop fade show'
+            onClick={() => setShowRestricaoModal(false)}
+          ></div>
+        )}
+
+        {/* Modal de Bloqueio de Venda por Restrição */}
+        {produtosBloqueados.length > 0 && (
+          <div
+            className={`modal fade ${showBloqueioVendaModal ? 'show' : ''}`}
+            style={{ display: showBloqueioVendaModal ? 'block' : 'none' }}
+            tabIndex={-1}
+            role='dialog'
+          >
+            <div className='modal-dialog modal-dialog-centered modal-lg'>
+              <div className='modal-content border-danger shadow-lg'>
+                <div className='modal-header bg-danger text-white'>
+                  <h5 className='modal-title'>
+                    <i className='bi bi-x-circle-fill me-2'></i>
+                    🚫 VENDA BLOQUEADA - Produtos Restritos
+                  </h5>
+                  <button
+                    type='button'
+                    className='btn-close btn-close-white'
+                    onClick={() => setShowBloqueioVendaModal(false)}
+                  ></button>
+                </div>
+                <div className='modal-body'>
+                  {aluno && (
+                    <div className='alert alert-danger mb-4'>
+                      <div className='d-flex align-items-center'>
+                        <i className='bi bi-person-fill-x me-3' style={{ fontSize: '2rem' }}></i>
+                        <div>
+                          <strong>Aluno:</strong> {aluno.nome}
+                          <br />
+                          <small>RA: {aluno.ra}</small>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className='alert alert-warning mb-3'>
+                    <i className='bi bi-exclamation-triangle-fill me-2'></i>
+                    <strong>Atenção!</strong> A venda não pode ser concluída porque o carrinho
+                    contém produtos restritos para este aluno.
+                  </div>
+
+                  <h6 className='fw-bold mb-3 text-danger'>
+                    Produtos Bloqueados ({produtosBloqueados.length}):
+                  </h6>
+
+                  <div className='list-group mb-4'>
+                    {produtosBloqueados.map(({ produto, restricao }, index) => (
+                      <div
+                        key={`${produto.id}-${index}`}
+                        className='list-group-item list-group-item-danger'
+                      >
+                        <div className='d-flex justify-content-between align-items-start'>
+                          <div className='flex-grow-1'>
+                            <div className='d-flex align-items-center mb-2'>
+                              <span
+                                style={{ fontSize: '1.5rem' }}
+                                className='me-2'
+                                role='img'
+                                aria-label='produto'
+                              >
+                                {getProdutoIcon(produto.tipo_nome)}
+                              </span>
+                              <div>
+                                <div className='fw-bold fs-5'>{produto.nome}</div>
+                                <small className='text-muted'>{produto.tipo_nome}</small>
+                              </div>
+                            </div>
+
+                            <div className='border-start border-danger border-3 ps-3 ms-2'>
+                              <div className='fw-semibold text-danger mb-1'>
+                                {restricao.tipo_restricao === 'PRODUTO' ? (
+                                  <>
+                                    <i className='bi bi-ban me-2'></i>
+                                    Restrição: Produto Específico
+                                  </>
+                                ) : (
+                                  <>
+                                    <i className='bi bi-exclamation-circle me-2'></i>
+                                    Restrição: Tipo de Produto ({restricao.tipo_produto_nome})
+                                  </>
+                                )}
+                              </div>
+                              {restricao.motivo && (
+                                <div className='text-muted small'>
+                                  <i className='bi bi-info-circle me-1'></i>
+                                  <strong>Motivo:</strong> {restricao.motivo}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <span className='badge bg-danger fs-6 ms-3'>{index + 1}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className='alert alert-info mb-0'>
+                    <i className='bi bi-lightbulb-fill me-2'></i>
+                    <strong>O que fazer?</strong>
+                    <ul className='mb-0 mt-2'>
+                      <li>Remova os produtos bloqueados do carrinho</li>
+                      <li>Ou cancele esta venda e inicie uma nova sem esses produtos</li>
+                    </ul>
+                  </div>
+                </div>
+                <div className='modal-footer bg-light'>
+                  <button
+                    type='button'
+                    className='btn btn-outline-secondary'
+                    onClick={() => setShowBloqueioVendaModal(false)}
+                  >
+                    <i className='bi bi-arrow-left me-1'></i>
+                    Voltar ao Carrinho
+                  </button>
+                  <button
+                    type='button'
+                    className='btn btn-danger'
+                    onClick={() => {
+                      // Remover produtos bloqueados automaticamente
+                      const idsBloqueados = produtosBloqueados.map((b) => b.produto.id);
+                      setItens((cur) => cur.filter((i) => !idsBloqueados.includes(i.id_produto)));
+                      setShowBloqueioVendaModal(false);
+                      setProdutosBloqueados([]);
+                      setMsg('Produtos restritos removidos do carrinho');
+                    }}
+                  >
+                    <i className='bi bi-trash me-1'></i>
+                    Remover Produtos Bloqueados
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Backdrop do modal de bloqueio */}
+        {showBloqueioVendaModal && (
+          <div
+            className='modal-backdrop fade show'
+            onClick={() => setShowBloqueioVendaModal(false)}
+          ></div>
+        )}
       </div>
     </MainLayout>
   );
