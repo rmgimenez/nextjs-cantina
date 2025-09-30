@@ -629,7 +629,7 @@ Os requisitos funcionais deverão ser separados por códigos, exemplo RF-001, RF
 - Exibir detalhes de cada venda (produtos, quantidades, valores)
 - Não permitir alteração de histórico
   **Tabelas Relacionadas**: `cant_vendas`, `cant_vendas_itens`, `cant_vendas_funcionarios`
-  **Status**: Não iniciado
+  **Status**: ✅ **Concluído**
 
 ### RF-018 - Observações dos Alunos
 
@@ -890,7 +890,7 @@ Os requisitos funcionais deverão ser separados por códigos, exemplo RF-001, RF
 
 ### 📊 **Relatórios e Analytics**
 
-1. **RF-017 - Histórico de Vendas e Consumo**
+1. ✅ **RF-017 - Histórico de Vendas e Consumo** - Entregue
 2. **RF-019 - Relatório de Consumo Mensal**
 3. **RF-022 - Dashboard Gerencial**
 
