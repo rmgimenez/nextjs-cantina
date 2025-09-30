@@ -32,6 +32,7 @@ O sistema utiliza as seguintes tecnologias:
 - **Bootstrap**: Framework CSS para estilização da aplicação.
 - **react-icons**: Biblioteca de ícones para React.
 - **chart.js**: Biblioteca para criação de gráficos.
+- **jspdf** e **jspdf-autotable**: Bibliotecas para geração de relatórios em PDF.
 
 ## Funcionalidades
 

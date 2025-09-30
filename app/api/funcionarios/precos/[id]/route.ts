@@ -36,9 +36,10 @@ async function obterPreco(id: number, executor: QueryExecutor = pool) {
   return rows.length > 0 ? rows[0] : null;
 }
 
-export async function GET(_req: Request, context: { params: { id: string } }) {
+export async function GET(_req: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const id = Number(context.params?.id);
+    const params = await context.params;
+    const id = Number(params?.id);
     if (!Number.isFinite(id) || id <= 0) {
       return NextResponse.json({ error: 'Identificador inválido' }, { status: 400 });
     }
@@ -55,7 +56,7 @@ export async function GET(_req: Request, context: { params: { id: string } }) {
   }
 }
 
-export async function PUT(req: Request, context: { params: { id: string } }) {
+export async function PUT(req: Request, context: { params: Promise<{ id: string }> }) {
   const conn = await pool.getConnection();
   try {
     const user = getUserFromRequest(req);
@@ -63,7 +64,8 @@ export async function PUT(req: Request, context: { params: { id: string } }) {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
     }
 
-    const id = Number(context.params?.id);
+    const params = await context.params;
+    const id = Number(params?.id);
     if (!Number.isFinite(id) || id <= 0) {
       return NextResponse.json({ error: 'Identificador inválido' }, { status: 400 });
     }
@@ -157,7 +159,7 @@ export async function PUT(req: Request, context: { params: { id: string } }) {
   }
 }
 
-export async function DELETE(req: Request, context: { params: { id: string } }) {
+export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
   const conn = await pool.getConnection();
   try {
     const user = getUserFromRequest(req);
@@ -165,7 +167,8 @@ export async function DELETE(req: Request, context: { params: { id: string } }) 
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
     }
 
-    const id = Number(context.params?.id);
+    const params = await context.params;
+    const id = Number(params?.id);
     if (!Number.isFinite(id) || id <= 0) {
       return NextResponse.json({ error: 'Identificador inválido' }, { status: 400 });
     }

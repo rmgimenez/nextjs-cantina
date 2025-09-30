@@ -10,9 +10,10 @@ function parseDecimal(value: unknown) {
   return Number.isFinite(num) ? Number(num.toFixed(2)) : null;
 }
 
-export async function GET(_req: Request, context: { params: { codigo: string } }) {
+export async function GET(_req: Request, context: { params: Promise<{ codigo: string }> }) {
   try {
-    const codigo = Number(context.params?.codigo);
+    const params = await context.params;
+    const codigo = Number(params?.codigo);
     if (!Number.isFinite(codigo) || codigo <= 0) {
       return NextResponse.json({ error: 'Código inválido' }, { status: 400 });
     }
@@ -36,14 +37,15 @@ export async function GET(_req: Request, context: { params: { codigo: string } }
   }
 }
 
-export async function PUT(req: Request, context: { params: { codigo: string } }) {
+export async function PUT(req: Request, context: { params: Promise<{ codigo: string }> }) {
   try {
     const user = getUserFromRequest(req);
     if (!user) {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
     }
 
-    const codigo = Number(context.params?.codigo);
+    const params = await context.params;
+    const codigo = Number(params?.codigo);
     if (!Number.isFinite(codigo) || codigo <= 0) {
       return NextResponse.json({ error: 'Código inválido' }, { status: 400 });
     }

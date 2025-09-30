@@ -405,6 +405,23 @@ export default function PDVPage() {
     setItens((cur) => cur.filter((i) => i.id_produto !== id_produto));
   }
 
+  function limparVenda() {
+    setItens([]);
+    setAluno(null);
+    setFuncionario(null);
+    setRa('');
+    setBuscaAluno('');
+    setBuscaFunc('');
+    setSaldo(0);
+    setObservacoes([]);
+    setContaFuncionarioInfo(null);
+    setConsumoFuncionario([]);
+    setPrecosCargo({});
+    setAvisoConta('');
+    setResumoVenda(null);
+    setMsg('');
+  }
+
   async function finalizarVenda() {
     setMsg('');
     setResumoVenda(null);
@@ -482,21 +499,23 @@ export default function PDVPage() {
     });
     const d = await res.json();
     if (res.ok) {
-      setMsg(`Venda ${d.data.id_venda} concluída com sucesso.`);
-      setResumoVenda({
+      const vendaInfo = {
         id_venda: Number(d.data.id_venda),
         total: Number(d.data.total ?? total),
         valor_original: Number(d.data.valor_original ?? total),
         desconto: Number(d.data.desconto ?? 0),
         cargo_aplicado: d.data.cargo_aplicado ?? null,
-      });
-      setItens([]);
-      // atualizar saldo se aluno
-      if (tipoCliente === 'ALUNO') {
-        buscarAluno();
-      } else if (tipoCliente === 'FUNCIONARIO' && funcionario) {
-        await carregarContaFuncionario(funcionario.codigo, funcionario.cargo?.toUpperCase());
-      }
+      };
+
+      // Mostra resumo e limpa após 3 segundos
+      setMsg(
+        `Venda ${vendaInfo.id_venda} concluída com sucesso! A tela será limpa em instantes...`
+      );
+      setResumoVenda(vendaInfo);
+
+      setTimeout(() => {
+        limparVenda();
+      }, 3000);
     } else {
       if (d?.details) {
         const info = d.details as { limite?: number; saldo_atual?: number; valor_venda?: number };
@@ -554,15 +573,28 @@ export default function PDVPage() {
         {msg && <div className='alert alert-info mb-3'>{msg}</div>}
         {resumoVenda && (
           <div className='alert alert-success mb-3'>
-            <div className='fw-semibold'>Venda #{resumoVenda.id_venda}</div>
-            <div>Total pago: R$ {Number(resumoVenda.total).toFixed(2)}</div>
-            {resumoVenda.valor_original !== resumoVenda.total && (
+            <div className='d-flex justify-content-between align-items-start'>
               <div>
-                Valor original: R$ {Number(resumoVenda.valor_original).toFixed(2)} • Desconto: R${' '}
-                {Number(resumoVenda.desconto).toFixed(2)}
+                <div className='fw-semibold'>Venda #{resumoVenda.id_venda}</div>
+                <div>Total pago: R$ {Number(resumoVenda.total).toFixed(2)}</div>
+                {resumoVenda.valor_original !== resumoVenda.total && (
+                  <div>
+                    Valor original: R$ {Number(resumoVenda.valor_original).toFixed(2)} • Desconto:
+                    R$ {Number(resumoVenda.desconto).toFixed(2)}
+                  </div>
+                )}
+                {resumoVenda.cargo_aplicado && (
+                  <div>Cargo aplicado: {resumoVenda.cargo_aplicado}</div>
+                )}
               </div>
-            )}
-            {resumoVenda.cargo_aplicado && <div>Cargo aplicado: {resumoVenda.cargo_aplicado}</div>}
+              <button
+                className='btn btn-sm btn-primary'
+                onClick={limparVenda}
+                title='Iniciar nova venda'
+              >
+                Nova Venda
+              </button>
+            </div>
           </div>
         )}
         <div className='row g-3'>
@@ -767,6 +799,17 @@ export default function PDVPage() {
                     </div>
                     <div>Código: {funcionario.codigo}</div>
                     {funcionario.cargo && <div>Cargo: {funcionario.cargo}</div>}
+                    <div className='mt-2'>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`https://sistema.santanna.g12.br/carometr/f${funcionario.codigo}.jpg`}
+                        alt='Foto'
+                        width={120}
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
                     {carregandoFuncionario && (
                       <div className='text-muted small mt-2'>
                         Carregando dados do funcionário...

@@ -27,7 +27,7 @@ export async function GET(req: Request) {
 
     let sql = `
       SELECT vf.id, vf.id_venda, vf.valor_original, vf.valor_aplicado, vf.desconto_aplicado,
-             vf.mes_referencia, vf.pago, vf.dt_pagamento, v.dt_venda, v.observacoes,
+             vf.mes_referencia, vf.pago, vf.dt_lancamento, v.dt_venda, v.observacoes,
              u.nome AS usuario_nome
       FROM cant_vendas_funcionarios vf
       INNER JOIN cant_vendas v ON v.id = vf.id_venda
