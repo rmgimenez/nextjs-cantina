@@ -194,6 +194,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
           permission: [1, 2],
         },
         {
+          id: 'importar-saldos',
+          label: 'Importar Saldos',
+          icon: '📥',
+          path: '/alunos/importar-saldos',
+          permission: [1], // Apenas Admin
+        },
+        {
           id: 'historico-aluno',
           label: 'Histórico do Aluno',
           icon: '📊',
