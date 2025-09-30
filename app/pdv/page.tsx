@@ -1034,7 +1034,7 @@ export default function PDVPage() {
                 <div className={styles.clienteInfo}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={`https://sistema.santanna.g12.br/carometr/f${funcionario.codigo}.jpg`}
+                    src={`https://sistema.santanna.g12.br/carometr/${funcionario.codigo}.jpg`}
                     alt={funcionario.nome}
                     className={styles.fotoCliente}
                     onError={(e) => {
