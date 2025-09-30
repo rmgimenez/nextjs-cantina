@@ -1,7 +1,8 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import MainLayout from '../../components/MainLayout';
+import styles from './pdv.module.css';
 
 interface User {
   id: number;
@@ -105,6 +106,39 @@ export default function PDVPage() {
   } | null>(null);
   const [avisoConta, setAvisoConta] = useState('');
   const [carregandoFuncionario, setCarregandoFuncionario] = useState(false);
+
+  // Refs para controle de foco e atalhos
+  const buscaProdutoRef = useRef<HTMLInputElement>(null);
+  const buscaClienteRef = useRef<HTMLInputElement>(null);
+
+  // Atalhos de teclado
+  useEffect(() => {
+    const handleKeyboard = (e: KeyboardEvent) => {
+      // F2 - Focar na busca de cliente
+      if (e.key === 'F2') {
+        e.preventDefault();
+        buscaClienteRef.current?.focus();
+      }
+      // F3 - Focar na busca de produto
+      if (e.key === 'F3') {
+        e.preventDefault();
+        buscaProdutoRef.current?.focus();
+      }
+      // F9 - Finalizar venda
+      if (e.key === 'F9') {
+        e.preventDefault();
+        finalizarVenda();
+      }
+      // ESC - Limpar venda
+      if (e.key === 'Escape' && !resumoVenda) {
+        e.preventDefault();
+        limparVenda();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyboard);
+    return () => window.removeEventListener('keydown', handleKeyboard);
+  }, [resumoVenda]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     async function checkAuth() {
@@ -536,534 +570,643 @@ export default function PDVPage() {
     }
   }
 
-  if (carregando) return <div className='container py-4'>Verificando autenticação...</div>;
+  if (carregando) {
+    return (
+      <div className='container py-5 text-center'>
+        <div className='spinner-border text-primary' role='status'>
+          <span className='visually-hidden'>Carregando...</span>
+        </div>
+        <p className='mt-3 text-muted'>Verificando autenticação...</p>
+      </div>
+    );
+  }
   if (!user) return null;
+
+  // Função para obter ícone do produto por tipo
+  const getProdutoIcon = (tipo: string) => {
+    const t = tipo.toLowerCase();
+    if (t.includes('salgado')) return '🥖';
+    if (t.includes('doce')) return '🍰';
+    if (t.includes('bebida')) return '🥤';
+    if (t.includes('refeiç') || t.includes('almoço')) return '🍽️';
+    if (t.includes('lanche')) return '🥪';
+    return '🍴';
+  };
+
+  const clienteSelecionado = aluno || funcionario;
+  const produtosFiltrados = produtos.filter((p) =>
+    p.nome.toLowerCase().includes(busca.toLowerCase())
+  );
 
   return (
     <MainLayout>
-      <div>
-        {/* Status do Caixa */}
-        {statusCaixa && (
+      <div className={styles.pdvContainer}>
+        {/* Header com status do caixa */}
+        <div className={styles.headerBar}>
+          <div className='d-flex justify-content-between align-items-center'>
+            <div>
+              <h4 className='mb-0'>
+                <strong>PDV - Ponto de Venda</strong>
+              </h4>
+              <small>
+                Caixa: <strong>{statusCaixa?.aberto ? 'ABERTO' : 'FECHADO'}</strong>
+                {statusCaixa?.aberto && (
+                  <span className='ms-3'>
+                    Valor esperado: R$ {Number(statusCaixa?.totais?.esperado || 0).toFixed(2)}
+                  </span>
+                )}
+              </small>
+            </div>
+            <div>
+              <a href='/caixa' className='btn btn-light btn-sm'>
+                Gerenciar Caixa
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* Alertas e mensagens */}
+        {msg && (
           <div
             className={`alert ${
-              statusCaixa.aberto ? 'alert-success' : 'alert-warning'
-            } d-flex justify-content-between align-items-center mb-3`}
+              resumoVenda ? 'alert-success' : 'alert-info'
+            } alert-dismissible fade show`}
+            role='alert'
           >
-            <div>
-              <strong>Caixa: {statusCaixa.aberto ? 'ABERTO' : 'FECHADO'}</strong>
-              {statusCaixa.aberto && (
-                <>
-                  {' '}
-                  <span className='ms-2'>
-                    Esperado: R$ {Number(statusCaixa?.totais?.esperado || 0).toFixed(2)}
-                  </span>
-                </>
-              )}
-            </div>
-            <a
-              className='btn btn-sm btn-outline-primary'
-              href='/caixa'
-              target='_self'
-              rel='noopener'
-            >
-              Ir para o Caixa
-            </a>
+            <strong>{resumoVenda ? '✓ Sucesso!' : 'ℹ️ Atenção'}</strong> {msg}
+            <button type='button' className='btn-close' onClick={() => setMsg('')}></button>
           </div>
         )}
-        {msg && <div className='alert alert-info mb-3'>{msg}</div>}
+
         {resumoVenda && (
-          <div className='alert alert-success mb-3'>
-            <div className='d-flex justify-content-between align-items-start'>
+          <div className='alert alert-success border-success mb-3'>
+            <div className='d-flex justify-content-between align-items-center'>
               <div>
-                <div className='fw-semibold'>Venda #{resumoVenda.id_venda}</div>
-                <div>Total pago: R$ {Number(resumoVenda.total).toFixed(2)}</div>
-                {resumoVenda.valor_original !== resumoVenda.total && (
-                  <div>
-                    Valor original: R$ {Number(resumoVenda.valor_original).toFixed(2)} • Desconto:
-                    R$ {Number(resumoVenda.desconto).toFixed(2)}
+                <h5 className='mb-2'>✓ Venda #{resumoVenda.id_venda} concluída!</h5>
+                <div className='row g-2'>
+                  <div className='col-auto'>
+                    <strong>Total:</strong> R$ {Number(resumoVenda.total).toFixed(2)}
                   </div>
-                )}
-                {resumoVenda.cargo_aplicado && (
-                  <div>Cargo aplicado: {resumoVenda.cargo_aplicado}</div>
-                )}
+                  {resumoVenda.desconto > 0 && (
+                    <div className='col-auto'>
+                      <strong>Desconto:</strong> R$ {Number(resumoVenda.desconto).toFixed(2)}
+                    </div>
+                  )}
+                  {resumoVenda.cargo_aplicado && (
+                    <div className='col-auto'>
+                      <span className='badge bg-warning text-dark'>
+                        Cargo: {resumoVenda.cargo_aplicado}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <button
-                className='btn btn-sm btn-primary'
-                onClick={limparVenda}
-                title='Iniciar nova venda'
-              >
+              <button className='btn btn-primary btn-lg' onClick={limparVenda}>
                 Nova Venda
               </button>
             </div>
           </div>
         )}
-        <div className='row g-3'>
-          <div className='col-12'>
-            <div className='card mb-2'>
-              <div className='card-body d-flex flex-wrap gap-2 align-items-center'>
-                <div className='me-3'>
-                  <label className='form-label mb-0 me-2'>Tipo de cliente</label>
-                  <select
-                    className='form-select d-inline-block w-auto'
-                    value={tipoCliente}
-                    onChange={(e) => {
-                      const novo = e.target.value as 'ALUNO' | 'FUNCIONARIO' | 'GERAL';
-                      setTipoCliente(novo);
+
+        {/* Seleção de tipo de cliente */}
+        <div className='card mb-3 border-0 shadow-sm'>
+          <div className='card-body py-2'>
+            <div className='row g-2 align-items-center'>
+              <div className='col-auto'>
+                <label className='col-form-label fw-semibold'>Tipo de Cliente:</label>
+              </div>
+              <div className='col-auto'>
+                <div className='btn-group' role='group'>
+                  <input
+                    type='radio'
+                    className='btn-check'
+                    name='tipoCliente'
+                    id='tipoAluno'
+                    value='ALUNO'
+                    checked={tipoCliente === 'ALUNO'}
+                    onChange={() => {
+                      setTipoCliente('ALUNO');
                       setAluno(null);
                       setFuncionario(null);
                       setObservacoes([]);
                       setMsg('');
-                      setContaFuncionarioInfo(null);
-                      setConsumoFuncionario([]);
-                      setPrecosCargo({});
-                      setResumoVenda(null);
-                      setAvisoConta('');
-                      setFormaPagamento(
-                        novo === 'ALUNO'
-                          ? 'SALDO'
-                          : novo === 'FUNCIONARIO'
-                          ? 'CONTA_FUNCIONARIO'
-                          : 'DINHEIRO'
-                      );
+                      setFormaPagamento('SALDO');
+                      setTimeout(() => buscaClienteRef.current?.focus(), 100);
                     }}
-                  >
-                    <option value='ALUNO'>Aluno</option>
-                    <option value='FUNCIONARIO'>Funcionário</option>
-                    <option value='GERAL'>Geral</option>
-                  </select>
+                  />
+                  <label className='btn btn-outline-primary' htmlFor='tipoAluno'>
+                    👨‍🎓 Aluno
+                  </label>
+
+                  <input
+                    type='radio'
+                    className='btn-check'
+                    name='tipoCliente'
+                    id='tipoFuncionario'
+                    value='FUNCIONARIO'
+                    checked={tipoCliente === 'FUNCIONARIO'}
+                    onChange={() => {
+                      setTipoCliente('FUNCIONARIO');
+                      setAluno(null);
+                      setFuncionario(null);
+                      setMsg('');
+                      setFormaPagamento('CONTA_FUNCIONARIO');
+                      setTimeout(() => buscaClienteRef.current?.focus(), 100);
+                    }}
+                  />
+                  <label className='btn btn-outline-primary' htmlFor='tipoFuncionario'>
+                    👔 Funcionário
+                  </label>
+
+                  <input
+                    type='radio'
+                    className='btn-check'
+                    name='tipoCliente'
+                    id='tipoGeral'
+                    value='GERAL'
+                    checked={tipoCliente === 'GERAL'}
+                    onChange={() => {
+                      setTipoCliente('GERAL');
+                      setAluno(null);
+                      setFuncionario(null);
+                      setMsg('');
+                      setFormaPagamento('DINHEIRO');
+                      setTimeout(() => buscaProdutoRef.current?.focus(), 100);
+                    }}
+                  />
+                  <label className='btn btn-outline-primary' htmlFor='tipoGeral'>
+                    🛒 Geral
+                  </label>
                 </div>
-                <div>
-                  <label className='form-label mb-0 me-2'>Pagamento</label>
-                  <select
-                    className='form-select d-inline-block w-auto'
-                    value={formaPagamento}
-                    onChange={(e) => setFormaPagamento(e.target.value as FormaPagamento)}
-                    disabled={tipoCliente === 'FUNCIONARIO'}
-                  >
-                    {tipoCliente === 'ALUNO' && <option value='SALDO'>Saldo do aluno</option>}
-                    {tipoCliente === 'FUNCIONARIO' && (
-                      <option value='CONTA_FUNCIONARIO'>Conta do funcionário</option>
-                    )}
-                    {tipoCliente === 'GERAL' && (
-                      <>
-                        <option value='DINHEIRO'>Dinheiro</option>
-                        <option value='CARTAO'>Cartão</option>
-                      </>
-                    )}
-                  </select>
-                </div>
+              </div>
+              <div className='col-auto ms-auto'>
+                <button
+                  className='btn btn-outline-danger btn-sm'
+                  onClick={limparVenda}
+                  title='Limpar venda (ESC)'
+                >
+                  🗑️ Limpar
+                </button>
               </div>
             </div>
           </div>
-          <div className='col-md-4'>
-            <div className='card'>
-              <div className='card-body'>
-                <h5>Identificação</h5>
-                {tipoCliente === 'ALUNO' && (
-                  <>
-                    <div className='input-group mb-2'>
+        </div>
+
+        {/* Layout principal em grid */}
+        <div className='row g-3'>
+          {/* Coluna Esquerda - Cliente */}
+          <div className='col-lg-3'>
+            <div className={styles.clienteCard}>
+              <h5 className='mb-3 text-center'>
+                {tipoCliente === 'ALUNO' && '👨‍🎓 Identificar Aluno'}
+                {tipoCliente === 'FUNCIONARIO' && '👔 Identificar Funcionário'}
+                {tipoCliente === 'GERAL' && '🛒 Venda Geral'}
+              </h5>
+
+              {/* Busca de cliente */}
+              {tipoCliente !== 'GERAL' && (
+                <div className={styles.buscaRapida}>
+                  {tipoCliente === 'ALUNO' ? (
+                    <>
                       <input
-                        className='form-control'
-                        placeholder='RA do aluno'
-                        value={ra}
-                        onChange={(e) => setRa(e.target.value)}
+                        ref={buscaClienteRef}
+                        className={styles.buscaInput}
+                        placeholder='🔍 Buscar por nome ou RA... (F2)'
+                        value={buscaAluno}
+                        onChange={(e) => setBuscaAluno(e.target.value)}
+                        autoFocus
                       />
-                      <button className='btn btn-primary' onClick={buscarAluno}>
-                        Buscar
-                      </button>
-                    </div>
-                    <input
-                      className='form-control mb-2'
-                      placeholder='Buscar aluno por nome ou RA'
-                      value={buscaAluno}
-                      onChange={(e) => setBuscaAluno(e.target.value)}
-                    />
-                    {sugestoesAlunos.length > 0 && (
-                      <div
-                        className='list-group mb-2'
-                        style={{ maxHeight: 150, overflowY: 'auto' }}
-                      >
-                        {sugestoesAlunos.map((a) => (
-                          <button
-                            key={a.ra}
-                            className='list-group-item list-group-item-action'
-                            onClick={() => selecionarAluno(a)}
-                          >
-                            {a.nome} (RA {a.ra})
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
-                {tipoCliente === 'FUNCIONARIO' && (
-                  <>
-                    <input
-                      className='form-control mb-2'
-                      placeholder='Buscar funcionário por nome ou código'
-                      value={buscaFunc}
-                      onChange={(e) => setBuscaFunc(e.target.value)}
-                    />
-                    {sugestoesFunc.length > 0 && (
-                      <div
-                        className='list-group mb-2'
-                        style={{ maxHeight: 150, overflowY: 'auto' }}
-                      >
-                        {sugestoesFunc.map((f) => (
-                          <button
-                            key={f.codigo}
-                            className='list-group-item list-group-item-action'
-                            onClick={() => selecionarFuncionario(f)}
-                          >
-                            {f.nome} (cód. {f.codigo}) {f.cargo ? `- ${f.cargo}` : ''}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
-                {aluno && tipoCliente === 'ALUNO' && (
-                  <div>
-                    <div>
-                      <strong>{aluno.nome}</strong>
-                    </div>
-                    <div>Saldo: R$ {Number(saldo).toFixed(2)}</div>
-                    <div className='mt-2'>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={`https://sistema.santanna.g12.br/carometr/${aluno.ra}.jpg`}
-                        alt='Foto'
-                        width={120}
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                    <div className='mt-3'>
-                      <h6 className='fw-semibold text-primary'>Observações importantes</h6>
-                      {observacoes.length > 0 ? (
-                        <div className='d-flex flex-column gap-2'>
-                          {observacoes.map((obs) => {
-                            const alertClass =
-                              obs.prioridade === 'CRITICA'
-                                ? 'alert-danger'
-                                : obs.prioridade === 'ALTA'
-                                ? 'alert-warning text-dark'
-                                : 'alert-info text-dark';
-                            return (
-                              <div key={obs.id} className={`alert ${alertClass} mb-0 py-2 px-3`}>
-                                <div className='d-flex justify-content-between align-items-start gap-2'>
-                                  <div>
-                                    <div className='fw-semibold'>
-                                      {obs.tipo_observacao} • Prioridade {obs.prioridade}
-                                    </div>
-                                    <div>{obs.observacao}</div>
-                                  </div>
-                                  <span className='badge bg-secondary'>#{obs.id}</span>
-                                </div>
-                                <div className='small mt-1'>
-                                  {obs.dt_validade_formatada ? (
-                                    <>
-                                      Válido até {obs.dt_validade_formatada}
-                                      {obs.expirada && (
-                                        <span className='badge bg-danger ms-1'>Vencida</span>
-                                      )}
-                                      {!obs.expirada && obs.dias_restantes !== null && (
-                                        <span className='badge bg-dark text-white ms-1'>
-                                          {obs.dias_restantes === 0
-                                            ? 'Expira hoje'
-                                            : `${obs.dias_restantes} dia(s)`}
-                                        </span>
-                                      )}
-                                    </>
-                                  ) : (
-                                    <span className='text-muted'>Sem validade definida</span>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
+                      {sugestoesAlunos.length > 0 && (
+                        <div className={styles.sugestoesDropdown}>
+                          {sugestoesAlunos.map((a) => (
+                            <div
+                              key={a.ra}
+                              className={styles.sugestaoItem}
+                              onClick={() => selecionarAluno(a)}
+                            >
+                              <div className='fw-semibold'>{a.nome}</div>
+                              <small className='text-muted'>RA: {a.ra}</small>
+                            </div>
+                          ))}
                         </div>
-                      ) : (
-                        <div className='alert alert-light border mb-0 py-2 px-3'>
-                          Nenhuma observação ativa para este aluno.
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        ref={buscaClienteRef}
+                        className={styles.buscaInput}
+                        placeholder='🔍 Buscar funcionário... (F2)'
+                        value={buscaFunc}
+                        onChange={(e) => setBuscaFunc(e.target.value)}
+                        autoFocus
+                      />
+                      {sugestoesFunc.length > 0 && (
+                        <div className={styles.sugestoesDropdown}>
+                          {sugestoesFunc.map((f) => (
+                            <div
+                              key={f.codigo}
+                              className={styles.sugestaoItem}
+                              onClick={() => selecionarFuncionario(f)}
+                            >
+                              <div className='fw-semibold'>{f.nome}</div>
+                              <small className='text-muted'>
+                                Cód: {f.codigo} {f.cargo && `• ${f.cargo}`}
+                              </small>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Informações do cliente selecionado */}
+              {!clienteSelecionado && tipoCliente !== 'GERAL' && (
+                <div className='text-center text-muted py-5'>
+                  <div className={styles.fotoPlaceholder}>
+                    {tipoCliente === 'ALUNO' ? '👨‍🎓' : '👔'}
+                  </div>
+                  <p className='mt-3'>
+                    {tipoCliente === 'ALUNO'
+                      ? 'Busque o aluno para iniciar'
+                      : 'Busque o funcionário para iniciar'}
+                  </p>
+                </div>
+              )}
+
+              {aluno && tipoCliente === 'ALUNO' && (
+                <div className={styles.clienteInfo}>
+                  <img
+                    src={`https://sistema.santanna.g12.br/carometr/${aluno.ra}.jpg`}
+                    alt={aluno.nome}
+                    className={styles.fotoCliente}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.classList.remove('d-none');
+                    }}
+                  />
+                  <div className={`${styles.fotoPlaceholder} d-none`}>👨‍🎓</div>
+
+                  <div className={styles.clienteNome}>{aluno.nome}</div>
+                  <div className='text-muted small mb-2'>RA: {aluno.ra}</div>
+                  <div
+                    className={`${styles.clienteSaldo} ${
+                      saldo < 10 ? styles.clienteSaldoBaixo : ''
+                    }`}
+                  >
+                    R$ {saldo.toFixed(2)}
+                  </div>
+                  {saldo < 10 && (
+                    <div className='alert alert-warning py-1 px-2 mt-2 small'>⚠️ Saldo baixo!</div>
+                  )}
+
+                  {/* Observações do aluno */}
+                  {observacoes.length > 0 && (
+                    <div className='mt-3'>
+                      <h6 className='fw-bold text-danger mb-2'>⚠️ ATENÇÃO</h6>
+                      {observacoes.map((obs) => {
+                        const alertClass =
+                          obs.prioridade === 'CRITICA'
+                            ? styles.obsAlertCritica
+                            : obs.prioridade === 'ALTA'
+                            ? styles.obsAlertAlta
+                            : obs.prioridade === 'MEDIA'
+                            ? styles.obsAlertMedia
+                            : styles.obsAlertBaixa;
+
+                        return (
+                          <div key={obs.id} className={`${styles.obsAlert} ${alertClass}`}>
+                            <div className='fw-semibold small'>{obs.tipo_observacao}</div>
+                            <div className='small'>{obs.observacao}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {funcionario && tipoCliente === 'FUNCIONARIO' && (
+                <div className={styles.clienteInfo}>
+                  <img
+                    src={`https://sistema.santanna.g12.br/carometr/f${funcionario.codigo}.jpg`}
+                    alt={funcionario.nome}
+                    className={styles.fotoCliente}
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.classList.remove('d-none');
+                    }}
+                  />
+                  <div className={`${styles.fotoPlaceholder} d-none`}>👔</div>
+
+                  <div className={styles.clienteNome}>{funcionario.nome}</div>
+                  <div className='text-muted small mb-2'>
+                    Cód: {funcionario.codigo}
+                    {funcionario.cargo && ` • ${funcionario.cargo}`}
+                  </div>
+
+                  {carregandoFuncionario && (
+                    <div className='text-center py-3'>
+                      <div className='spinner-border spinner-border-sm text-primary' role='status'>
+                        <span className='visually-hidden'>Carregando...</span>
+                      </div>
+                      <div className='small text-muted mt-2'>Carregando dados...</div>
+                    </div>
+                  )}
+
+                  {!carregandoFuncionario && contaFuncionarioInfo && (
+                    <div className='border rounded p-2 mt-3 bg-light'>
+                      <div className='d-flex justify-content-between small mb-1'>
+                        <span>Limite:</span>
+                        <strong>
+                          {contaFuncionarioInfo.limite_credito !== null
+                            ? `R$ ${Number(contaFuncionarioInfo.limite_credito).toFixed(2)}`
+                            : 'Sem limite'}
+                        </strong>
+                      </div>
+                      <div className='d-flex justify-content-between small mb-1'>
+                        <span>Em aberto:</span>
+                        <strong className='text-warning'>
+                          R$ {Number(contaFuncionarioInfo.total_em_aberto || 0).toFixed(2)}
+                        </strong>
+                      </div>
+                      {contaFuncionarioInfo.limite_disponivel !== null && (
+                        <div className='d-flex justify-content-between small'>
+                          <span>Disponível:</span>
+                          <strong
+                            className={
+                              contaFuncionarioInfo.limite_disponivel < 0
+                                ? 'text-danger'
+                                : 'text-success'
+                            }
+                          >
+                            R$ {Number(contaFuncionarioInfo.limite_disponivel).toFixed(2)}
+                          </strong>
+                        </div>
+                      )}
+                      {avisoConta && (
+                        <div className='alert alert-warning py-1 px-2 mt-2 small mb-0'>
+                          {avisoConta}
                         </div>
                       )}
                     </div>
+                  )}
+                </div>
+              )}
+
+              {tipoCliente === 'GERAL' && (
+                <div className='text-center py-5'>
+                  <div className={styles.fotoPlaceholder}>🛒</div>
+                  <p className='mt-3 text-muted'>
+                    Venda para público geral
+                    <br />
+                    <small>Pagamento: Dinheiro ou Cartão</small>
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Coluna Central - Produtos */}
+          <div className='col-lg-5'>
+            <div className={styles.clienteCard}>
+              <div className='d-flex justify-content-between align-items-center mb-3'>
+                <h5 className='mb-0'>🛍️ Produtos</h5>
+                <span className='badge bg-secondary'>{produtosFiltrados.length} produtos</span>
+              </div>
+
+              <div className='mb-3'>
+                <input
+                  ref={buscaProdutoRef}
+                  className={styles.buscaInput}
+                  placeholder='🔍 Buscar produto... (F3)'
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                />
+              </div>
+
+              <div className={styles.produtosGrid}>
+                {produtosFiltrados.length === 0 ? (
+                  <div className='col-12 text-center text-muted py-5'>
+                    <p>Nenhum produto encontrado</p>
                   </div>
-                )}
-                {funcionario && tipoCliente === 'FUNCIONARIO' && (
-                  <div>
-                    <div>
-                      <strong>{funcionario.nome}</strong>
-                    </div>
-                    <div>Código: {funcionario.codigo}</div>
-                    {funcionario.cargo && <div>Cargo: {funcionario.cargo}</div>}
-                    <div className='mt-2'>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={`https://sistema.santanna.g12.br/carometr/f${funcionario.codigo}.jpg`}
-                        alt='Foto'
-                        width={120}
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                    </div>
-                    {carregandoFuncionario && (
-                      <div className='text-muted small mt-2'>
-                        Carregando dados do funcionário...
-                      </div>
-                    )}
-                    {contaFuncionarioInfo && !carregandoFuncionario && (
-                      <div className='mt-2 border rounded p-2 bg-light'>
-                        <div className='small d-flex justify-content-between'>
-                          <span>Limite de crédito</span>
-                          <span>
-                            {contaFuncionarioInfo.limite_credito !== null
-                              ? `R$ ${Number(contaFuncionarioInfo.limite_credito).toFixed(2)}`
-                              : 'Sem limite definido'}
-                          </span>
+                ) : (
+                  produtosFiltrados.map((p) => {
+                    const precoEspecial =
+                      tipoCliente === 'FUNCIONARIO' ? precosCargo[p.id] : undefined;
+                    const temDesconto =
+                      precoEspecial != null && Number(precoEspecial) !== Number(p.preco_venda);
+                    const precoFinal = temDesconto ? Number(precoEspecial) : Number(p.preco_venda);
+
+                    return (
+                      <div
+                        key={p.id}
+                        className={styles.produtoCard}
+                        onClick={() => addItem(p)}
+                        title={`Adicionar ${p.nome}`}
+                      >
+                        <div className={styles.produtoIcon}>{getProdutoIcon(p.tipo_nome)}</div>
+                        <div className={styles.produtoNome}>{p.nome}</div>
+                        <div className='text-muted small mb-1'>{p.tipo_nome}</div>
+                        <div
+                          className={`${styles.produtoPreco} ${
+                            temDesconto ? styles.produtoPrecoDesconto : ''
+                          }`}
+                        >
+                          R$ {precoFinal.toFixed(2)}
+                          {p.por_quilo ? '/kg' : ''}
                         </div>
-                        <div className='small d-flex justify-content-between'>
-                          <span>Em aberto</span>
-                          <span>
-                            R$ {Number(contaFuncionarioInfo.total_em_aberto || 0).toFixed(2)}
-                          </span>
-                        </div>
-                        {contaFuncionarioInfo.limite_disponivel !== null && (
-                          <div className='small d-flex justify-content-between'>
-                            <span>Disponível</span>
-                            <span
-                              className={
-                                contaFuncionarioInfo.limite_disponivel < 0
-                                  ? 'text-danger fw-semibold'
-                                  : 'fw-semibold'
-                              }
-                            >
-                              R$ {Number(contaFuncionarioInfo.limite_disponivel).toFixed(2)}
-                            </span>
+                        {temDesconto && (
+                          <div className='text-decoration-line-through text-muted small'>
+                            R$ {Number(p.preco_venda).toFixed(2)}
                           </div>
                         )}
-                        {avisoConta && (
-                          <div className='alert alert-warning py-1 px-2 mt-2 small mb-0'>
-                            {avisoConta}
-                          </div>
-                        )}
                       </div>
-                    )}
-                    {!carregandoFuncionario && !contaFuncionarioInfo && (
-                      <div className='alert alert-light border mt-2 py-2 px-3 small mb-0'>
-                        Nenhuma conta configurada. A primeira venda criará o registro
-                        automaticamente.
-                      </div>
-                    )}
-                    {consumoFuncionario.length > 0 && (
-                      <div className='mt-3'>
-                        <h6 className='fw-semibold text-primary'>Últimas movimentações</h6>
-                        <div className='table-responsive'>
-                          <table className='table table-sm table-bordered align-middle mb-0'>
-                            <thead>
-                              <tr>
-                                <th>Venda</th>
-                                <th>Data</th>
-                                <th>Valor</th>
-                                <th>Status</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {consumoFuncionario.map((consumo) => (
-                                <tr key={consumo.id}>
-                                  <td>#{consumo.id_venda}</td>
-                                  <td>{new Date(consumo.dt_venda).toLocaleString()}</td>
-                                  <td>
-                                    R$ {Number(consumo.valor_aplicado).toFixed(2)}
-                                    {consumo.valor_aplicado !== consumo.valor_original && (
-                                      <small className='text-muted ms-1'>
-                                        (Base R$ {Number(consumo.valor_original).toFixed(2)})
-                                      </small>
-                                    )}
-                                  </td>
-                                  <td>
-                                    {consumo.pago ? (
-                                      <span className='badge bg-success'>Pago</span>
-                                    ) : (
-                                      <span className='badge bg-warning text-dark'>Pendente</span>
-                                    )}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })
                 )}
               </div>
             </div>
           </div>
-          <div className='col-md-4'>
-            <div className='card'>
-              <div className='card-body'>
-                <h5>Produtos</h5>
-                <input
-                  className='form-control mb-2'
-                  placeholder='Buscar produto por nome ou código de barras'
-                  value={busca}
-                  onChange={async (e) => {
-                    const val = e.target.value;
-                    setBusca(val);
-                    // Busca dinâmica simples (debounce leve pode ser adicionado)
-                    const q = val.trim();
-                    if (q.length >= 2) {
-                      try {
-                        const r = await fetch(`/api/produtos?q=${encodeURIComponent(q)}&ativo=1`);
-                        const d = await r.json();
-                        if (d?.data) setProdutos(d.data);
-                      } catch {}
-                    } else {
-                      // recarrega lista base
-                      try {
-                        const r = await fetch(`/api/produtos?ativo=1`);
-                        const d = await r.json();
-                        if (d?.data) setProdutos(d.data);
-                      } catch {}
-                    }
-                  }}
-                />
-                <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-                  {produtos
-                    .filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase()))
-                    .map((p) => {
-                      const precoEspecial =
-                        tipoCliente === 'FUNCIONARIO' ? precosCargo[p.id] : undefined;
-                      const possuiEspecial =
-                        precoEspecial != null && Number(precoEspecial) !== Number(p.preco_venda);
-                      return (
-                        <div
-                          key={p.id}
-                          className='d-flex justify-content-between align-items-center border-bottom py-1'
-                        >
-                          <div>
-                            <div>{p.nome}</div>
-                            <small className='text-muted'>
-                              {p.tipo_nome} • R$ {Number(p.preco_venda).toFixed(2)}
-                              {p.por_quilo ? ' /kg' : ''}
-                              {possuiEspecial && (
-                                <span className='ms-2 badge bg-warning text-dark'>
-                                  Cargo: R$ {Number(precoEspecial).toFixed(2)}
-                                  {p.por_quilo ? ' /kg' : ''}
-                                </span>
-                              )}
-                            </small>
-                          </div>
-                          <button
-                            className='btn btn-sm btn-outline-primary'
-                            onClick={() => addItem(p)}
-                          >
-                            Adicionar
-                          </button>
-                        </div>
-                      );
-                    })}
+
+          {/* Coluna Direita - Carrinho */}
+          <div className='col-lg-4'>
+            <div className={styles.carrinhoContainer}>
+              <div className={styles.carrinhoHeader}>
+                <div className='d-flex justify-content-between align-items-center'>
+                  <h5 className='mb-0'>🛒 Carrinho</h5>
+                  <span className='badge bg-primary'>
+                    {itens.length} {itens.length === 1 ? 'item' : 'itens'}
+                  </span>
                 </div>
               </div>
-            </div>
-          </div>
-          <div className='col-md-4'>
-            <div className='card'>
-              <div className='card-body'>
-                <h5>Carrinho</h5>
-                <div style={{ maxHeight: 260, overflowY: 'auto' }}>
-                  {itens.map((i) => {
-                    const p = produtos.find((pr) => pr.id === i.id_produto);
+
+              <div className={styles.carrinhoItens}>
+                {itens.length === 0 ? (
+                  <div className='text-center text-muted py-5'>
+                    <div style={{ fontSize: '3rem' }}>🛒</div>
+                    <p className='mt-2'>Carrinho vazio</p>
+                    <small>Adicione produtos para começar</small>
+                  </div>
+                ) : (
+                  itens.map((item) => {
+                    const p = produtos.find((pr) => pr.id === item.id_produto);
                     if (!p) return null;
+
                     const quantidade = p.por_quilo
-                      ? Number(i.peso) || 0
-                      : Number(i.quantidade ?? 1) || 0;
+                      ? Number(item.peso) || 0
+                      : Number(item.quantidade ?? 1) || 0;
                     const precoBase = Number(p.preco_venda);
                     const precoAplicado =
                       tipoCliente === 'FUNCIONARIO' && precosCargo[p.id] != null
                         ? Number(precosCargo[p.id])
                         : precoBase;
-                    const valorAplicado = Number((precoAplicado * quantidade).toFixed(2));
+                    const subtotal = precoAplicado * quantidade;
+                    const temDesconto = precoAplicado !== precoBase;
+
                     return (
-                      <div key={i.id_produto} className='border-bottom pb-2 mb-2'>
-                        <div className='d-flex justify-content-between'>
-                          <strong>{p.nome}</strong>
+                      <div key={item.id_produto} className={styles.carrinhoItem}>
+                        <div className={styles.carrinhoItemHeader}>
+                          <div className={styles.carrinhoItemNome}>
+                            {getProdutoIcon(p.tipo_nome)} {p.nome}
+                          </div>
                           <button
-                            className='btn btn-sm btn-link text-danger'
-                            onClick={() => removerItem(i.id_produto)}
+                            className={styles.btnRemover}
+                            onClick={() => removerItem(item.id_produto)}
+                            title='Remover item'
                           >
-                            remover
+                            ✕
                           </button>
                         </div>
-                        {p.por_quilo ? (
-                          <div className='input-group input-group-sm'>
-                            <span className='input-group-text'>Peso (kg)</span>
-                            <input
-                              className='form-control'
-                              value={i.peso ?? ''}
-                              onChange={(e) => updateItem(i.id_produto, 'peso', e.target.value)}
-                            />
-                          </div>
-                        ) : (
-                          <div className='input-group input-group-sm'>
-                            <span className='input-group-text'>Qtd</span>
-                            <input
-                              className='form-control'
-                              value={i.quantidade ?? 1}
-                              onChange={(e) =>
-                                updateItem(i.id_produto, 'quantidade', e.target.value)
-                              }
-                            />
-                          </div>
-                        )}
-                        <div className='d-flex justify-content-between small text-muted mt-1'>
-                          <span>
-                            Preço: R$ {precoAplicado.toFixed(2)}
-                            {tipoCliente === 'FUNCIONARIO' && precoAplicado !== precoBase && (
-                              <span className='ms-1 text-decoration-line-through text-danger'>
+
+                        <div className='mt-2'>
+                          {p.por_quilo ? (
+                            <div className='input-group input-group-sm'>
+                              <span className='input-group-text'>Peso (kg)</span>
+                              <input
+                                type='number'
+                                className='form-control'
+                                value={item.peso ?? ''}
+                                onChange={(e) =>
+                                  updateItem(item.id_produto, 'peso', e.target.value)
+                                }
+                                step='0.01'
+                                min='0'
+                              />
+                            </div>
+                          ) : (
+                            <div className='input-group input-group-sm'>
+                              <button
+                                className='btn btn-outline-secondary'
+                                onClick={() => {
+                                  const novaQtd = Math.max(1, (item.quantidade ?? 1) - 1);
+                                  updateItem(item.id_produto, 'quantidade', String(novaQtd));
+                                }}
+                              >
+                                −
+                              </button>
+                              <input
+                                type='number'
+                                className='form-control text-center'
+                                value={item.quantidade ?? 1}
+                                onChange={(e) =>
+                                  updateItem(item.id_produto, 'quantidade', e.target.value)
+                                }
+                                min='1'
+                                style={{ maxWidth: '60px' }}
+                              />
+                              <button
+                                className='btn btn-outline-secondary'
+                                onClick={() => {
+                                  const novaQtd = (item.quantidade ?? 1) + 1;
+                                  updateItem(item.id_produto, 'quantidade', String(novaQtd));
+                                }}
+                              >
+                                +
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className='d-flex justify-content-between mt-2 small'>
+                          <span className='text-muted'>
+                            R$ {precoAplicado.toFixed(2)}
+                            {p.por_quilo && '/kg'}
+                            {temDesconto && (
+                              <span className='text-decoration-line-through text-danger ms-1'>
                                 R$ {precoBase.toFixed(2)}
                               </span>
                             )}
                           </span>
-                          <span>Subtotal: R$ {valorAplicado.toFixed(2)}</span>
+                          <strong className='text-success'>R$ {subtotal.toFixed(2)}</strong>
                         </div>
                       </div>
                     );
-                  })}
-                </div>
-                <div className='border-top pt-2 mt-2'>
-                  <div className='d-flex justify-content-between small text-muted'>
-                    <span>Total base</span>
-                    <span>R$ {totais.base.toFixed(2)}</span>
+                  })
+                )}
+              </div>
+
+              <div className={styles.carrinhoFooter}>
+                <div className={styles.totalContainer}>
+                  <div className='d-flex justify-content-between align-items-center mb-2'>
+                    <span className='text-muted small'>Subtotal:</span>
+                    <span className='fw-semibold'>R$ {totais.base.toFixed(2)}</span>
                   </div>
-                  {tipoCliente === 'FUNCIONARIO' && Math.abs(totais.desconto) > 0.009 && (
-                    <div className='d-flex justify-content-between small text-success'>
-                      <span>Desconto aplicado</span>
-                      <span>- R$ {Math.abs(totais.desconto).toFixed(2)}</span>
+
+                  {tipoCliente === 'FUNCIONARIO' && totais.desconto > 0 && (
+                    <div className='d-flex justify-content-between align-items-center mb-2'>
+                      <span className='text-success small'>Desconto:</span>
+                      <span className='text-success fw-semibold'>
+                        - R$ {totais.desconto.toFixed(2)}
+                      </span>
                     </div>
                   )}
-                  <div className='d-flex justify-content-between align-items-center mt-2'>
-                    <strong>Total a pagar</strong>
-                    <span className='fs-5'>R$ {total.toFixed(2)}</span>
+
+                  <div className='border-top pt-2 mt-2'>
+                    <div className='d-flex justify-content-between align-items-center'>
+                      <div className={styles.totalLabel}>Total:</div>
+                      <div className={styles.totalValor}>R$ {total.toFixed(2)}</div>
+                    </div>
                   </div>
                 </div>
+
                 <button
-                  className='btn btn-success w-100 mt-2'
+                  className={styles.btnFinalizar}
                   onClick={finalizarVenda}
                   disabled={
                     (tipoCliente === 'ALUNO' && !aluno) ||
                     (tipoCliente === 'FUNCIONARIO' && !funcionario) ||
                     itens.length === 0
                   }
+                  title='Finalizar venda (F9)'
                 >
-                  Finalizar
+                  {itens.length === 0
+                    ? '🛒 Carrinho vazio'
+                    : (tipoCliente === 'ALUNO' && !aluno) ||
+                      (tipoCliente === 'FUNCIONARIO' && !funcionario)
+                    ? '⚠️ Selecione um cliente'
+                    : '✓ Finalizar Venda (F9)'}
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Atalhos de teclado */}
+        <div className={styles.atalhos}>
+          <div>
+            <kbd>F2</kbd> Buscar cliente
+          </div>
+          <div>
+            <kbd>F3</kbd> Buscar produto
+          </div>
+          <div>
+            <kbd>F9</kbd> Finalizar venda
+          </div>
+          <div>
+            <kbd>ESC</kbd> Limpar venda
           </div>
         </div>
       </div>
