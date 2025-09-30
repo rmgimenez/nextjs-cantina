@@ -304,6 +304,20 @@ export default function MainLayout({ children }: MainLayoutProps) {
           permission: [1],
         },
         {
+          id: 'contas-funcionarios',
+          label: 'Contas de Funcionários',
+          icon: '💳',
+          path: '/financeiro/funcionarios/contas',
+          permission: [1],
+        },
+        {
+          id: 'precos-cargo',
+          label: 'Preços por Cargo',
+          icon: '🏷️',
+          path: '/financeiro/funcionarios/precos',
+          permission: [1],
+        },
+        {
           id: 'relatorios-financeiros',
           label: 'Relatórios Financeiros',
           icon: '📈',
@@ -312,7 +326,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
         },
         {
           id: 'faturas',
-          label: 'Faturas',
+          label: 'Faturas de Funcionários',
           icon: '📄',
           path: '/financeiro/faturas',
           permission: [1],

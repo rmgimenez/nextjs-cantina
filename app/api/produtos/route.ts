@@ -50,7 +50,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { nome, id_tipo, preco_venda, codigo_barras, por_quilo } = body;
+    const { nome, id_tipo, preco_venda, codigo_barras, por_quilo, quantidade_inicial } = body;
 
     if (!nome || !nome.trim()) {
       return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 });
@@ -60,6 +60,15 @@ export async function POST(req: Request) {
     }
     if (preco_venda === undefined || isNaN(Number(preco_venda))) {
       return NextResponse.json({ error: 'Preço de venda inválido' }, { status: 400 });
+    }
+
+    const quantidadeInicialNumber =
+      quantidade_inicial !== undefined && quantidade_inicial !== null
+        ? Number(quantidade_inicial)
+        : 0;
+
+    if (Number.isNaN(quantidadeInicialNumber) || quantidadeInicialNumber < 0) {
+      return NextResponse.json({ error: 'Quantidade inicial inválida' }, { status: 400 });
     }
 
     // Verificar se tipo existe e está ativo
@@ -83,24 +92,57 @@ export async function POST(req: Request) {
     }
 
     // Inserir produto
-    await query(
+    const insertResult = (await query(
       `INSERT INTO cant_produtos (nome, id_tipo, preco_venda, codigo_barras, por_quilo, ativo, criado_por)
        VALUES (?, ?, ?, ?, ?, 1, 1)`,
       [nome.trim(), Number(id_tipo), Number(preco_venda), codigo_barras || null, por_quilo ? 1 : 0]
-    );
+    )) as unknown;
+
+    let novoProdutoId: number | undefined;
+    if (insertResult && typeof insertResult === 'object' && 'insertId' in insertResult) {
+      const rawId = (insertResult as { insertId: number }).insertId;
+      if (rawId) novoProdutoId = Number(rawId);
+    }
+
+    if (!novoProdutoId) {
+      const idRows = (await query(
+        `SELECT id FROM cant_produtos WHERE nome = ? AND id_tipo = ? ORDER BY id DESC LIMIT 1`,
+        [nome.trim(), Number(id_tipo)]
+      )) as Array<{ id: number }>;
+      if (idRows && idRows.length > 0) {
+        novoProdutoId = Number(idRows[0].id);
+      }
+    }
+
+    if (!novoProdutoId) {
+      return NextResponse.json(
+        { error: 'Não foi possível identificar o produto criado' },
+        { status: 500 }
+      );
+    }
 
     // Criar registro de estoque inicial
     await query(
       `INSERT INTO cant_estoque (id_produto, quantidade_atual, quantidade_minima)
-       VALUES (LAST_INSERT_ID(), 0, 0)`
+       VALUES (?, ?, 0)`,
+      [novoProdutoId, quantidadeInicialNumber]
     );
+
+    if (quantidadeInicialNumber > 0) {
+      await query(
+        `INSERT INTO cant_movimentacoes_estoque (id_produto, tipo_movimentacao, quantidade, quantidade_anterior, quantidade_posterior, motivo, documento, usuario)
+         VALUES (?, 'AJUSTE', ?, 0, ?, 'Estoque inicial', 'CADASTRO_PRODUTO', 1)`,
+        [novoProdutoId, quantidadeInicialNumber, quantidadeInicialNumber]
+      );
+    }
 
     // Buscar produto criado
     const novo = await query(
       `SELECT p.*, tp.nome AS tipo_nome
        FROM cant_produtos p
        INNER JOIN cant_tipos_produtos tp ON p.id_tipo = tp.id
-       WHERE p.id = LAST_INSERT_ID()`
+       WHERE p.id = ?`,
+      [novoProdutoId]
     );
 
     const parsedNovo = (novo as any[]).map((r) => ({

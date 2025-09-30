@@ -322,6 +322,23 @@ CREATE TABLE `cant_vendas_itens` (
 -- TABELAS DE FUNCIONÁRIOS DA ESCOLA
 -- =====================================================
 
+-- Tabela de contas dos funcionários
+CREATE TABLE `cant_contas_funcionarios` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `codigo_funcionario` int NOT NULL,
+    `limite_credito` decimal(10,2) DEFAULT NULL,
+    `alerta_credito` decimal(10,2) DEFAULT NULL,
+    `observacoes` varchar(255) DEFAULT NULL,
+    `ativo` tinyint(1) DEFAULT 1,
+    `dt_criacao` timestamp DEFAULT CURRENT_TIMESTAMP,
+    `dt_alteracao` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `criado_por` int DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_cant_contas_funcionario` (`codigo_funcionario`),
+    KEY `idx_cant_contas_func_limite` (`limite_credito`),
+    CONSTRAINT `fk_cant_contas_func_criado_por` FOREIGN KEY (`criado_por`) REFERENCES `cant_usuarios_cantina` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Tabela de preços por cargo
 CREATE TABLE `cant_precos_por_cargo` (
     `id` int NOT NULL AUTO_INCREMENT,
@@ -329,35 +346,36 @@ CREATE TABLE `cant_precos_por_cargo` (
     `id_produto` int NOT NULL,
     `preco_especial` decimal(10,2) NOT NULL,
     `ativo` tinyint(1) DEFAULT 1,
+    `dt_inicio_vigencia` date DEFAULT NULL,
+    `dt_fim_vigencia` date DEFAULT NULL,
     `dt_criacao` timestamp DEFAULT CURRENT_TIMESTAMP,
     `dt_alteracao` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `criado_por` int DEFAULT NULL,
     PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_cant_precos_cargo_produto` (`cargo`, `id_produto`),
     KEY `fk_cant_precos_cargo_produto` (`id_produto`),
     KEY `fk_cant_precos_cargo_criado_por` (`criado_por`),
     KEY `idx_cant_precos_cargo` (`cargo`),
-    UNIQUE KEY `uk_cant_precos_cargo_produto` (`cargo`, `id_produto`),
     CONSTRAINT `fk_cant_precos_cargo_produto` FOREIGN KEY (`id_produto`) REFERENCES `cant_produtos` (`id`),
     CONSTRAINT `fk_cant_precos_cargo_criado_por` FOREIGN KEY (`criado_por`) REFERENCES `cant_usuarios_cantina` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Tabela de vendas para funcionários da escola
-CREATE TABLE `cant_vendas_funcionarios` (
+-- Tabela de histórico de preços por cargo
+CREATE TABLE `cant_precos_por_cargo_historico` (
     `id` int NOT NULL AUTO_INCREMENT,
-    `id_venda` int NOT NULL,
-    `codigo_funcionario` int NOT NULL,
-    `valor_original` decimal(10,2) NOT NULL,
-    `valor_aplicado` decimal(10,2) NOT NULL,
-    `desconto_aplicado` decimal(10,2) DEFAULT 0.00,
-    `mes_referencia` varchar(7) NOT NULL, -- YYYY-MM
-    `pago` tinyint(1) DEFAULT 0,
-    `dt_pagamento` timestamp NULL,
+    `id_preco_cargo` int DEFAULT NULL,
+    `cargo` varchar(100) NOT NULL,
+    `id_produto` int NOT NULL,
+    `preco_anterior` decimal(10,2) NOT NULL,
+    `preco_novo` decimal(10,2) NOT NULL,
+    `dt_alteracao` timestamp DEFAULT CURRENT_TIMESTAMP,
+    `usuario` int DEFAULT NULL,
     PRIMARY KEY (`id`),
-    KEY `fk_cant_vendas_func_venda` (`id_venda`),
-    KEY `idx_cant_vendas_func_codigo` (`codigo_funcionario`),
-    KEY `idx_cant_vendas_func_mes` (`mes_referencia`),
-    KEY `idx_cant_vendas_func_pago` (`pago`),
-    CONSTRAINT `fk_cant_vendas_func_venda` FOREIGN KEY (`id_venda`) REFERENCES `cant_vendas` (`id`)
+    KEY `fk_cant_precos_cargo_hist_preco` (`id_preco_cargo`),
+    KEY `fk_cant_precos_cargo_hist_usuario` (`usuario`),
+    KEY `idx_cant_precos_cargo_hist_produto` (`id_produto`),
+    CONSTRAINT `fk_cant_precos_cargo_hist_preco` FOREIGN KEY (`id_preco_cargo`) REFERENCES `cant_precos_por_cargo` (`id`) ON DELETE SET NULL,
+    CONSTRAINT `fk_cant_precos_cargo_hist_usuario` FOREIGN KEY (`usuario`) REFERENCES `cant_usuarios_cantina` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabela de faturas dos funcionários
@@ -367,17 +385,42 @@ CREATE TABLE `cant_faturas_funcionarios` (
     `mes_referencia` varchar(7) NOT NULL, -- YYYY-MM
     `valor_total` decimal(10,2) NOT NULL,
     `quantidade_itens` int NOT NULL,
-    `status` enum('GERADA','ENVIADA','PAGA','VENCIDA') DEFAULT 'GERADA',
+    `status` enum('GERADA','ENVIADA','PAGA','VENCIDA','PARCIAL') DEFAULT 'GERADA',
     `dt_vencimento` date NOT NULL,
     `dt_pagamento` timestamp NULL,
     `dt_envio_email` timestamp NULL,
     `dt_criacao` timestamp DEFAULT CURRENT_TIMESTAMP,
+    `id_usuario_geracao` int DEFAULT NULL,
     `observacoes` text DEFAULT NULL,
     PRIMARY KEY (`id`),
     KEY `idx_cant_faturas_funcionario` (`codigo_funcionario`),
     KEY `idx_cant_faturas_mes` (`mes_referencia`),
     KEY `idx_cant_faturas_status` (`status`),
-    UNIQUE KEY `uk_cant_faturas_func_mes` (`codigo_funcionario`, `mes_referencia`)
+    UNIQUE KEY `uk_cant_faturas_func_mes` (`codigo_funcionario`, `mes_referencia`),
+    CONSTRAINT `fk_cant_faturas_usuario_geracao` FOREIGN KEY (`id_usuario_geracao`) REFERENCES `cant_usuarios_cantina` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabela de vendas para funcionários da escola
+CREATE TABLE `cant_vendas_funcionarios` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `id_venda` int NOT NULL,
+    `codigo_funcionario` int NOT NULL,
+    `cargo_aplicado` varchar(100) DEFAULT NULL,
+    `valor_original` decimal(10,2) NOT NULL,
+    `valor_aplicado` decimal(10,2) NOT NULL,
+    `desconto_aplicado` decimal(10,2) DEFAULT 0.00,
+    `mes_referencia` varchar(7) NOT NULL, -- YYYY-MM
+    `id_fatura` int DEFAULT NULL,
+    `pago` tinyint(1) DEFAULT 0,
+    `dt_lancamento` timestamp DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `fk_cant_vendas_func_venda` (`id_venda`),
+    KEY `idx_cant_vendas_func_codigo` (`codigo_funcionario`),
+    KEY `idx_cant_vendas_func_mes` (`mes_referencia`),
+    KEY `idx_cant_vendas_func_pago` (`pago`),
+    KEY `idx_cant_vendas_func_id_fatura` (`id_fatura`),
+    CONSTRAINT `fk_cant_vendas_func_venda` FOREIGN KEY (`id_venda`) REFERENCES `cant_vendas` (`id`),
+    CONSTRAINT `fk_cant_vendas_func_fatura` FOREIGN KEY (`id_fatura`) REFERENCES `cant_faturas_funcionarios` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tabela de pagamentos dos funcionários
@@ -397,89 +440,81 @@ CREATE TABLE `cant_pagamentos_funcionarios` (
     CONSTRAINT `fk_cant_pagamentos_usuario` FOREIGN KEY (`usuario`) REFERENCES `cant_usuarios_cantina` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- =====================================================
--- TABELAS DE PACOTES DE ALIMENTAÇÃO
--- =====================================================
-
--- Tabela de tipos de pacotes de alimentação
+-- Tabela de pacotes de alimentação
 CREATE TABLE `cant_pacotes_alimentacao` (
     `id` int NOT NULL AUTO_INCREMENT,
     `nome` varchar(100) NOT NULL,
+    `tipo_refeicao` enum('LANCHE_MANHA','ALMOCO','LANCHE_TARDE','JANTAR','PERSONALIZADO') NOT NULL,
     `descricao` varchar(255) DEFAULT NULL,
-    `tipo_refeicao` enum('LANCHE_MANHA','ALMOCO','LANCHE_TARDE','JANTAR') NOT NULL,
-    `preco` decimal(10,2) NOT NULL,
-    `dias_validade` int NOT NULL,
     `quantidade_refeicoes` int NOT NULL,
+    `validade_dias` int DEFAULT NULL,
+    `valor` decimal(10,2) NOT NULL,
+    `ativo` tinyint(1) DEFAULT 1,
+    `dt_inicio_vigencia` date DEFAULT NULL,
+    `dt_fim_vigencia` date DEFAULT NULL,
+    `dt_criacao` timestamp DEFAULT CURRENT_TIMESTAMP,
+    `dt_alteracao` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `criado_por` int DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    CONSTRAINT `fk_cant_pacotes_criado_por` FOREIGN KEY (`criado_por`) REFERENCES `cant_usuarios_cantina` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Tabela de pacotes contratados pelos alunos
+CREATE TABLE `cant_pacotes_alunos` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `id_pacote` int NOT NULL,
+    `ra_aluno` int NOT NULL,
+    `quantidade_total` int NOT NULL,
+    `quantidade_utilizada` int NOT NULL DEFAULT 0,
+    `data_inicio` date NOT NULL,
+    `data_fim` date DEFAULT NULL,
     `ativo` tinyint(1) DEFAULT 1,
     `dt_criacao` timestamp DEFAULT CURRENT_TIMESTAMP,
     `dt_alteracao` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `criado_por` int DEFAULT NULL,
     PRIMARY KEY (`id`),
-    KEY `fk_cant_pacotes_criado_por` (`criado_por`),
-    KEY `idx_cant_pacotes_tipo` (`tipo_refeicao`),
-    CONSTRAINT `fk_cant_pacotes_criado_por` FOREIGN KEY (`criado_por`) REFERENCES `cant_usuarios_cantina` (`id`)
+    KEY `fk_cant_pacotes_aluno_pacote` (`id_pacote`),
+    KEY `idx_cant_pacotes_aluno_ra` (`ra_aluno`),
+    CONSTRAINT `fk_cant_pacotes_aluno_pacote` FOREIGN KEY (`id_pacote`) REFERENCES `cant_pacotes_alimentacao` (`id`),
+    CONSTRAINT `fk_cant_pacotes_aluno_criado_por` FOREIGN KEY (`criado_por`) REFERENCES `cant_usuarios_cantina` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Tabela de pacotes adquiridos pelos alunos
-CREATE TABLE `cant_pacotes_alunos` (
-    `id` int NOT NULL AUTO_INCREMENT,
-    `ra_aluno` int NOT NULL,
-    `id_pacote` int NOT NULL,
-    `dt_compra` timestamp DEFAULT CURRENT_TIMESTAMP,
-    `dt_validade` date NOT NULL,
-    `quantidade_total` int NOT NULL,
-    `quantidade_utilizada` int DEFAULT 0,
-    `quantidade_restante` int NOT NULL,
-    `valor_pago` decimal(10,2) NOT NULL,
-    `ativo` tinyint(1) DEFAULT 1,
-    `forma_pagamento` enum('DINHEIRO','CARTAO','TRANSFERENCIA') NOT NULL,
-    `observacoes` text DEFAULT NULL,
-    PRIMARY KEY (`id`),
-    KEY `fk_cant_pacotes_alunos_pacote` (`id_pacote`),
-    KEY `idx_cant_pacotes_alunos_ra` (`ra_aluno`),
-    KEY `idx_cant_pacotes_alunos_validade` (`dt_validade`),
-    CONSTRAINT `fk_cant_pacotes_alunos_pacote` FOREIGN KEY (`id_pacote`) REFERENCES `cant_pacotes_alimentacao` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Tabela de uso dos pacotes
+-- Tabela de uso dos pacotes de alimentação
 CREATE TABLE `cant_uso_pacotes` (
     `id` int NOT NULL AUTO_INCREMENT,
     `id_pacote_aluno` int NOT NULL,
-    `dt_uso` timestamp DEFAULT CURRENT_TIMESTAMP,
-    `tipo_refeicao_usada` enum('LANCHE_MANHA','ALMOCO','LANCHE_TARDE','JANTAR') NOT NULL,
+    `data_utilizacao` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `tipo_refeicao` enum('LANCHE_MANHA','ALMOCO','LANCHE_TARDE','JANTAR','PERSONALIZADO') NOT NULL,
     `observacoes` varchar(255) DEFAULT NULL,
-    `usuario` int NOT NULL,
+    `usuario` int DEFAULT NULL,
     PRIMARY KEY (`id`),
-    KEY `fk_cant_uso_pacotes_pacote` (`id_pacote_aluno`),
+    KEY `fk_cant_uso_pacote_aluno` (`id_pacote_aluno`),
     KEY `fk_cant_uso_pacotes_usuario` (`usuario`),
-    KEY `idx_cant_uso_pacotes_dt` (`dt_uso`),
-    CONSTRAINT `fk_cant_uso_pacotes_pacote` FOREIGN KEY (`id_pacote_aluno`) REFERENCES `cant_pacotes_alunos` (`id`),
+    CONSTRAINT `fk_cant_uso_pacote_aluno` FOREIGN KEY (`id_pacote_aluno`) REFERENCES `cant_pacotes_alunos` (`id`),
     CONSTRAINT `fk_cant_uso_pacotes_usuario` FOREIGN KEY (`usuario`) REFERENCES `cant_usuarios_cantina` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- =====================================================
--- TABELAS FINANCEIRAS
--- =====================================================
 
 -- Tabela de fornecedores
 CREATE TABLE `cant_fornecedores` (
     `id` int NOT NULL AUTO_INCREMENT,
-    `nome` varchar(100) NOT NULL,
-    `razao_social` varchar(100) DEFAULT NULL,
+    `nome` varchar(150) NOT NULL,
     `cnpj` varchar(18) DEFAULT NULL,
     `cpf` varchar(14) DEFAULT NULL,
-    `endereco` varchar(255) DEFAULT NULL,
+    `email` varchar(150) DEFAULT NULL,
     `telefone` varchar(20) DEFAULT NULL,
-    `email` varchar(100) DEFAULT NULL,
     `contato` varchar(100) DEFAULT NULL,
+    `endereco` varchar(255) DEFAULT NULL,
+    `cidade` varchar(100) DEFAULT NULL,
+    `estado` char(2) DEFAULT NULL,
+    `cep` varchar(10) DEFAULT NULL,
+    `observacoes` text DEFAULT NULL,
     `ativo` tinyint(1) DEFAULT 1,
     `dt_criacao` timestamp DEFAULT CURRENT_TIMESTAMP,
     `dt_alteracao` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `criado_por` int DEFAULT NULL,
     PRIMARY KEY (`id`),
-    KEY `fk_cant_fornecedores_criado_por` (`criado_por`),
-    KEY `idx_cant_fornecedores_cnpj` (`cnpj`),
-    KEY `idx_cant_fornecedores_cpf` (`cpf`),
+    UNIQUE KEY `uk_cant_fornecedores_cnpj` (`cnpj`),
+    UNIQUE KEY `uk_cant_fornecedores_cpf` (`cpf`),
     CONSTRAINT `fk_cant_fornecedores_criado_por` FOREIGN KEY (`criado_por`) REFERENCES `cant_usuarios_cantina` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -619,6 +654,50 @@ FROM cant_contas_alunos ca
 INNER JOIN alunos a ON ca.ra_aluno = a.ra
 WHERE a.status = 'MAT';
 
+-- View para consulta de vendas de funcionários com detalhes
+CREATE VIEW `vw_cant_vendas_funcionarios` AS
+SELECT 
+    vf.id,
+    vf.id_venda,
+    v.dt_venda,
+    vf.codigo_funcionario,
+    f.nome AS funcionario_nome,
+    COALESCE(vf.cargo_aplicado, f.cargo) AS cargo_utilizado,
+    vf.valor_original,
+    vf.valor_aplicado,
+    vf.desconto_aplicado,
+    vf.mes_referencia,
+    vf.pago,
+    vf.dt_lancamento,
+    vf.id_fatura,
+    fat.status AS status_fatura
+FROM cant_vendas_funcionarios vf
+INNER JOIN cant_vendas v ON v.id = vf.id_venda
+LEFT JOIN cant_faturas_funcionarios fat ON fat.id = vf.id_fatura
+LEFT JOIN funcionarios f ON vf.codigo_funcionario = f.codigo;
+
+-- View para contas de funcionários com limite e saldo em aberto
+CREATE VIEW `vw_cant_contas_funcionarios` AS
+SELECT 
+    cf.id,
+    cf.codigo_funcionario,
+    f.nome AS funcionario_nome,
+    f.cargo AS cargo_oficial,
+    cf.limite_credito,
+    cf.alerta_credito,
+    cf.ativo,
+    cf.dt_criacao,
+    cf.dt_alteracao,
+    COALESCE(SUM(CASE WHEN vf.pago = 0 THEN vf.valor_aplicado ELSE 0 END), 0) AS total_em_aberto,
+    CASE
+        WHEN cf.limite_credito IS NULL THEN NULL
+        ELSE cf.limite_credito - COALESCE(SUM(CASE WHEN vf.pago = 0 THEN vf.valor_aplicado ELSE 0 END), 0)
+    END AS limite_disponivel
+FROM cant_contas_funcionarios cf
+LEFT JOIN funcionarios f ON f.codigo = cf.codigo_funcionario
+LEFT JOIN cant_vendas_funcionarios vf ON vf.codigo_funcionario = cf.codigo_funcionario AND vf.pago = 0
+GROUP BY cf.id, cf.codigo_funcionario, f.nome, f.cargo, cf.limite_credito, cf.alerta_credito, cf.ativo, cf.dt_criacao, cf.dt_alteracao;
+
 -- =====================================================
 -- TRIGGERS PARA CONTROLE AUTOMÁTICO
 -- =====================================================
@@ -671,6 +750,8 @@ CREATE INDEX `idx_cant_vendas_dt_tipo` ON `cant_vendas` (`dt_venda`, `tipo_clien
 CREATE INDEX `idx_cant_mov_alunos_conta_dt` ON `cant_movimentacoes_alunos` (`id_conta_aluno`, `dt_movimentacao`);
 CREATE INDEX `idx_cant_mov_estoque_produto_dt` ON `cant_movimentacoes_estoque` (`id_produto`, `dt_movimentacao`);
 CREATE INDEX `idx_cant_faturas_func_mes_status` ON `cant_faturas_funcionarios` (`codigo_funcionario`, `mes_referencia`, `status`);
+CREATE INDEX `idx_cant_vendas_funcionario_pendente` ON `cant_vendas_funcionarios` (`codigo_funcionario`, `pago`, `mes_referencia`);
+CREATE INDEX `idx_cant_contas_funcionario_codigo` ON `cant_contas_funcionarios` (`codigo_funcionario`);
 
 -- =====================================================
 -- FIM DO SCRIPT DE CRIAÇÃO DO BANCO DE DADOS

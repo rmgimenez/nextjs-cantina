@@ -25,6 +25,26 @@ interface Funcionario {
   nome: string;
   cargo?: string;
 }
+interface ContaFuncionario {
+  codigo_funcionario: number;
+  funcionario_nome: string;
+  cargo_oficial?: string;
+  limite_credito: number | null;
+  alerta_credito: number | null;
+  total_em_aberto: number;
+  limite_disponivel: number | null;
+}
+interface ConsumoFuncionario {
+  id: number;
+  id_venda: number;
+  valor_original: number;
+  valor_aplicado: number;
+  desconto_aplicado: number;
+  mes_referencia: string;
+  dt_venda: string;
+  pago: number;
+  usuario_nome?: string;
+}
 interface ItemCarrinho {
   id_produto: number;
   quantidade?: number;
@@ -73,6 +93,18 @@ export default function PDVPage() {
   const [sugestoesFunc, setSugestoesFunc] = useState<Funcionario[]>([]);
   const [funcionario, setFuncionario] = useState<Funcionario | null>(null);
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamento>('SALDO');
+  const [contaFuncionarioInfo, setContaFuncionarioInfo] = useState<ContaFuncionario | null>(null);
+  const [consumoFuncionario, setConsumoFuncionario] = useState<ConsumoFuncionario[]>([]);
+  const [precosCargo, setPrecosCargo] = useState<Record<number, number>>({});
+  const [resumoVenda, setResumoVenda] = useState<{
+    id_venda: number;
+    total: number;
+    valor_original: number;
+    desconto: number;
+    cargo_aplicado: string | null;
+  } | null>(null);
+  const [avisoConta, setAvisoConta] = useState('');
+  const [carregandoFuncionario, setCarregandoFuncionario] = useState(false);
 
   useEffect(() => {
     async function checkAuth() {
@@ -155,14 +187,42 @@ export default function PDVPage() {
     };
   }, [buscaFunc, tipoCliente]);
 
-  const total = useMemo(() => {
-    return itens.reduce((acc, it) => {
-      const p = produtos.find((pr) => pr.id === it.id_produto);
-      if (!p) return acc;
-      if (p.por_quilo) return acc + p.preco_venda * (Number(it.peso) || 0);
-      return acc + p.preco_venda * (Number(it.quantidade) || 0);
-    }, 0);
-  }, [itens, produtos]);
+  const totais = useMemo(() => {
+    let base = 0;
+    let aplicado = 0;
+
+    for (const item of itens) {
+      const produto = produtos.find((pr) => pr.id === item.id_produto);
+      if (!produto) continue;
+
+      const quantidade = produto.por_quilo
+        ? Number(item.peso) || 0
+        : Number(item.quantidade ?? 1) || 0;
+
+      const precoBase = Number(produto.preco_venda);
+      base += precoBase * quantidade;
+
+      let precoAplicado = precoBase;
+      if (tipoCliente === 'FUNCIONARIO') {
+        const especial = precosCargo[produto.id];
+        if (especial != null) {
+          precoAplicado = Number(especial);
+        }
+      }
+      aplicado += precoAplicado * quantidade;
+    }
+
+    base = Number(base.toFixed(2));
+    aplicado = Number(aplicado.toFixed(2));
+
+    return {
+      base,
+      aplicado,
+      desconto: Number((base - aplicado).toFixed(2)),
+    };
+  }, [itens, produtos, tipoCliente, precosCargo]);
+
+  const total = totais.aplicado;
 
   async function buscarAluno() {
     setAluno(null);
@@ -219,10 +279,100 @@ export default function PDVPage() {
     }
   }
 
-  function selecionarFuncionario(f: Funcionario) {
+  async function carregarContaFuncionario(codigo: number, cargo?: string) {
+    setCarregandoFuncionario(true);
+    try {
+      const res = await fetch(`/api/funcionarios/contas/${encodeURIComponent(String(codigo))}`);
+      if (res.ok) {
+        const d = await res.json();
+        if (d?.data) {
+          const conta = d.data as ContaFuncionario;
+          conta.total_em_aberto = Number(conta.total_em_aberto || 0);
+          conta.limite_credito =
+            conta.limite_credito !== null && conta.limite_credito !== undefined
+              ? Number(conta.limite_credito)
+              : null;
+          conta.alerta_credito =
+            conta.alerta_credito !== null && conta.alerta_credito !== undefined
+              ? Number(conta.alerta_credito)
+              : null;
+          conta.limite_disponivel =
+            conta.limite_disponivel !== null && conta.limite_disponivel !== undefined
+              ? Number(conta.limite_disponivel)
+              : null;
+          setContaFuncionarioInfo(conta);
+
+          if (
+            conta.limite_disponivel !== null &&
+            conta.alerta_credito !== null &&
+            conta.limite_disponivel <= conta.alerta_credito
+          ) {
+            setAvisoConta('Limite disponível em alerta. Atenção ao próximo lançamento.');
+          } else {
+            setAvisoConta('');
+          }
+        } else {
+          setContaFuncionarioInfo(null);
+          setAvisoConta('');
+        }
+      } else {
+        setContaFuncionarioInfo(null);
+        setAvisoConta('');
+      }
+    } catch {
+      setContaFuncionarioInfo(null);
+      setAvisoConta('');
+    }
+
+    try {
+      if (cargo) {
+        const res = await fetch(
+          `/api/funcionarios/precos?cargo=${encodeURIComponent(cargo)}&vigentes=1`
+        );
+        if (res.ok) {
+          const d = await res.json();
+          const precos = (d?.data || []) as { id_produto: number; preco_especial: number }[];
+          const map: Record<number, number> = {};
+          precos.forEach((p) => {
+            if (p?.id_produto) {
+              map[p.id_produto] = Number(p.preco_especial);
+            }
+          });
+          setPrecosCargo(map);
+        } else {
+          setPrecosCargo({});
+        }
+      } else {
+        setPrecosCargo({});
+      }
+    } catch {
+      setPrecosCargo({});
+    }
+
+    try {
+      const res = await fetch(
+        `/api/funcionarios/consumo?codigo_funcionario=${encodeURIComponent(String(codigo))}&limit=5`
+      );
+      if (res.ok) {
+        const d = await res.json();
+        const dados = (d?.data || []) as ConsumoFuncionario[];
+        setConsumoFuncionario(dados.slice(0, 5));
+      } else {
+        setConsumoFuncionario([]);
+      }
+    } catch {
+      setConsumoFuncionario([]);
+    }
+
+    setCarregandoFuncionario(false);
+  }
+
+  async function selecionarFuncionario(f: Funcionario) {
     setFuncionario(f);
     setSugestoesFunc([]);
     setBuscaFunc('');
+    setResumoVenda(null);
+    await carregarContaFuncionario(f.codigo, f.cargo?.toUpperCase());
   }
 
   function addItem(p: Produto) {
@@ -257,6 +407,7 @@ export default function PDVPage() {
 
   async function finalizarVenda() {
     setMsg('');
+    setResumoVenda(null);
     if (itens.length === 0) {
       setMsg('Adicione itens');
       return;
@@ -302,6 +453,21 @@ export default function PDVPage() {
         setMsg('Forma de pagamento inválida');
         return;
       }
+      if (contaFuncionarioInfo) {
+        const limiteCredito = contaFuncionarioInfo.limite_credito;
+        const saldoAtual = Number(contaFuncionarioInfo.total_em_aberto || 0);
+        if (limiteCredito !== null) {
+          const saldoProjetado = Number((saldoAtual + total).toFixed(2));
+          if (saldoProjetado - limiteCredito > 0.009) {
+            setMsg(
+              `Limite excedido: saldo atual R$ ${saldoAtual.toFixed(2)}, venda R$ ${total.toFixed(
+                2
+              )}, limite R$ ${limiteCredito.toFixed(2)}`
+            );
+            return;
+          }
+        }
+      }
     } else {
       // GERAL
       if (!['DINHEIRO', 'CARTAO'].includes(formaPagamento)) {
@@ -316,12 +482,38 @@ export default function PDVPage() {
     });
     const d = await res.json();
     if (res.ok) {
-      setMsg(`Venda ${d.data.id_venda} concluída`);
+      setMsg(`Venda ${d.data.id_venda} concluída com sucesso.`);
+      setResumoVenda({
+        id_venda: Number(d.data.id_venda),
+        total: Number(d.data.total ?? total),
+        valor_original: Number(d.data.valor_original ?? total),
+        desconto: Number(d.data.desconto ?? 0),
+        cargo_aplicado: d.data.cargo_aplicado ?? null,
+      });
       setItens([]);
       // atualizar saldo se aluno
-      if (tipoCliente === 'ALUNO') buscarAluno();
+      if (tipoCliente === 'ALUNO') {
+        buscarAluno();
+      } else if (tipoCliente === 'FUNCIONARIO' && funcionario) {
+        await carregarContaFuncionario(funcionario.codigo, funcionario.cargo?.toUpperCase());
+      }
     } else {
-      setMsg(d?.error || 'Erro ao finalizar venda');
+      if (d?.details) {
+        const info = d.details as { limite?: number; saldo_atual?: number; valor_venda?: number };
+        const partes: string[] = [];
+        if (info?.limite !== undefined) partes.push(`Limite: R$ ${Number(info.limite).toFixed(2)}`);
+        if (info?.saldo_atual !== undefined)
+          partes.push(`Em aberto: R$ ${Number(info.saldo_atual).toFixed(2)}`);
+        if (info?.valor_venda !== undefined)
+          partes.push(`Venda atual: R$ ${Number(info.valor_venda).toFixed(2)}`);
+        setMsg(
+          `${d?.error || 'Erro ao finalizar venda'}${
+            partes.length ? ` (${partes.join(' | ')})` : ''
+          }`
+        );
+      } else {
+        setMsg(d?.error || 'Erro ao finalizar venda');
+      }
     }
   }
 
@@ -360,6 +552,19 @@ export default function PDVPage() {
           </div>
         )}
         {msg && <div className='alert alert-info mb-3'>{msg}</div>}
+        {resumoVenda && (
+          <div className='alert alert-success mb-3'>
+            <div className='fw-semibold'>Venda #{resumoVenda.id_venda}</div>
+            <div>Total pago: R$ {Number(resumoVenda.total).toFixed(2)}</div>
+            {resumoVenda.valor_original !== resumoVenda.total && (
+              <div>
+                Valor original: R$ {Number(resumoVenda.valor_original).toFixed(2)} • Desconto: R${' '}
+                {Number(resumoVenda.desconto).toFixed(2)}
+              </div>
+            )}
+            {resumoVenda.cargo_aplicado && <div>Cargo aplicado: {resumoVenda.cargo_aplicado}</div>}
+          </div>
+        )}
         <div className='row g-3'>
           <div className='col-12'>
             <div className='card mb-2'>
@@ -376,6 +581,11 @@ export default function PDVPage() {
                       setFuncionario(null);
                       setObservacoes([]);
                       setMsg('');
+                      setContaFuncionarioInfo(null);
+                      setConsumoFuncionario([]);
+                      setPrecosCargo({});
+                      setResumoVenda(null);
+                      setAvisoConta('');
                       setFormaPagamento(
                         novo === 'ALUNO'
                           ? 'SALDO'
@@ -557,6 +767,94 @@ export default function PDVPage() {
                     </div>
                     <div>Código: {funcionario.codigo}</div>
                     {funcionario.cargo && <div>Cargo: {funcionario.cargo}</div>}
+                    {carregandoFuncionario && (
+                      <div className='text-muted small mt-2'>
+                        Carregando dados do funcionário...
+                      </div>
+                    )}
+                    {contaFuncionarioInfo && !carregandoFuncionario && (
+                      <div className='mt-2 border rounded p-2 bg-light'>
+                        <div className='small d-flex justify-content-between'>
+                          <span>Limite de crédito</span>
+                          <span>
+                            {contaFuncionarioInfo.limite_credito !== null
+                              ? `R$ ${Number(contaFuncionarioInfo.limite_credito).toFixed(2)}`
+                              : 'Sem limite definido'}
+                          </span>
+                        </div>
+                        <div className='small d-flex justify-content-between'>
+                          <span>Em aberto</span>
+                          <span>
+                            R$ {Number(contaFuncionarioInfo.total_em_aberto || 0).toFixed(2)}
+                          </span>
+                        </div>
+                        {contaFuncionarioInfo.limite_disponivel !== null && (
+                          <div className='small d-flex justify-content-between'>
+                            <span>Disponível</span>
+                            <span
+                              className={
+                                contaFuncionarioInfo.limite_disponivel < 0
+                                  ? 'text-danger fw-semibold'
+                                  : 'fw-semibold'
+                              }
+                            >
+                              R$ {Number(contaFuncionarioInfo.limite_disponivel).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        {avisoConta && (
+                          <div className='alert alert-warning py-1 px-2 mt-2 small mb-0'>
+                            {avisoConta}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {!carregandoFuncionario && !contaFuncionarioInfo && (
+                      <div className='alert alert-light border mt-2 py-2 px-3 small mb-0'>
+                        Nenhuma conta configurada. A primeira venda criará o registro
+                        automaticamente.
+                      </div>
+                    )}
+                    {consumoFuncionario.length > 0 && (
+                      <div className='mt-3'>
+                        <h6 className='fw-semibold text-primary'>Últimas movimentações</h6>
+                        <div className='table-responsive'>
+                          <table className='table table-sm table-bordered align-middle mb-0'>
+                            <thead>
+                              <tr>
+                                <th>Venda</th>
+                                <th>Data</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {consumoFuncionario.map((consumo) => (
+                                <tr key={consumo.id}>
+                                  <td>#{consumo.id_venda}</td>
+                                  <td>{new Date(consumo.dt_venda).toLocaleString()}</td>
+                                  <td>
+                                    R$ {Number(consumo.valor_aplicado).toFixed(2)}
+                                    {consumo.valor_aplicado !== consumo.valor_original && (
+                                      <small className='text-muted ms-1'>
+                                        (Base R$ {Number(consumo.valor_original).toFixed(2)})
+                                      </small>
+                                    )}
+                                  </td>
+                                  <td>
+                                    {consumo.pago ? (
+                                      <span className='badge bg-success'>Pago</span>
+                                    ) : (
+                                      <span className='badge bg-warning text-dark'>Pendente</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -594,26 +892,38 @@ export default function PDVPage() {
                 <div style={{ maxHeight: 300, overflowY: 'auto' }}>
                   {produtos
                     .filter((p) => p.nome.toLowerCase().includes(busca.toLowerCase()))
-                    .map((p) => (
-                      <div
-                        key={p.id}
-                        className='d-flex justify-content-between align-items-center border-bottom py-1'
-                      >
-                        <div>
-                          <div>{p.nome}</div>
-                          <small className='text-muted'>
-                            {p.tipo_nome} • R$ {Number(p.preco_venda).toFixed(2)}
-                            {p.por_quilo ? ' /kg' : ''}
-                          </small>
-                        </div>
-                        <button
-                          className='btn btn-sm btn-outline-primary'
-                          onClick={() => addItem(p)}
+                    .map((p) => {
+                      const precoEspecial =
+                        tipoCliente === 'FUNCIONARIO' ? precosCargo[p.id] : undefined;
+                      const possuiEspecial =
+                        precoEspecial != null && Number(precoEspecial) !== Number(p.preco_venda);
+                      return (
+                        <div
+                          key={p.id}
+                          className='d-flex justify-content-between align-items-center border-bottom py-1'
                         >
-                          Adicionar
-                        </button>
-                      </div>
-                    ))}
+                          <div>
+                            <div>{p.nome}</div>
+                            <small className='text-muted'>
+                              {p.tipo_nome} • R$ {Number(p.preco_venda).toFixed(2)}
+                              {p.por_quilo ? ' /kg' : ''}
+                              {possuiEspecial && (
+                                <span className='ms-2 badge bg-warning text-dark'>
+                                  Cargo: R$ {Number(precoEspecial).toFixed(2)}
+                                  {p.por_quilo ? ' /kg' : ''}
+                                </span>
+                              )}
+                            </small>
+                          </div>
+                          <button
+                            className='btn btn-sm btn-outline-primary'
+                            onClick={() => addItem(p)}
+                          >
+                            Adicionar
+                          </button>
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
             </div>
@@ -626,6 +936,16 @@ export default function PDVPage() {
                   {itens.map((i) => {
                     const p = produtos.find((pr) => pr.id === i.id_produto);
                     if (!p) return null;
+                    const quantidade = p.por_quilo
+                      ? Number(i.peso) || 0
+                      : Number(i.quantidade ?? 1) || 0;
+                    const precoBase = Number(p.preco_venda);
+                    const precoAplicado =
+                      tipoCliente === 'FUNCIONARIO' && precosCargo[p.id] != null
+                        ? Number(precosCargo[p.id])
+                        : precoBase;
+                    const valorBase = Number((precoBase * quantidade).toFixed(2));
+                    const valorAplicado = Number((precoAplicado * quantidade).toFixed(2));
                     return (
                       <div key={i.id_produto} className='border-bottom pb-2 mb-2'>
                         <div className='d-flex justify-content-between'>
@@ -658,13 +978,36 @@ export default function PDVPage() {
                             />
                           </div>
                         )}
+                        <div className='d-flex justify-content-between small text-muted mt-1'>
+                          <span>
+                            Preço: R$ {precoAplicado.toFixed(2)}
+                            {tipoCliente === 'FUNCIONARIO' && precoAplicado !== precoBase && (
+                              <span className='ms-1 text-decoration-line-through text-danger'>
+                                R$ {precoBase.toFixed(2)}
+                              </span>
+                            )}
+                          </span>
+                          <span>Subtotal: R$ {valorAplicado.toFixed(2)}</span>
+                        </div>
                       </div>
                     );
                   })}
                 </div>
-                <div className='d-flex justify-content-between align-items-center mt-2'>
-                  <strong>Total:</strong>
-                  <span>R$ {total.toFixed(2)}</span>
+                <div className='border-top pt-2 mt-2'>
+                  <div className='d-flex justify-content-between small text-muted'>
+                    <span>Total base</span>
+                    <span>R$ {totais.base.toFixed(2)}</span>
+                  </div>
+                  {tipoCliente === 'FUNCIONARIO' && Math.abs(totais.desconto) > 0.009 && (
+                    <div className='d-flex justify-content-between small text-success'>
+                      <span>Desconto aplicado</span>
+                      <span>- R$ {Math.abs(totais.desconto).toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className='d-flex justify-content-between align-items-center mt-2'>
+                    <strong>Total a pagar</strong>
+                    <span className='fs-5'>R$ {total.toFixed(2)}</span>
+                  </div>
                 </div>
                 <button
                   className='btn btn-success w-100 mt-2'

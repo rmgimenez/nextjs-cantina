@@ -15,6 +15,8 @@ DROP INDEX IF EXISTS `idx_cant_vendas_dt_tipo` ON `cant_vendas`;
 DROP INDEX IF EXISTS `idx_cant_mov_alunos_conta_dt` ON `cant_movimentacoes_alunos`;
 DROP INDEX IF EXISTS `idx_cant_mov_estoque_produto_dt` ON `cant_movimentacoes_estoque`;
 DROP INDEX IF EXISTS `idx_cant_faturas_func_mes_status` ON `cant_faturas_funcionarios`;
+DROP INDEX IF EXISTS `idx_cant_vendas_funcionario_pendente` ON `cant_vendas_funcionarios`;
+DROP INDEX IF EXISTS `idx_cant_contas_funcionario_codigo` ON `cant_contas_funcionarios`;
 
 -- =====================================================
 -- DROPS DE TRIGGERS
@@ -28,6 +30,8 @@ DROP TRIGGER IF EXISTS `trg_cant_atualiza_saldo_aluno`;
 DROP VIEW IF EXISTS `vw_cant_contas_alunos_completa`;
 DROP VIEW IF EXISTS `vw_cant_estoque_alertas`;
 DROP VIEW IF EXISTS `vw_cant_vendas_completa`;
+DROP VIEW IF EXISTS `vw_cant_vendas_funcionarios`;
+DROP VIEW IF EXISTS `vw_cant_contas_funcionarios`;
 
 -- =====================================================
 -- DROPS DE TABELAS (em ordem reversa das dependências)
@@ -45,9 +49,11 @@ DROP TABLE IF EXISTS `cant_pacotes_alimentacao`;
 
 -- Tabelas de funcionários da escola
 DROP TABLE IF EXISTS `cant_pagamentos_funcionarios`;
-DROP TABLE IF EXISTS `cant_faturas_funcionarios`;
 DROP TABLE IF EXISTS `cant_vendas_funcionarios`;
+DROP TABLE IF EXISTS `cant_faturas_funcionarios`;
+DROP TABLE IF EXISTS `cant_precos_por_cargo_historico`;
 DROP TABLE IF EXISTS `cant_precos_por_cargo`;
+DROP TABLE IF EXISTS `cant_contas_funcionarios`;
 
 -- Tabelas de vendas e caixa
 DROP TABLE IF EXISTS `cant_vendas_itens`;
