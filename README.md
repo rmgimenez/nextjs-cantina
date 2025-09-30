@@ -23,6 +23,16 @@ Este é um sistema completo para gestão de cantinas escolares, desenvolvido com
 - Controle de perfis de acesso
 - Logout automático
 
+### ✅ Relatório de Faturas em PDF (RF-013 / RF-019)
+
+- **Geração de relatórios em PDF** para o Departamento Pessoal
+- **Filtros avançados**: por período, funcionário e status
+- **Agrupamento por funcionário** com subtotais
+- **Total geral** para desconto em folha de pagamento
+- **Layout profissional** com cores do sistema
+- **Interface intuitiva** para configuração e geração
+- Documentação completa em `docs/RELATORIO_FATURAS.md`
+
 ## Tecnologias Utilizadas
 
 - **Next.js 15** - Framework React com App Router
@@ -31,6 +41,8 @@ Este é um sistema completo para gestão de cantinas escolares, desenvolvido com
 - **Bootstrap 5** - Framework CSS responsivo
 - **JWT** - Autenticação stateless
 - **bcryptjs** - Hash de senhas
+- **jsPDF** - Geração de PDFs
+- **jspdf-autotable** - Tabelas em PDF
 
 ## Cores do Sistema
 
@@ -80,9 +92,20 @@ lib/
 
 ## APIs Disponíveis
 
+### Autenticação
 - `POST /api/auth/login` - Login do usuário
 - `POST /api/auth/logout` - Logout do usuário
 - `GET /api/auth/me` - Verificar usuário autenticado
+
+### Relatórios
+- `GET /api/relatorios/faturas/pdf` - Gerar relatório de faturas em PDF
+  - Parâmetros: `mesInicio`, `mesFim`, `codigoFuncionario`, `status`
+
+## Páginas Disponíveis
+
+- `/` - Dashboard inicial
+- `/login` - Página de login
+- `/financeiro/relatorios/faturas` - Geração de relatórios de faturas em PDF
 
 ## Próximos Passos
 

@@ -332,6 +332,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
           path: '/financeiro/faturas',
           permission: [1],
         },
+        {
+          id: 'relatorio-faturas-pdf',
+          label: 'Relatório de Faturas (PDF)',
+          icon: '📑',
+          path: '/financeiro/relatorios/faturas',
+          permission: [1],
+        },
       ],
     },
     {
