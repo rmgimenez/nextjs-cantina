@@ -1,15 +1,24 @@
-'use client';
+"use client";
 
-import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { menuItems } from './menuData';
-import MenuItemComponent from './MenuItemComponent';
-import SidebarHeader from './SidebarHeader';
-import { MenuItem, SidebarProps } from './types';
+import { usePathname } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
+import { menuItems } from "./menuData";
+import MenuItemComponent from "./MenuItemComponent";
+import SidebarHeader from "./SidebarHeader";
+import { MenuItem, SidebarProps } from "./types";
 
 export default function Sidebar({ isOpen, onToggle, user }: SidebarProps) {
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
   const pathname = usePathname();
+
+  const isActive = useCallback(
+    (path: string): boolean => {
+      if (path === "/" && pathname === "/") return true;
+      if (path !== "/" && pathname.startsWith(path)) return true;
+      return false;
+    },
+    [pathname]
+  );
 
   // Auto-expand menu baseado na rota atual
   useEffect(() => {
@@ -17,7 +26,9 @@ export default function Sidebar({ isOpen, onToggle, user }: SidebarProps) {
 
     menuItems.forEach((item) => {
       if (item.children) {
-        const hasActiveChild = item.children.some((child) => isActive(child.path));
+        const hasActiveChild = item.children.some((child) =>
+          isActive(child.path)
+        );
         if (hasActiveChild) {
           newExpandedMenus.add(item.id);
         }
@@ -25,7 +36,7 @@ export default function Sidebar({ isOpen, onToggle, user }: SidebarProps) {
     });
 
     setExpandedMenus(newExpandedMenus);
-  }, [pathname]);
+  }, [pathname, isActive]);
 
   const toggleSubmenu = (menuId: string, hasChildren: boolean) => {
     if (!hasChildren) return;
@@ -47,35 +58,31 @@ export default function Sidebar({ isOpen, onToggle, user }: SidebarProps) {
     return item.permission.includes(user.perfil);
   };
 
-  const isActive = (path: string): boolean => {
-    if (path === '/' && pathname === '/') return true;
-    if (path !== '/' && pathname.startsWith(path)) return true;
-    return false;
-  };
-
   return (
     <nav
-      className={`bg-dark text-white ${isOpen ? 'sidebar-open' : 'sidebar-closed'}`}
+      className={`bg-dark text-white ${
+        isOpen ? "sidebar-open" : "sidebar-closed"
+      }`}
       style={{
-        width: isOpen ? '280px' : '70px',
-        minHeight: '100vh',
-        transition: 'width 0.3s ease',
-        position: 'fixed',
+        width: isOpen ? "280px" : "70px",
+        minHeight: "100vh",
+        transition: "width 0.3s ease",
+        position: "fixed",
         left: 0,
         top: 0,
         zIndex: 1000,
-        overflowY: 'auto',
+        overflowY: "auto",
       }}
     >
       <SidebarHeader isOpen={isOpen} onToggle={onToggle} />
 
       {/* Menu Items */}
       <div
-        className='p-2'
+        className="p-2"
         style={{
-          maxHeight: 'calc(100vh - 120px)',
-          overflowY: 'auto',
-          overflowX: 'hidden',
+          maxHeight: "calc(100vh - 120px)",
+          overflowY: "auto",
+          overflowX: "hidden",
         }}
       >
         {menuItems.map((item) => (

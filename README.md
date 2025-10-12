@@ -2,6 +2,12 @@
 
 Este é um sistema completo para gestão de cantinas escolares, desenvolvido com Next.js, TypeScript e MySQL.
 
+## 🚀 Início Rápido
+
+**Primeira vez usando o sistema?** Consulte o [Guia de Configuração Inicial](./SETUP.md)
+
+**Problemas no dashboard?** Acesse `/diagnostico` ou leia [Solução de Problemas](./docs/TROUBLESHOOTING_DASHBOARD.md)
+
 ## Funcionalidades Implementadas
 
 ### ✅ Tela Inicial (Dashboard)
@@ -93,11 +99,13 @@ lib/
 ## APIs Disponíveis
 
 ### Autenticação
+
 - `POST /api/auth/login` - Login do usuário
 - `POST /api/auth/logout` - Logout do usuário
 - `GET /api/auth/me` - Verificar usuário autenticado
 
 ### Relatórios
+
 - `GET /api/relatorios/faturas/pdf` - Gerar relatório de faturas em PDF
   - Parâmetros: `mesInicio`, `mesFim`, `codigoFuncionario`, `status`
 

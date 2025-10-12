@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import type {
   AlunoConta,
   ContaFuncionario,
@@ -7,8 +7,9 @@ import type {
   PacoteAluno,
   RestricaoAluno,
   TipoCliente,
-} from '../types';
+} from "../types";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function useDadosCliente(tipoCliente: TipoCliente) {
   // Estados do aluno
   const [aluno, setAluno] = useState<AlunoConta | null>(null);
@@ -20,15 +21,18 @@ export function useDadosCliente(tipoCliente: TipoCliente) {
 
   // Estados do funcionário
   const [funcionario, setFuncionario] = useState<Funcionario | null>(null);
-  const [contaFuncionario, setContaFuncionario] = useState<ContaFuncionario | null>(null);
+  const [contaFuncionario, setContaFuncionario] =
+    useState<ContaFuncionario | null>(null);
   const [precosCargo, setPrecosCargo] = useState<Record<number, number>>({});
-  const [avisoCredito, setAvisoCredito] = useState('');
+  const [avisoCredito, setAvisoCredito] = useState("");
   const [carregandoFuncionario, setCarregandoFuncionario] = useState(false);
 
   // Funções para carregar dados do aluno
   async function carregarContaAluno(ra: number) {
     try {
-      const res = await fetch(`/api/alunos/contas/${encodeURIComponent(String(ra))}`);
+      const res = await fetch(
+        `/api/alunos/contas/${encodeURIComponent(String(ra))}`
+      );
       const d = await res.json();
       if (d?.data) {
         setAluno(d.data);
@@ -36,14 +40,16 @@ export function useDadosCliente(tipoCliente: TipoCliente) {
         return d.data;
       }
     } catch (error) {
-      console.error('Erro ao carregar conta do aluno:', error);
+      console.error("Erro ao carregar conta do aluno:", error);
     }
     return null;
   }
 
   async function carregarObservacoesAluno(ra: number) {
     try {
-      const res = await fetch(`/api/alunos/observacoes/${encodeURIComponent(String(ra))}?ativo=1`);
+      const res = await fetch(
+        `/api/alunos/observacoes/${encodeURIComponent(String(ra))}?ativo=1`
+      );
       if (res.ok) {
         const d = await res.json();
         if (d?.success) {
@@ -55,14 +61,16 @@ export function useDadosCliente(tipoCliente: TipoCliente) {
         setObservacoes([]);
       }
     } catch (error) {
-      console.error('Erro ao carregar observações:', error);
+      console.error("Erro ao carregar observações:", error);
       setObservacoes([]);
     }
   }
 
   async function carregarRestricoesAluno(ra: number) {
     try {
-      const res = await fetch(`/api/alunos/restricoes/${encodeURIComponent(String(ra))}?ativo=1`);
+      const res = await fetch(
+        `/api/alunos/restricoes/${encodeURIComponent(String(ra))}?ativo=1`
+      );
       if (res.ok) {
         const d = await res.json();
         if (d?.success && d.data && d.data.length > 0) {
@@ -75,7 +83,7 @@ export function useDadosCliente(tipoCliente: TipoCliente) {
         setRestricoes([]);
       }
     } catch (error) {
-      console.error('Erro ao carregar restrições:', error);
+      console.error("Erro ao carregar restrições:", error);
       setRestricoes([]);
     }
     return [];
@@ -83,7 +91,9 @@ export function useDadosCliente(tipoCliente: TipoCliente) {
 
   async function carregarPacotesAluno(ra: number) {
     try {
-      const res = await fetch(`/api/alunos/pacotes/verificar/${encodeURIComponent(String(ra))}`);
+      const res = await fetch(
+        `/api/alunos/pacotes/verificar/${encodeURIComponent(String(ra))}`
+      );
       if (res.ok) {
         const d = await res.json();
         if (d?.success) {
@@ -98,7 +108,7 @@ export function useDadosCliente(tipoCliente: TipoCliente) {
         setTemPacoteValido(false);
       }
     } catch (error) {
-      console.error('Erro ao carregar pacotes:', error);
+      console.error("Erro ao carregar pacotes:", error);
       setPacotes([]);
       setTemPacoteValido(false);
     }
@@ -118,7 +128,9 @@ export function useDadosCliente(tipoCliente: TipoCliente) {
 
     try {
       // Carregar conta
-      const res = await fetch(`/api/funcionarios/contas/${encodeURIComponent(String(codigo))}`);
+      const res = await fetch(
+        `/api/funcionarios/contas/${encodeURIComponent(String(codigo))}`
+      );
       if (res.ok) {
         const d = await res.json();
         if (d?.data) {
@@ -133,7 +145,8 @@ export function useDadosCliente(tipoCliente: TipoCliente) {
               ? Number(conta.alerta_credito)
               : null;
           conta.limite_disponivel =
-            conta.limite_disponivel !== null && conta.limite_disponivel !== undefined
+            conta.limite_disponivel !== null &&
+            conta.limite_disponivel !== undefined
               ? Number(conta.limite_disponivel)
               : null;
           setContaFuncionario(conta);
@@ -143,25 +156,32 @@ export function useDadosCliente(tipoCliente: TipoCliente) {
             conta.alerta_credito !== null &&
             conta.limite_disponivel <= conta.alerta_credito
           ) {
-            setAvisoCredito('Limite disponível em alerta. Atenção ao próximo lançamento.');
+            setAvisoCredito(
+              "Limite disponível em alerta. Atenção ao próximo lançamento."
+            );
           } else {
-            setAvisoCredito('');
+            setAvisoCredito("");
           }
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar conta do funcionário:', error);
+      console.error("Erro ao carregar conta do funcionário:", error);
     }
 
     try {
       // Carregar preços especiais por cargo
       if (cargo) {
         const res = await fetch(
-          `/api/funcionarios/precos?cargo=${encodeURIComponent(cargo)}&vigentes=1`
+          `/api/funcionarios/precos?cargo=${encodeURIComponent(
+            cargo
+          )}&vigentes=1`
         );
         if (res.ok) {
           const d = await res.json();
-          const precos = (d?.data || []) as { id_produto: number; preco_especial: number }[];
+          const precos = (d?.data || []) as {
+            id_produto: number;
+            preco_especial: number;
+          }[];
           const map: Record<number, number> = {};
           precos.forEach((p) => {
             if (p?.id_produto) {
@@ -176,7 +196,7 @@ export function useDadosCliente(tipoCliente: TipoCliente) {
         setPrecosCargo({});
       }
     } catch (error) {
-      console.error('Erro ao carregar preços:', error);
+      console.error("Erro ao carregar preços:", error);
       setPrecosCargo({});
     }
 
@@ -198,7 +218,7 @@ export function useDadosCliente(tipoCliente: TipoCliente) {
     setTemPacoteValido(false);
     setContaFuncionario(null);
     setPrecosCargo({});
-    setAvisoCredito('');
+    setAvisoCredito("");
   }
 
   return {

@@ -1,23 +1,26 @@
-import { query } from '@/lib/db';
-import { verifyToken } from '@/lib/jwt';
-import { NextResponse } from 'next/server';
+import { query } from "@/lib/db";
+import { verifyToken } from "@/lib/jwt";
+import { NextResponse } from "next/server";
 
 // GET - Verificar se aluno possui pacote válido para uma refeição
-export async function GET(req: Request, { params }: { params: Promise<{ ra: string }> }) {
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ ra: string }> }
+) {
   try {
-    const token = req.headers.get('cookie')?.split('token=')[1]?.split(';')[0];
+    const token = req.headers.get("cookie")?.split("token=")[1]?.split(";")[0];
     if (!token) {
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
     const decoded = verifyToken(token);
     if (!decoded) {
-      return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
+      return NextResponse.json({ error: "Token inválido" }, { status: 401 });
     }
 
     const { ra } = await params;
     const { searchParams } = new URL(req.url);
-    const tipo_refeicao = searchParams.get('tipo');
+    const tipo_refeicao = searchParams.get("tipo");
 
     // Buscar pacotes ativos do aluno que ainda têm saldo
     const sql = `
@@ -46,21 +49,22 @@ export async function GET(req: Request, { params }: { params: Promise<{ ra: stri
         AND (pa.data_fim IS NULL OR pa.data_fim >= CURDATE())
     `;
 
-    const sqlParams: any[] = [ra];
+    const sqlParams: (string | number)[] = [ra];
 
-    // Se tipo de refeição foi especificado, filtrar por ele
+    // Se tipo de refei\u00e7\u00e3o foi especificado, filtrar por ele
     let sqlFinal = sql;
     if (tipo_refeicao) {
-      sqlFinal += " AND (p.tipo_refeicao = ? OR p.tipo_refeicao = 'PERSONALIZADO')";
+      sqlFinal +=
+        " AND (p.tipo_refeicao = ? OR p.tipo_refeicao = 'PERSONALIZADO')";
       sqlParams.push(tipo_refeicao);
     }
 
-    sqlFinal += ' ORDER BY pa.data_inicio DESC';
+    sqlFinal += " ORDER BY pa.data_inicio DESC";
 
     const pacotes = await query(sqlFinal, sqlParams);
 
     // Verificar se já usou algum pacote desta refeição hoje
-    const hoje = new Date().toISOString().split('T')[0];
+    const hoje = new Date().toISOString().split("T")[0];
     const usosHoje = tipo_refeicao
       ? await query(
           `SELECT up.*, pa.id_pacote
@@ -84,7 +88,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ ra: stri
       usosHoje: usosHoje || [],
     });
   } catch (error) {
-    console.error('Erro ao verificar pacotes:', error);
-    return NextResponse.json({ error: 'Erro ao verificar pacotes' }, { status: 500 });
+    console.error("Erro ao verificar pacotes:", error);
+    return NextResponse.json(
+      { error: "Erro ao verificar pacotes" },
+      { status: 500 }
+    );
   }
 }

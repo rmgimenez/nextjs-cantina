@@ -1,16 +1,16 @@
-import { query } from '@/lib/db';
-import { RowDataPacket } from 'mysql2/promise';
-import { NextRequest, NextResponse } from 'next/server';
+import { query } from "@/lib/db";
+import { RowDataPacket } from "mysql2/promise";
+import { NextRequest, NextResponse } from "next/server";
 
 interface VendaDetalhe extends RowDataPacket {
   id: number;
-  tipo_cliente: 'ALUNO' | 'FUNCIONARIO' | 'GERAL';
+  tipo_cliente: "ALUNO" | "FUNCIONARIO" | "GERAL";
   nome_cliente: string;
   ra_aluno: number | null;
   codigo_funcionario: number | null;
   valor_total: number;
-  forma_pagamento: 'SALDO' | 'DINHEIRO' | 'CARTAO' | 'CONTA_FUNCIONARIO';
-  status: 'CONCLUIDA' | 'CANCELADA' | 'ESTORNADA';
+  forma_pagamento: "SALDO" | "DINHEIRO" | "CARTAO" | "CONTA_FUNCIONARIO";
+  status: "CONCLUIDA" | "CANCELADA" | "ESTORNADA";
   dt_venda: string;
   usuario_nome: string;
   observacoes: string | null;
@@ -29,12 +29,19 @@ interface ItemVenda extends RowDataPacket {
   valor_total: number;
 }
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const id = parseInt(params.id);
+    const { id: idParam } = await params;
+    const id = parseInt(idParam);
 
     if (isNaN(id)) {
-      return NextResponse.json({ success: false, error: 'ID inválido' }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "ID inválido" },
+        { status: 400 }
+      );
     }
 
     // Buscar informações da venda
@@ -68,7 +75,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const vendas = await query<VendaDetalhe[]>(vendaQuery, [id]);
 
     if (vendas.length === 0) {
-      return NextResponse.json({ success: false, error: 'Venda não encontrada' }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "Venda não encontrada" },
+        { status: 404 }
+      );
     }
 
     const venda = vendas[0];
@@ -101,9 +111,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       },
     });
   } catch (error) {
-    console.error('Erro ao buscar detalhes da venda:', error);
+    console.error("Erro ao buscar detalhes da venda:", error);
     return NextResponse.json(
-      { success: false, error: 'Erro ao buscar detalhes da venda' },
+      { success: false, error: "Erro ao buscar detalhes da venda" },
       { status: 500 }
     );
   }

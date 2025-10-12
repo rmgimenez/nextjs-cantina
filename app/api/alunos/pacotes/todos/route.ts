@@ -1,17 +1,17 @@
-import { query } from '@/lib/db';
-import { verifyToken } from '@/lib/jwt';
-import { NextResponse } from 'next/server';
+import { query } from "@/lib/db";
+import { verifyToken } from "@/lib/jwt";
+import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
   try {
-    const token = req.headers.get('cookie')?.split('token=')[1]?.split(';')[0];
+    const token = req.headers.get("cookie")?.split("token=")[1]?.split(";")[0];
     if (!token) {
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
     const decoded = verifyToken(token);
     if (!decoded) {
-      return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
+      return NextResponse.json({ error: "Token inválido" }, { status: 401 });
     }
 
     // Buscar todos os pacotes de alunos com informações detalhadas
@@ -40,17 +40,44 @@ export async function GET(req: Request) {
       ORDER BY pa.dt_criacao DESC
     `;
 
+    interface PacoteRow {
+      [key: string]: string | number | null | undefined;
+      quantidade_total: string | number;
+      quantidade_utilizada: string | number;
+      quantidade_restante: string | number;
+      ativo: string | number;
+      pacote_valor: string | number;
+      serie: string | number;
+    }
     const pacotes = await query(sql);
 
     // Garantir que valores numéricos sejam números e não strings
-    const pacotesFormatados = (pacotes as any[]).map((pacote) => ({
+    const pacotesFormatados = (pacotes as PacoteRow[]).map((pacote) => ({
       ...pacote,
-      quantidade_total: parseInt(pacote.quantidade_total),
-      quantidade_utilizada: parseInt(pacote.quantidade_utilizada),
-      quantidade_restante: parseInt(pacote.quantidade_restante),
-      ativo: parseInt(pacote.ativo),
-      pacote_valor: parseFloat(pacote.pacote_valor),
-      serie: parseInt(pacote.serie),
+      quantidade_total:
+        typeof pacote.quantidade_total === "number"
+          ? pacote.quantidade_total
+          : parseInt(String(pacote.quantidade_total)),
+      quantidade_utilizada:
+        typeof pacote.quantidade_utilizada === "number"
+          ? pacote.quantidade_utilizada
+          : parseInt(String(pacote.quantidade_utilizada)),
+      quantidade_restante:
+        typeof pacote.quantidade_restante === "number"
+          ? pacote.quantidade_restante
+          : parseInt(String(pacote.quantidade_restante)),
+      ativo:
+        typeof pacote.ativo === "number"
+          ? pacote.ativo
+          : parseInt(String(pacote.ativo)),
+      pacote_valor:
+        typeof pacote.pacote_valor === "number"
+          ? pacote.pacote_valor
+          : parseFloat(String(pacote.pacote_valor)),
+      serie:
+        typeof pacote.serie === "number"
+          ? pacote.serie
+          : parseInt(String(pacote.serie)),
     }));
 
     return NextResponse.json({
@@ -58,7 +85,10 @@ export async function GET(req: Request) {
       pacotes: pacotesFormatados || [],
     });
   } catch (error) {
-    console.error('Erro ao buscar pacotes de alunos:', error);
-    return NextResponse.json({ error: 'Erro ao buscar pacotes de alunos' }, { status: 500 });
+    console.error("Erro ao buscar pacotes de alunos:", error);
+    return NextResponse.json(
+      { error: "Erro ao buscar pacotes de alunos" },
+      { status: 500 }
+    );
   }
 }

@@ -7,18 +7,12 @@ export async function POST(req: Request) {
   try {
     const token = req.headers.get("cookie")?.split("token=")[1]?.split(";")[0];
     if (!token) {
-      return NextResponse.json(
-        { error: "Não autenticado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
     const decoded = verifyToken(token);
     if (!decoded) {
-      return NextResponse.json(
-        { error: "Token inválido" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Token inválido" }, { status: 401 });
     }
 
     const body = await req.json();
@@ -67,10 +61,7 @@ export async function POST(req: Request) {
       const hoje = new Date();
       const dataFim = new Date(pacote.data_fim);
       if (hoje > dataFim) {
-        return NextResponse.json(
-          { error: "Pacote vencido" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "Pacote vencido" }, { status: 400 });
       }
     }
 
@@ -109,12 +100,15 @@ export async function POST(req: Request) {
     }
 
     // Registrar uso do pacote
-    const result: any = await query(
+    interface InsertResult {
+      insertId: number;
+    }
+    const result = (await query(
       `INSERT INTO cant_uso_pacotes 
        (id_pacote_aluno, tipo_refeicao, observacoes, usuario)
        VALUES (?, ?, ?, ?)`,
       [id_pacote_aluno, tipo_refeicao, observacoes || null, decoded.id]
-    );
+    )) as InsertResult;
 
     // Atualizar quantidade utilizada
     await query(
@@ -126,10 +120,9 @@ export async function POST(req: Request) {
 
     // Se for a última refeição, inativar o pacote
     if (pacote.quantidade_utilizada + 1 >= pacote.quantidade_total) {
-      await query(
-        `UPDATE cant_pacotes_alunos SET ativo = 0 WHERE id = ?`,
-        [id_pacote_aluno]
-      );
+      await query(`UPDATE cant_pacotes_alunos SET ativo = 0 WHERE id = ?`, [
+        id_pacote_aluno,
+      ]);
     }
 
     // Registrar log
@@ -147,7 +140,8 @@ export async function POST(req: Request) {
           tipo_refeicao,
           ra_aluno: pacote.ra_aluno,
           aluno_nome: pacote.aluno_nome,
-          quantidade_restante: pacote.quantidade_total - (pacote.quantidade_utilizada + 1),
+          quantidade_restante:
+            pacote.quantidade_total - (pacote.quantidade_utilizada + 1),
         }),
       ]
     );
@@ -156,7 +150,8 @@ export async function POST(req: Request) {
       success: true,
       message: "Uso de pacote registrado com sucesso",
       id: result.insertId,
-      quantidade_restante: pacote.quantidade_total - (pacote.quantidade_utilizada + 1),
+      quantidade_restante:
+        pacote.quantidade_total - (pacote.quantidade_utilizada + 1),
     });
   } catch (error) {
     console.error("Erro ao registrar uso de pacote:", error);
@@ -172,18 +167,12 @@ export async function GET(req: Request) {
   try {
     const token = req.headers.get("cookie")?.split("token=")[1]?.split(";")[0];
     if (!token) {
-      return NextResponse.json(
-        { error: "Não autenticado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
     const decoded = verifyToken(token);
     if (!decoded) {
-      return NextResponse.json(
-        { error: "Token inválido" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Token inválido" }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -204,7 +193,7 @@ export async function GET(req: Request) {
       LEFT JOIN cant_usuarios_cantina u ON up.usuario = u.id
       WHERE 1=1
     `;
-    const params: any[] = [];
+    const params: (string | number)[] = [];
 
     if (id_pacote_aluno) {
       sql += " AND up.id_pacote_aluno = ?";

@@ -5,12 +5,12 @@
  */
 export function getProdutoIcon(tipo: string): string {
   const t = tipo.toLowerCase();
-  if (t.includes('salgado')) return '🥖';
-  if (t.includes('doce')) return '🍰';
-  if (t.includes('bebida')) return '🥤';
-  if (t.includes('refeiç') || t.includes('almoço')) return '🍽️';
-  if (t.includes('lanche')) return '🥪';
-  return '🍴';
+  if (t.includes("salgado")) return "🥖";
+  if (t.includes("doce")) return "🍰";
+  if (t.includes("bebida")) return "🥤";
+  if (t.includes("refeiç") || t.includes("almoço")) return "🍽️";
+  if (t.includes("lanche")) return "🥪";
+  return "🍴";
 }
 
 /**
@@ -18,11 +18,11 @@ export function getProdutoIcon(tipo: string): string {
  */
 export function getTipoRefeicaoLabel(tipo: string): string {
   const tipos: Record<string, string> = {
-    LANCHE_MANHA: 'Lanche Manhã',
-    ALMOCO: 'Almoço',
-    LANCHE_TARDE: 'Lanche Tarde',
-    JANTAR: 'Jantar',
-    PERSONALIZADO: 'Personalizado',
+    LANCHE_MANHA: "Lanche Manhã",
+    ALMOCO: "Almoço",
+    LANCHE_TARDE: "Lanche Tarde",
+    JANTAR: "Jantar",
+    PERSONALIZADO: "Personalizado",
   };
   return tipos[tipo] || tipo;
 }
@@ -37,7 +37,7 @@ export function formatarMoeda(valor: number): string {
 /**
  * Valida se o valor é numérico e positivo
  */
-export function isNumeroValido(valor: any): boolean {
+export function isNumeroValido(valor: unknown): boolean {
   const num = Number(valor);
   return !isNaN(num) && num >= 0;
 }

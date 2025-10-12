@@ -1,6 +1,6 @@
-import { query } from '@/lib/db';
-import { verifyToken } from '@/lib/jwt';
-import { NextResponse } from 'next/server';
+import { query } from "@/lib/db";
+import { verifyToken } from "@/lib/jwt";
+import { NextResponse } from "next/server";
 
 // GET - Buscar pacote específico do aluno
 export async function GET(
@@ -8,14 +8,14 @@ export async function GET(
   { params }: { params: Promise<{ ra: string; id: string }> }
 ) {
   try {
-    const token = req.headers.get('cookie')?.split('token=')[1]?.split(';')[0];
+    const token = req.headers.get("cookie")?.split("token=")[1]?.split(";")[0];
     if (!token) {
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
     const decoded = verifyToken(token);
     if (!decoded) {
-      return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
+      return NextResponse.json({ error: "Token inválido" }, { status: 401 });
     }
 
     const { ra, id } = await params;
@@ -38,13 +38,19 @@ export async function GET(
     const pacotes = await query(sql, [id, ra]);
 
     if (!pacotes || pacotes.length === 0) {
-      return NextResponse.json({ error: 'Pacote não encontrado' }, { status: 404 });
+      return NextResponse.json(
+        { error: "Pacote não encontrado" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({ success: true, pacote: pacotes[0] });
   } catch (error) {
-    console.error('Erro ao buscar pacote:', error);
-    return NextResponse.json({ error: 'Erro ao buscar pacote' }, { status: 500 });
+    console.error("Erro ao buscar pacote:", error);
+    return NextResponse.json(
+      { error: "Erro ao buscar pacote" },
+      { status: 500 }
+    );
   }
 }
 
@@ -54,14 +60,14 @@ export async function PUT(
   { params }: { params: Promise<{ ra: string; id: string }> }
 ) {
   try {
-    const token = req.headers.get('cookie')?.split('token=')[1]?.split(';')[0];
+    const token = req.headers.get("cookie")?.split("token=")[1]?.split(";")[0];
     if (!token) {
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
     const decoded = verifyToken(token);
     if (!decoded) {
-      return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
+      return NextResponse.json({ error: "Token inválido" }, { status: 401 });
     }
 
     const { ra, id } = await params;
@@ -69,39 +75,45 @@ export async function PUT(
     const { data_inicio, data_fim, ativo } = body;
 
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: (string | number)[] = [];
 
     if (data_inicio !== undefined) {
-      updates.push('data_inicio = ?');
+      updates.push("data_inicio = ?");
       values.push(data_inicio);
     }
     if (data_fim !== undefined) {
-      updates.push('data_fim = ?');
+      updates.push("data_fim = ?");
       values.push(data_fim);
     }
     if (ativo !== undefined) {
-      updates.push('ativo = ?');
+      updates.push("ativo = ?");
       values.push(ativo ? 1 : 0);
     }
 
     if (updates.length === 0) {
-      return NextResponse.json({ error: 'Nenhum campo para atualizar' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Nenhum campo para atualizar" },
+        { status: 400 }
+      );
     }
 
     values.push(id, ra);
 
     const sql = `UPDATE cant_pacotes_alunos SET ${updates.join(
-      ', '
+      ", "
     )} WHERE id = ? AND ra_aluno = ?`;
     await query(sql, values);
 
     return NextResponse.json({
       success: true,
-      message: 'Pacote atualizado com sucesso',
+      message: "Pacote atualizado com sucesso",
     });
   } catch (error) {
-    console.error('Erro ao atualizar pacote:', error);
-    return NextResponse.json({ error: 'Erro ao atualizar pacote' }, { status: 500 });
+    console.error("Erro ao atualizar pacote:", error);
+    return NextResponse.json(
+      { error: "Erro ao atualizar pacote" },
+      { status: 500 }
+    );
   }
 }
 
@@ -111,34 +123,40 @@ export async function DELETE(
   { params }: { params: Promise<{ ra: string; id: string }> }
 ) {
   try {
-    const token = req.headers.get('cookie')?.split('token=')[1]?.split(';')[0];
+    const token = req.headers.get("cookie")?.split("token=")[1]?.split(";")[0];
     if (!token) {
-      return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
     const decoded = verifyToken(token);
     if (!decoded) {
-      return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
+      return NextResponse.json({ error: "Token inválido" }, { status: 401 });
     }
 
     const { ra, id } = await params;
 
-    await query('UPDATE cant_pacotes_alunos SET ativo = 0 WHERE id = ? AND ra_aluno = ?', [id, ra]);
+    await query(
+      "UPDATE cant_pacotes_alunos SET ativo = 0 WHERE id = ? AND ra_aluno = ?",
+      [id, ra]
+    );
 
     // Registrar log
     await query(
       `INSERT INTO cant_log_acoes 
        (id_usuario, acao, tabela_afetada, registro_id) 
        VALUES (?, ?, ?, ?)`,
-      [decoded.id, 'CANCELAMENTO_PACOTE', 'cant_pacotes_alunos', id]
+      [decoded.id, "CANCELAMENTO_PACOTE", "cant_pacotes_alunos", id]
     );
 
     return NextResponse.json({
       success: true,
-      message: 'Pacote cancelado com sucesso',
+      message: "Pacote cancelado com sucesso",
     });
   } catch (error) {
-    console.error('Erro ao cancelar pacote:', error);
-    return NextResponse.json({ error: 'Erro ao cancelar pacote' }, { status: 500 });
+    console.error("Erro ao cancelar pacote:", error);
+    return NextResponse.json(
+      { error: "Erro ao cancelar pacote" },
+      { status: 500 }
+    );
   }
 }

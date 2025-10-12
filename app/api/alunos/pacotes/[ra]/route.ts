@@ -10,18 +10,12 @@ export async function GET(
   try {
     const token = req.headers.get("cookie")?.split("token=")[1]?.split(";")[0];
     if (!token) {
-      return NextResponse.json(
-        { error: "Não autenticado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
     const decoded = verifyToken(token);
     if (!decoded) {
-      return NextResponse.json(
-        { error: "Token inválido" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Token inválido" }, { status: 401 });
     }
 
     const { ra } = await params;
@@ -45,7 +39,7 @@ export async function GET(
       INNER JOIN cant_pacotes_alimentacao p ON pa.id_pacote = p.id
       WHERE pa.ra_aluno = ?
     `;
-    const queryParams: any[] = [ra];
+    const queryParams: (string | number)[] = [ra];
 
     if (ativo !== null) {
       sql += " AND pa.ativo = ?";
@@ -73,18 +67,12 @@ export async function POST(
   try {
     const token = req.headers.get("cookie")?.split("token=")[1]?.split(";")[0];
     if (!token) {
-      return NextResponse.json(
-        { error: "Não autenticado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
     const decoded = verifyToken(token);
     if (!decoded) {
-      return NextResponse.json(
-        { error: "Token inválido" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Token inválido" }, { status: 401 });
     }
 
     const { ra } = await params;
@@ -136,14 +124,17 @@ export async function POST(
       VALUES (?, ?, ?, 0, ?, ?, ?)
     `;
 
-    const result: any = await query(sql, [
+    interface InsertResult {
+      insertId: number;
+    }
+    const result = (await query(sql, [
       id_pacote,
       ra,
       pacote.quantidade_refeicoes,
       data_inicio,
       dataFim || null,
       decoded.id,
-    ]);
+    ])) as unknown as InsertResult;
 
     // Registrar log
     await query(
